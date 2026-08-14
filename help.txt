@@ -1,0 +1,305 @@
+================================================================
+ Systembewertungs-Extraktoren (V8 / V10 / V11) - HILFE
+ Sanofi FBC Devices Pens - CSV
+================================================================
+Diese Datei liegt neben der Systembewertungen_GESAMT.xlsx unter:
+!Systembewertungen_CS\00_Serienbrief\
+
+
+----------------------------------------------------------------
+1. ARBEITSWEISE (KURZ)
+----------------------------------------------------------------
+Jedes der drei Skripte (word_parser_v8_formularfelder_vX.X.py,
+word_parser_v10_formularfelder_vX.X.py,
+word_parser_v11_formularfelder_vX.X.py) macht im Kern dasselbe:
+
+  1. Eine Word-Systembewertung (.docx) wird per Drag & Drop auf das
+     Skript gezogen (oder als Kommandozeilenargument übergeben).
+  2. Das Skript prüft zuerst die Template-Version des Dokuments:
+       - V8  = kein KI-Kapitel im Dokument
+       - V10 = KI-Kapitel vorhanden + Testtiefe als direkte
+               Checkboxen/Text in Kapitel 2 ODER N/A bei
+               "Vereinfachte Qualifizierung"
+       - V11 = "GAMP 5 (2nd Edition)" im Text ODER Testtiefe nur
+               als Matrix in Kapitel 8
+     Sonderfall V7: Strukturell IDENTISCH zu V8 (kein KI-Kapitel,
+     gleicher Tabellenaufbau) - einziger Unterschied sind SOP-
+     Referenzen mit Standort-Präfix (z.B. "FRA-QU-SOP-..." statt
+     "QU-SOP-..."). V7-Dokumente werden daher vom V8-Skript
+     verarbeitet. Die Spalte "Erkannte_Version" wird trotzdem
+     korrekt mit "V7" befüllt, da das Skript zusätzlich den im
+     Dokument selbst genannten Basis-Versionshinweis ausliest
+     ("Neuerstellung auf Basis der ... Version 7.0" im Text der
+     Tabelle "Version / Freigabedatum") - unabhängig von der
+     strukturellen Versionserkennung, die weiterhin V8-Logik nutzt.
+     Passt die erkannte Version NICHT zum verwendeten Skript, wird
+     die Verarbeitung abgebrochen (mit Hinweis, welches Skript
+     stattdessen zu verwenden ist).
+  3. Alle relevanten Felder werden aus den Word-Tabellen extrahiert:
+     Kopfdaten, Checkboxen (sowohl echte Word-Formularfelder als
+     auch Klartext-Checkboxen "r"/"c" aus Seriendruck-Dokumenten),
+     GxP-Klassifizierung, Testtiefe, Kategorisierung, Historie usw.
+  4. Ergebnis wird in die Excel-Datei geschrieben:
+     Die Daten werden bei allen drei Skripten (V8, V10, V11) als
+     NEUE LETZTE ZEILE direkt in die Master-Excel
+     (Systembewertungen_GESAMT.xlsx, Sheet "SysBew", Excel-Tabelle
+     "Tabelle1") eingefügt - per COM-Automatisierung durch ein im
+     Hintergrund gestartetes echtes Excel (kein Neuschreiben der
+     Datei). Dadurch bleiben Sensitivity-Label, externe
+     Verknüpfung, Kommentare etc. unangetastet. Es wird KEINE
+     eigene Excel-Datei mehr erzeugt (bei V8 galt das bis
+     Version 1.2 noch anders, siehe Versionshistorie).
+  5. Duplikat-Hinweis: Nach dem Einfügen prüft das Skript, ob die
+     Kombination aus "Dok. -Nr." und "Version" des neuen Eintrags
+     bereits an anderer Stelle in der Master-Excel vorkommt, und
+     gibt bei Fund eine Konsolen-Warnung aus. Rein informativ -
+     verhindert das Einfügen NICHT. Der Platzhalterwert
+     "QU-OPE-xxxxx" wird dabei bewusst ignoriert. Zur dauerhaften
+     visuellen Kontrolle in Excel selbst empfiehlt sich zusätzlich
+     eine bedingte Formatierung auf Basis von ZÄHLENWENNS über die
+     Spalten "Dok. -Nr." und "Version".
+
+
+----------------------------------------------------------------
+2. BENUTZUNG
+----------------------------------------------------------------
+  1. Word-Datei ist geschlossen (nicht in Word geöffnet).
+  2. Word-Datei per Drag & Drop auf das passende Skript ziehen
+     (oder: python word_parser_vXX_formularfelder_vX.X.py "Datei.docx").
+  3. Konsolenausgabe verfolgen - jeder Extraktionsschritt wird
+     protokolliert, am Ende erscheint entweder:
+       "✅ In Master-Excel eingefügt (Zeile N)"      (V10/V11)
+       "✅ Excel gespeichert: <Pfad>"                 (V8)
+     oder eine Fehlermeldung mit Hinweis zur Behebung.
+  4. Bei "Master-Excel ist geöffnet/gesperrt": die Datei in Excel
+     schließen, dann ENTER drücken - das Skript versucht es erneut.
+  5. Bei "pywin32 ist nicht installiert" (V10/V11): einmalig
+     "pip install pywin32" ausführen.
+
+
+----------------------------------------------------------------
+3. VORAUSSETZUNGEN
+----------------------------------------------------------------
+  Python:        3.8 oder neuer (getestet mit 3.12)
+
+  Benötigte Zusatzpakete (pip install ...):
+
+    Alle drei Skripte (V8, V10, V11):
+      - python-docx   (getestet mit 1.2.0)
+      - pywin32       (getestet mit 312)
+      - Microsoft Excel muss lokal installiert sein
+      - Nur unter Windows lauffähig (win32com.client)
+
+  Installation (Kommandozeile / PowerShell):
+      pip install python-docx pywin32
+
+
+----------------------------------------------------------------
+4. VERSIONSHISTORIE
+----------------------------------------------------------------
+
+--- word_parser_v10_formularfelder ---------------------------
+  1.0   Erste stabile Version.
+        - Text-Checkbox-Erkennung (Klartext "r"/"c" aus
+          Seriendruck-Dokumenten) als Fallback zu echten
+          Word-Formularfeld-Checkboxen (SDT)
+        - GxP-Relevanz- und Business-Kritikalität-Erkennung für
+          Text-Checkbox-Dokumente korrigiert
+        - Neue Spalte "Erkannte_Version"
+        - Direktes Einfügen als neue Zeile in die Master-Excel
+          (Systembewertungen_GESAMT.xlsx) statt eigener Excel-Datei
+        - Umstellung von openpyxl auf COM-Automatisierung (echtes
+          Excel), um Master-Excel-Struktur (Excel-Tabelle,
+          Sensitivity-Label, externe Verknüpfung) nicht zu
+          beschädigen
+        - MLCS-ID: Präfix "MLCS" wird aus dem Wert entfernt
+
+  1.1   - Neues Feld "Version" (aus Tabelle "Version /
+          Freigabedatum" auf Seite 1, statt aus dokumentweiter
+          Suche)
+        - Neue Felder "Offen"/"Geschlossen"/"NA" (Systemtyp-
+          Zugangsbeschränkung, Kapitel 1)
+        - Neues Feld "UeberlagerteMLCS" (Zelle hinter
+          "Schnittstelle zu anderen/übergeordenten Systemen:")
+        - Bugfix: Namenskonflikt zwischen Testtiefe-N/A und
+          Kapitel-1-Systemtyp-N/A behoben (beide nutzten
+          fälschlich dieselbe Excel-Spalte "NA")
+
+  1.2   - Bugfix "Version": es wird jetzt über ALLE Zeilen der
+          Tabelle "Version / Freigabedatum" die höchste Version
+          ermittelt (numerischer Vergleich), nicht nur die erste
+          Zeile - relevant bei Dokumenten mit mehrzeiliger
+          Versionshistorie auf Seite 1
+
+  1.3   Duplikat-Hinweis nach dem Einfügen: prüft, ob "Dok. -Nr."
+        + "Version" der neuen Zeile bereits an anderer Stelle in
+        der Master-Excel vorkommt, und gibt bei Fund eine
+        Konsolen-Warnung aus (rein informativ)
+
+  1.4   Bugfix MLCSID: Präfix "MLCS ID" (nicht nur "MLCS") wird
+        jetzt korrekt entfernt, z.B. "MLCS ID 2950" -> "2950"
+
+  1.5   Bugfix COM-Lifecycle: War die Master-Excel bereits in
+        einer laufenden Excel-Instanz des Nutzers geöffnet, wurde
+        beim Beenden versehentlich die GESAMTE Excel-Anwendung
+        geschlossen (excel.Quit()) statt nur die Arbeitsmappe -
+        das hätte auch andere, unbeteiligte Excel-Fenster des
+        Nutzers geschlossen. Jetzt wird excel.Quit() nur noch
+        aufgerufen, wenn das Skript selbst eine neue, unsichtbare
+        Excel-Instanz gestartet hat; wurde eine bereits laufende
+        Instanz genutzt, wird ausschließlich die Arbeitsmappe
+        geschlossen.
+
+  1.6   Gesundheitscheck für angehängte Excel-Instanz: Ein von
+        einem früheren, abgebrochenen Lauf hängengebliebener,
+        unsichtbarer EXCEL.EXE-Prozess konnte dazu führen, dass
+        sich das Skript daran anhängt und mit einem kryptischen
+        COM-Fehler ("OLE error 0x800a01a8" / "Object required")
+        abbricht. Jetzt wird nach dem Anhängen an eine laufende
+        Instanz sofort geprüft, ob diese noch reagiert; falls
+        nicht, wird stattdessen eine neue Instanz gestartet.
+        Zusätzlich gibt die Fehlermeldung bei diesem Fehlerbild
+        jetzt einen Hinweis, im Task-Manager nach hängenden
+        EXCEL.EXE-Prozessen zu suchen.
+
+  1.7   Automatische Wiederholung bei transienten COM-Fehlern
+        (z.B. RPC_E_DISCONNECTED "Das aufgerufene Objekt wurde
+        von den Clients getrennt" - typischerweise durch
+        OneDrive/SharePoint-Sync-Konflikte während des
+        Schreibvorgangs). Bei einem Fehler versucht das Skript
+        es bis zu 3x automatisch erneut, ab dem 2. Versuch immer
+        mit einer komplett neuen, unsichtbaren Excel-Instanz
+        (kein erneutes Anhängen an eine ggf. instabile Instanz).
+
+  1.8   Neuer Konsolen-Block "VALIDIERUNG: Vollständigkeitsprüfung"
+        nach der Datenvorschau: prüft für 11 fest definierte
+        Checkbox-Kategorien (zusätzlich zu V8: KI-Reifegrad), ob
+        genau EIN Wert angekreuzt ("r") ist. Zeigt je Kategorie den
+        Namen, den ausgewählten Wert als Klartext (c-Werte werden
+        nicht angezeigt) und den Status: ✅ genau 1 gefunden,
+        ❗ keiner gefunden, ❌ mehrere gefunden (Konflikt). Bewusst
+        ausgeschlossen: Testtiefe (Gering/Mittel/Hoch) und
+        Validierung/Qualifizierung nach SOP - beide noch
+        unvollständig getrackt (siehe Abschnitt 5).
+
+--- word_parser_v11_formularfelder ---------------------------
+  2.0   Erste stabile Version (analog V10 1.0, jedoch:
+        - Testtiefe wird aus der Z-Felder-Matrix in Kapitel 8
+          berechnet statt aus einer direkten Zelle in Kapitel 2)
+
+  2.1   identisch zu V10 1.1 (gleiche drei neuen Felder,
+        gleicher NA-Bugfix)
+
+  2.2   identisch zu V10 1.2 (gleicher Versions-Bugfix)
+
+  2.3   identisch zu V10 1.3 (gleicher Duplikat-Hinweis)
+
+  2.4   identisch zu V10 1.4 (gleicher MLCSID-Bugfix)
+
+  2.5   identisch zu V10 1.5 (gleicher COM-Lifecycle-Bugfix)
+
+  2.6   identisch zu V10 1.6 (gleicher Gesundheitscheck-Fix)
+
+  2.7   identisch zu V10 1.7 (gleiche automatische Wiederholung)
+
+  2.8   Neuer Konsolen-Block "VALIDIERUNG: Vollständigkeitsprüfung"
+        wie V10 1.8, zusätzlich mit eigener Kategorie
+        "Testtiefe-Matrix" (Z1S1…Z3S3 - genau ein Feld der
+        3x3-Matrix sollte angekreuzt sein).
+
+--- word_parser_v8_formularfelder ----------------------------
+  1.0   Erste Version, neu aufgebaut auf Basis von V10 1.0.
+        - Kein KI-Kapitel im Template -> Feld "KI Bewertung" wird
+          fest auf "keine KI-Bewertung vorhanden" gesetzt, KI1-6/
+          KINA bleiben leer
+        - CHECKBOX_MAPPING ohne KI-Spalte (Tabelle 6 hat nur 8
+          statt 9 Spalten)
+        - Unterstützt sowohl SDT- als auch Text-Checkbox-Dokumente
+        - schrieb zu diesem Zeitpunkt noch eine eigene Excel-Datei,
+          NICHT in die Master-Excel
+
+  1.1   identisch zu V10 1.1 (gleiche drei neuen Felder,
+        gleicher NA-Bugfix)
+
+  1.2   identisch zu V10 1.2 (gleicher Versions-Bugfix)
+
+  1.3   Umstellung auf Master-Excel-Insert per COM-Automatisierung
+        (identisch zu V10/V11) - erzeugt keine eigene Excel-Datei
+        mehr, sondern fügt wie V10/V11 direkt in
+        Systembewertungen_GESAMT.xlsx ein
+
+  1.4   identisch zu V10 1.3 (gleicher Duplikat-Hinweis)
+
+  1.5   identisch zu V10 1.4 (gleicher MLCSID-Bugfix)
+
+  1.6   identisch zu V10 1.5 (gleicher COM-Lifecycle-Bugfix)
+
+  1.7   identisch zu V10 1.6 (gleicher Gesundheitscheck-Fix)
+
+  1.8   identisch zu V10 1.7 (gleiche automatische Wiederholung)
+
+  1.9   Unterstützung für V7-Templates: V7 ist strukturell
+        identisch zu V8 (kein KI-Kapitel, gleicher Tabellenaufbau,
+        gleiche Feld-/Checkbox-Positionen; einziger Unterschied
+        sind standortspezifische SOP-Präfixe wie "FRA-QU-SOP-..."
+        statt "QU-SOP-..."). V7-Dokumente werden daher weiterhin
+        über die V8-Extraktionslogik verarbeitet - neu ist eine
+        zusätzliche Funktion (extract_template_basis_version), die
+        den im Dokumenttext genannten Basis-Versionshinweis
+        ("Neuerstellung auf Basis der ... Version 7.0") ausliest
+        und die Spalte "Erkannte_Version" entsprechend korrekt auf
+        "V7" statt "V8" setzt. Diese Erweiterung wurde bewusst NUR
+        in V8 eingebaut (nicht in V10/V11), da sich dort gezeigt
+        hat, dass die im Dokument selbst genannte Versionsnummer
+        nicht zuverlässig mit der strukturellen V10/V11-Einteilung
+        übereinstimmt (z.B. kann ein strukturell als V11
+        erkanntes Dokument im Text "Version 10.0" nennen) - eine
+        Übernahme hätte dort zu falschen Werten geführt.
+
+  1.10  Neuer Konsolen-Block "VALIDIERUNG: Vollständigkeitsprüfung"
+        nach der Datenvorschau: prüft für 10 fest definierte
+        Checkbox-Kategorien (z.B. GxP-Kritikalität, CS-Typ,
+        Gerätekategorie), ob genau EIN Wert angekreuzt ("r") ist.
+        Zeigt je Kategorie den Namen, den ausgewählten Wert als
+        Klartext (c-Werte werden nicht angezeigt) und den Status:
+        ✅ genau 1 gefunden, ❗ keiner gefunden, ❌ mehrere gefunden
+        (Konflikt). Bewusst ausgeschlossen: Testtiefe (Gering/
+        Mittel/Hoch) und Validierung/Qualifizierung nach SOP -
+        beide noch unvollständig getrackt (siehe Abschnitt 5).
+
+
+----------------------------------------------------------------
+5. BEKANNTE EINSCHRÄNKUNGEN
+----------------------------------------------------------------
+  - Bei der Fehlermeldung "OLE error 0x800a01a8" ("Object
+    required"): im Task-Manager nach hängenden, unsichtbaren
+    EXCEL.EXE-Prozessen suchen (z.B. von einem vorherigen
+    abgebrochenen Lauf) und diese beenden, dann erneut versuchen.
+    Ab Version 1.6/2.6 prüft das Skript dies zwar automatisch vor
+    dem eigentlichen Schreibvorgang, ein manueller Check schadet
+    im Zweifel aber nicht.
+  - COM-Automatisierung (V10/V11) wurde in der Entwicklungsumgebung
+    ohne echtes Windows/Excel nicht end-to-end gegen die
+    tatsächliche SharePoint-Datei getestet, sondern nur die
+    Fehlerpfade (fehlende Datei, fehlendes pywin32). Der reale
+    Einfüge-Test wurde vom Anwender selbst gegen eine Kopie der
+    Master-Excel durchgeführt und bestätigt.
+  - Die Vollständigkeitsprüfung (VALIDIERUNG-Block) zeigt bei
+    Dokumenten mit "GxP-Relevanz = Nein" für alle nachfolgenden
+    Kategorien "❗ KEIN Wert ausgewählt" an, da die Systembewertung
+    laut Formularlogik dort vorzeitig endet. Das ist in diesem Fall
+    KEIN Fehler, sondern erwartet - wird aber bewusst nicht separat
+    kommentiert und muss vom Anwender selbst eingeordnet werden.
+  - Testtiefe (Gering/Mittel/Hoch) und Validierung/Qualifizierung
+    nach SOP (QUAL/VAL) sind bewusst NICHT Teil der
+    Vollständigkeitsprüfung, da beide Gruppen aktuell nicht alle
+    im Dokument vorhandenen Checkbox-Optionen vollständig auf
+    Excel-Spalten abbilden (fehlende Testtiefe-N/A-Spalte, fehlende
+    3. SOP-Spalte bei Validierung/Qualifizierung) - eine Prüfung
+    würde dort zu falschen Warnungen führen. Beide Erweiterungen
+    sind für eine spätere Version vorgemerkt.
+  - Externe Verknüpfungen in der Master-Excel werden beim Öffnen
+    per COM bewusst NICHT automatisch aktualisiert
+    (UpdateLinks=0), um Störungen durch Verknüpfungs-Dialoge zu
+    vermeiden.
+================================================================
