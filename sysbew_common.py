@@ -1,19 +1,30 @@
 # ============================================================
-# word_parser_v10_formularfelder.py
-# V10 Systembewertung Extraktor - 1.8
-# Drag & Drop: Word-Datei auf dieses Script ziehen!
-# Output: Excel-Datei mit einer Zeile im gleichen Ordner
+# sysbew_common.py
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 1.0
+#
+# Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
+# (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
+# war: Excel-Spalten, Master-Excel-Konfiguration, alle Hilfs- und
+# Extraktionsfunktionen, die nicht vom Template-Aufbau der jeweiligen
+# Version abhängen, sowie das Schreiben in die Master-Excel per COM.
+#
+# Version-spezifischer Code (CHECKBOX_MAPPING, VALIDATION_KATEGORIEN,
+# die jeweilige Haupt-Extraktionsfunktion parse_systembewertung_vXX
+# sowie alles, was NUR in einer Version existiert wie extract_z_felder
+# in V11 oder extract_template_basis_version in V8) bleibt bewusst in
+# den jeweiligen Erweiterungs-Modulen (word_parser_v8.py,
+# word_parser_v10.py, word_parser_v11.py) - nicht hier.
+#
+# Wird nicht direkt per Drag & Drop verwendet, sondern von
+# word_parser_main.py und den drei Erweiterungs-Modulen importiert.
 # ============================================================
 
-from docx import Document
 import re
 import os
-import sys
 import time
-from datetime import datetime
 
 # ============================================================
-# EXCEL-SPALTEN (exakt wie in der Vorlage, + 2 neue am Ende)
+# EXCEL-SPALTEN (identisch in allen drei Vorgänger-Skripten)
 # ============================================================
 EXCEL_COLUMNS = [
     "MLCSID", "API", "Betrieb", "Gebaeude", "Version", "Dok. -Nr.",
@@ -27,7 +38,7 @@ EXCEL_COLUMNS = [
     "VNAP_S0", "VNAP_S1", "VNAP_S2", "Subtyp_NA",
     "Offen", "Geschlossen", "NA",
     "KAT1", "KAT3", "KAT4", "KAT5", "KATNA",
-    "Ersteller", "SME", "SI", "TSO", "BSO", "BQR", "CSQ",
+    "Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ",
     "Datum", "Version_Historie", "Historie", "Bearbeiter",
     "Hersteller", "Phenix", "SAP",
     "ERESTYP1", "ERESTYP2", "ERESTYP3", "ERESTYP4", "ERESTYPNA",
@@ -52,132 +63,11 @@ EXCEL_COLUMNS = [
 ]
 
 # ============================================================
-# MAPPING: Checkboxen Kapitel 2
-# V10: Testtiefe direkt in Zelle 4 (nicht in separater Tabelle!)
+# MAPPING: Textfelder → Excel-Spalten (identisch in allen drei
+# Vorgänger-Skripten - TEXT_FIELD_MAPPING_V8/V10/V11 waren
+# wortgleich)
 # ============================================================
-# ============================================================
-# VALIDIERUNG: Kategorien, bei denen genau EIN "r"-Wert erwartet wird
-# ============================================================
-# Jede Kategorie = (Anzeigename, [(Excel-Feldname, Anzeige-Label), ...])
-# Ausgeschlossen (noch unvollständig getrackt, siehe help.txt):
-#   - Testtiefe (Gering/Mittel/Hoch) - fehlende N/A-Spalte
-#   - Validierung/Qualifizierung nach SOP (QUAL/VAL) - fehlende 3. SOP-Spalte
-VALIDATION_KATEGORIEN_V10 = [
-    ("Neuerstellung/Änderung", [
-        ("Neuerstellung", "Neuerstellung"),
-        ("Revisioniert", "Änderung – im Einsatz/Aktualisierung"),
-    ]),
-    ("Systemtyp (Zugangsbeschränkung)", [
-        ("Offen", "offen"),
-        ("Geschlossen", "geschlossen"),
-        ("NA", "N/A"),
-    ]),
-    ("GxP-Relevanz", [
-        ("GxP_Relevan_JA", "Ja"),
-        ("GxP_Relevan_NEIN", "Nein"),
-    ]),
-    ("Business Kritisch", [
-        ("BCkritisch", "Ja"),
-        ("BCunkritisch", "Nein"),
-    ]),
-    ("GxP-Kritikalität", [
-        ("GxP-C", "Critical"),
-        ("GxP-M", "Major"),
-        ("GxP-m2", "minor"),
-        ("GxP-NA", "N/A"),
-    ]),
-    ("CS-Typ", [
-        ("Systemtyp_CIS", "CIS"),
-        ("Subtyp_LCE", "CE-LCE"),
-        ("Subtyp_PCS", "CE-PCS"),
-        ("Subtyp_EE", "CE-EE"),
-        ("VNAP_S0", "S0"),
-        ("VNAP_S1", "S1"),
-        ("VNAP_S2", "S2"),
-        ("Subtyp_NA", "N/A"),
-    ]),
-    ("ERES-Typ", [
-        ("ERESTYP1", "Typ 1"),
-        ("ERESTYP2", "Typ 2"),
-        ("ERESTYP3", "Typ 3"),
-        ("ERESTYP4", "Typ 4"),
-        ("ERESTYPNA", "N/A"),
-    ]),
-    ("GAMP5 Software-Kategorie", [
-        ("KAT1", "SW-Kat 1"),
-        ("KAT3", "SW-Kat 3"),
-        ("KAT4", "SW-Kat 4"),
-        ("KAT5", "SW-Kat 5"),
-        ("KATNA", "N/A"),
-    ]),
-    ("Gerätekategorie", [
-        ("GKATA", "A"),
-        ("GKATB", "B"),
-        ("GKATC", "C"),
-        ("GKATNA", "N/A"),
-    ]),
-    ("Vereinfachte Qualifizierung", [
-        ("VQ", "Ja"),
-        ("NVQ", "Nein"),
-    ]),
-    ("KI-Reifegrad", [
-        ("KI1", "I"), ("KI2", "II"), ("KI3", "III"),
-        ("KI4", "IV"), ("KI5", "V"), ("KI6", "VI"),
-        ("KINA", "N/A"),
-    ]),
-]
-
-def validiere_kategorien(data, kategorien):
-    """
-    Prüft je Kategorie, ob genau EIN "r"-Wert (angekreuzt) vorhanden ist.
-    c-Werte werden nicht angezeigt - nur Kategoriename, ausgewählter
-    Wert (falls genau einer) und Status.
-    """
-    print("\n" + "="*55)
-    print("✅ VALIDIERUNG: Vollständigkeitsprüfung")
-    print("="*55)
-    for name, optionen in kategorien:
-        gefunden = [label for feld, label in optionen if data.get(feld) == "r"]
-        if len(gefunden) == 1:
-            print(f"  ✅ {name:<32} = \"{gefunden[0]}\"")
-        elif len(gefunden) == 0:
-            print(f"  ❗ {name:<32} = KEIN Wert ausgewählt (erwartet: genau 1)")
-        else:
-            werte = ", ".join(f'"{g}"' for g in gefunden)
-            print(f"  ❌ {name:<32} = MEHRERE Werte: {werte} (erwartet: genau 1)")
-
-CHECKBOX_MAPPING_V10 = {
-    6: {
-        6: {
-            0: {0: "GxP-C", 1: "GxP-M", 2: "GxP-m2", 3: "GxP-NA"},
-            1: {
-                0: "Systemtyp_CIS", 1: "Subtyp_LCE", 2: "Subtyp_PCS",
-                3: "Subtyp_EE",     4: "VNAP_S0",    5: "VNAP_S1",
-                6: "VNAP_S2",       7: "Subtyp_NA",
-            },
-            2: {0: "ERESTYP1", 1: "ERESTYP2", 2: "ERESTYP3",
-                3: "ERESTYP4", 4: "ERESTYPNA"},
-            3: {0: "KAT1", 1: "KAT3", 2: "KAT4", 3: "KAT5", 4: "KATNA"},
-            # V10: Testtiefe direkt in Zelle 4! (kein eigenes NA-Feld in der
-            # Master-Excel für Testtiefe-N/A vorhanden -> Index 3 bewusst nicht gemappt,
-            # "NA" ist für Kapitel-1 Systemtyp offen/geschlossen/N-A reserviert)
-            4: {0: "TTIEFENIEDRIG", 1: "TTIEFEMITTEL", 2: "TTIEFEHOCH"},
-            6: {0: "GKATA", 1: "GKATB", 2: "GKATC", 3: "GKATNA"},
-            7: {0: "QUAL", 1: "VAL"},
-            8: {0: "KI1", 1: "KI2", 2: "KI3", 3: "KI4",
-                4: "KI5", 5: "KI6", 6: "KINA"},
-        },
-        8: {
-            0: {0: "BCkritisch", 1: "BCunkritisch"},
-            6: {0: "VQ", 1: "NVQ"},
-        },
-    },
-}
-
-# ============================================================
-# MAPPING: Textfelder → Excel-Spalten
-# ============================================================
-TEXT_FIELD_MAPPING_V10 = {
+TEXT_FIELD_MAPPING = {
     "Bezeichnung des Equipments / Systemname": "AS/BDIS-Name",
     "Bezeichnung des Equipment / Systemname":  "AS/BDIS-Name",
     "Bezeichnung des Equipment/ Systemname":   "AS/BDIS-Name",
@@ -189,7 +79,7 @@ TEXT_FIELD_MAPPING_V10 = {
     "Einsatzbereich(e)/-ort(e)":               "_betrieb_raw",
     "Prozessbeschreibung":                     "Prozessbeschreibung",
     "Daten":                                   "Daten",
-    "Parameter":                               "Parameter",
+    "Parameter":                                "Parameter",
     "Alarme (GxP critical)":                   "Alarme (GxP-relevant)",
     "Alarme (GxP-relevant)":                   "Alarme (GxP-relevant)",
     "Chargenprotokoll":                        "Chargenprotokoll",
@@ -206,6 +96,20 @@ TEXT_FIELD_MAPPING_V10 = {
     "Sonstiges":                               "Sonstiges",
     "KI Bewertung":                            "KI Bewertung",
     "KI-Bewertung":                            "KI Bewertung",
+}
+
+# ============================================================
+# MASTER-EXCEL: Konfiguration (identisch in allen drei
+# Vorgänger-Skripten)
+# ============================================================
+MASTER_EXCEL_PFAD   = r"C:\Users\de020409\Sanofi\FBC Betriebsübergreifende Dokumente - General\!Systembewertungen_CS\00_Serienbrief\Systembewertungen_GESAMT.xlsx"
+MASTER_SHEET_NAME    = "SysBew"
+MASTER_TABELLE_NAME  = "Tabelle1"
+
+# Spalten, deren Name im Skript anders lautet als in der Master-Excel.
+# Schlüssel = Feldname im Skript (data-Dict), Wert = Spaltenname in der Master-Excel.
+MASTER_SPALTEN_MAPPING = {
+    "Erkannte_Version": "Erkannte Version2",
 }
 
 # ============================================================
@@ -309,58 +213,6 @@ def parse_betrieb(raw):
         result["API"] = betrieb.split()[0].strip().rstrip(",")
     return result
 
-def parse_hersteller(raw):
-    result = {}
-    if not raw:
-        return result
-
-    # SW-Hersteller: OOZ-Nummern und Zeilenumbrüche entfernen
-    # SW-Hersteller: Prefix + OOZ + QTP-Teile entfernen
-    sw_hersteller = re.sub(r'\s*\n\s*OOZ[A-Z0-9]*', '', raw).strip()
-    sw_hersteller = re.sub(r'\s*OOZ[A-Z0-9]+\s*', ' ', sw_hersteller).strip()
-    sw_hersteller = re.sub(
-        r'(PU-Lieferant|Systemsoftware|Lieferant)\s*:\s*',
-        '', sw_hersteller, flags=re.IGNORECASE
-    ).strip()
-    sw_hersteller = re.sub(
-        r'\s*/\s*QTP-Customer\s*ID\s*:.*$', '', sw_hersteller,
-        flags=re.IGNORECASE
-    ).strip()
-    result["SW-Hersteller"] = sw_hersteller
-
-    # Hersteller: Prefix wie "PU-Lieferant:", "Systemsoftware:" entfernen
-    # und nur den Firmennamen behalten
-    hersteller_raw = re.split(
-        r'[/,]|QualiPSO|QTP|Phenix|Ursprünglich|OOZ', raw, maxsplit=1
-    )[0]
-    # Prefix wie "PU-Lieferant: " entfernen
-    hersteller_raw = re.sub(
-        r'^(PU-Lieferant|Systemsoftware|Lieferant|Hersteller)\s*:\s*',
-        '', hersteller_raw, flags=re.IGNORECASE
-    ).strip().rstrip(":")
-    result["Hersteller"] = hersteller_raw.strip()
-
-    # QualiPSO-ID oder QTP-Customer ID → Lieferantennummer
-    m = re.search(
-        r'(?:QualiPSO|QTP)[-\s]*(?:Customer\s*)?ID\s*:?\s*([A-Z0-9]+)',
-        raw, re.IGNORECASE
-    )
-    if m:
-        result["Lieferantennummer"] = m.group(1).strip()
-
-    # Phenix-ID
-    m = re.search(r'Phenix[-\s]*ID\s*:?\s*(?:ID\s*)?([0-9]+)',
-                  raw, re.IGNORECASE)
-    if m:
-        result["Phenix"] = m.group(1).strip()
-    else:
-        # OOZ-Nummer direkt (ohne Prefix) → Phenix
-        m = re.search(r'\b(OOZ[A-Z0-9]+)\b', raw, re.IGNORECASE)
-        if m and "Lieferantennummer" not in result:
-            result["Phenix"] = m.group(1).strip()
-
-    return result
-
 def parse_dok_nr(filename):
     m = re.search(r'(QU-[A-Z]+-\d+)', filename, re.IGNORECASE)
     return m.group(1) if m else None
@@ -449,7 +301,8 @@ def berechne_systemtyp_ce(data):
     return "c"
 
 # ============================================================
-# EXTRAKTIONS-FUNKTIONEN
+# TEMPLATE-VERSIONSERKENNUNG (identisch in allen drei
+# Vorgänger-Skripten)
 # ============================================================
 def detect_template_version(doc):
     """
@@ -535,6 +388,11 @@ def detect_template_version(doc):
         return 10  # Testtiefe in Kap. 2 → V10
     else:
         return 11  # Keine Testtiefe in Kap. 2 → V11
+
+# ============================================================
+# EXTRAKTIONS-FUNKTIONEN (identisch in allen drei
+# Vorgänger-Skripten)
+# ============================================================
 def extract_mlcs_id(doc):
     for table in doc.tables:
         for row in table.rows:
@@ -778,15 +636,22 @@ def extract_gxp_relevan_bc(doc):
 
     return result
 
-def extract_text_fields(doc):
+def extract_text_fields(doc, text_field_mapping=None):
+    """Nutzt standardmäßig die gemeinsame TEXT_FIELD_MAPPING; ein Modul
+    kann bei Bedarf ein eigenes Mapping übergeben (aktuell ungenutzt, da
+    TEXT_FIELD_MAPPING in V8/V10/V11 identisch war)."""
+    if text_field_mapping is None:
+        text_field_mapping = TEXT_FIELD_MAPPING
     result = {}
     for table in doc.tables:
         for row in table.rows:
             cells = row.cells
             if len(cells) < 2:
                 continue
+            if _ist_rollen_zeile(cells):
+                continue  # Deckblatt-Rollenzeile, siehe extract_deckblatt_rollen()
             label_text = get_cell_text(cells[0])
-            for search_term, excel_col in TEXT_FIELD_MAPPING_V10.items():
+            for search_term, excel_col in text_field_mapping.items():
                 if text_matches(search_term, label_text):
                     value = ""
                     for i in range(1, len(cells)):
@@ -799,12 +664,14 @@ def extract_text_fields(doc):
                     break
     return result
 
-def extract_checkboxes_formularfelder(doc):
+def extract_checkboxes_formularfelder(doc, checkbox_mapping):
+    """checkbox_mapping ist versionsabhängig (CHECKBOX_MAPPING_V8/V10/V11
+    aus dem jeweiligen Erweiterungs-Modul) und muss übergeben werden."""
     result = {}
     for table_idx, table in enumerate(doc.tables):
-        if table_idx not in CHECKBOX_MAPPING_V10:
+        if table_idx not in checkbox_mapping:
             continue
-        table_mapping = CHECKBOX_MAPPING_V10[table_idx]
+        table_mapping = checkbox_mapping[table_idx]
         for row_idx, row in enumerate(table.rows):
             if row_idx not in table_mapping:
                 continue
@@ -843,21 +710,230 @@ def extract_history(doc):
     return result
 
 # ============================================================
-# EXCEL-OUTPUT
+# DECKBLATT: Rollen/Namen (Ersteller, SME, SI/PL, TSO, BSO, BQR, CSQ)
 # ============================================================
-# ============================================================
-# MASTER-EXCEL: Konfiguration
-# ============================================================
-MASTER_EXCEL_PFAD   = r"C:\Users\de020409\Sanofi\FBC Betriebsübergreifende Dokumente - General\!Systembewertungen_CS\00_Serienbrief\Systembewertungen_GESAMT.xlsx"
-MASTER_SHEET_NAME    = "SysBew"
-MASTER_TABELLE_NAME  = "Tabelle1"
-
-# Spalten, deren Name im Skript anders lautet als in der Master-Excel.
-# Schlüssel = Feldname im Skript (data-Dict), Wert = Spaltenname in der Master-Excel.
-MASTER_SPALTEN_MAPPING = {
-    "Erkannte_Version": "Erkannte Version2",
+# Bekannte Rollen-Label-Varianten -> Ziel-Spalte in der Master-Excel.
+# "SI" und "PL" (Projektleiter) landen beide in der zusammengefassten
+# Spalte "SI/PL", weil die Master-Excel dafür nur eine gemeinsame
+# Spalte hat.
+ROLLEN_LABEL_MAPPING = {
+    "ersteller": "Ersteller",
+    "sme": "SME",
+    "si": "SI/PL",
+    "pl": "SI/PL",
+    "si/pl": "SI/PL",
+    "systemintegrator": "SI/PL",
+    "projektleiter": "SI/PL",
+    "projektleitung": "SI/PL",
+    "tso": "TSO",
+    "bso": "BSO",
+    "bqr": "BQR",
+    "csq": "CSQ",
 }
 
+ROLLEN_SPALTEN = ("Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ")
+
+# Reihenfolge wichtig: "SI/PL" bzw. die Projektleiter-Varianten müssen
+# vor dem kürzeren "SI"/"PL" geprüft werden, damit z.B. "SI/PL" nicht
+# fälschlich schon als reines "SI" erkannt wird.
+_ROLLEN_LABEL_PATTERN = re.compile(
+    r'^\s*(Ersteller|SME|SI\s*/\s*PL|Systemintegrator|Projektleit(?:er|ung)|SI|PL|TSO|BSO|BQR|CSQ)\b[:\s]*',
+    re.IGNORECASE
+)
+
+# Bekannte Word-Platzhaltertexte von noch nicht befüllten
+# Content-Control-Dropdownfeldern - dürfen nicht als Name durchgehen.
+_ROLLEN_PLATZHALTER = [
+    r"^klicken sie",
+    r"^choose an item",
+    r"^wählen sie",
+    r"^auswahl\.*$",
+    r"^bitte auswählen",
+]
+
+def _ist_rollen_platzhalter(text):
+    t = text.lower().strip()
+    return any(re.match(p, t) for p in _ROLLEN_PLATZHALTER)
+
+def _ist_bekanntes_rollen_label(text):
+    """True, wenn `text` (nach Bereinigung) exakt einem der bekannten
+    Rollen-Label entspricht - dient nur der Erkennung, ob eine
+    Tabellenzeile überhaupt die Deckblatt-Rollenzeile ist."""
+    l_clean = re.sub(r'[^a-zäöüß/]', '', text.strip().lower())
+    return l_clean in ROLLEN_LABEL_MAPPING
+
+def _ist_rollen_zeile(cells):
+    """
+    True, wenn mindestens 3 Zellen dieser Tabellenzeile ein bekanntes
+    Rollen-Label (Ersteller/SME/SI-PL/TSO/BSO/BQR/CSQ) enthalten - dann
+    ist es die Deckblatt-Rollenzeile. Wichtig auch für
+    extract_text_fields(): "Ersteller" würde sonst über den laschen
+    Teilstring-Vergleich in text_matches() fälschlich als Treffer für
+    den Suchbegriff "Hersteller / SW-Ersteller / Lieferant" durchgehen
+    (weil "ersteller" darin als Teilwort steckt) und die Nachbarzelle
+    (z.B. "SME") als Hersteller-Wert übernehmen.
+    """
+    return sum(1 for c in cells if _ist_bekanntes_rollen_label(get_cell_text(c))) >= 3
+
+def _normalisiere_rollen_label(label):
+    """
+    Ordnet ein Rollen-Label (Feldbezeichnung auf dem Deckblatt) der
+    passenden Excel-Spalte zu. Bekannte Kurzformen (z.B. "PL" für
+    Projektleiter) werden erkannt und der zusammengefassten Spalte
+    "SI/PL" zugeordnet. Nicht erkennbare Funktionsbezeichnungen
+    fallen auf "SME" zurück - AUSSER das Label deutet auf eine
+    Projektleitungs-Funktion hin (enthält "pl" als eigenständiges
+    Kürzel oder "projektleit..."), dann "SI/PL".
+    """
+    l = label.strip().lower()
+    l_clean = re.sub(r'[^a-zäöüß/]', '', l)
+    if l_clean in ROLLEN_LABEL_MAPPING:
+        return ROLLEN_LABEL_MAPPING[l_clean]
+    if re.search(r'\bpl\b', l) or "projektleit" in l:
+        return "SI/PL"
+    return "SME"
+
+def _get_sdt_text(cell_element, ns):
+    """
+    Liest den aktuell angezeigten Text aus Content-Control-Feldern
+    (w:sdt, z.B. Dropdown-Auswahlfelder) einer Zelle ein. Nötig, weil
+    solche Felder ihren Text nicht zuverlässig über die normalen
+    Zellen-Absätze (cell.paragraphs) liefern - aus demselben Grund
+    liest get_checkboxes_from_cell() Checkbox-Formularfelder direkt
+    über die SDT-XML-Struktur statt über den Absatztext.
+    """
+    texte = []
+    for t in cell_element.findall(".//w:sdtContent//w:t", ns):
+        if t.text:
+            texte.append(t.text)
+    return "".join(texte).strip()
+
+def extract_deckblatt_rollen(doc):
+    """
+    Liest die Namen zu den Rollen Ersteller/SME/SI-PL/TSO/BSO/BQR/CSQ
+    vom Deckblatt. Jede Rollen-Zelle besteht aus dem Label
+    ("Ersteller" usw.) als Fließtext plus dem Namen direkt daneben
+    bzw. als Dropdown-Auswahl darunter/dahinter.
+
+    Eine Tabellenzeile wird als Deckblatt-Rollenzeile behandelt, wenn
+    mindestens 3 ihrer Zellen ein bekanntes Rollen-Label enthalten -
+    ERST DANN werden alle Zellen dieser Zeile ausgewertet (auch die,
+    deren Label NICHT bekannt ist). So greift der Fallback auch für
+    abweichend benannte Funktionen, die sonst nie erkannt würden:
+    über _normalisiere_rollen_label() geht alles mit "PL"/
+    "Projektleit..." nach Spalte "SI/PL", alles andere nicht
+    erkennbare nach Spalte "SME".
+
+    Kommt eine Rolle mehrfach vor (z.B. zwei BSO-Felder, weil es zwei
+    Business Owner gibt), werden alle für die jeweilige Spalte
+    gefundenen Namen mit einem Zeilenumbruch ("\\n" - erscheint in
+    Excel als Alt+Enter-Umbruch innerhalb der Zelle) zusammengefügt.
+    """
+    ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    treffer = {spalte: [] for spalte in ROLLEN_SPALTEN}
+
+    for table in doc.tables:
+        for row in table.rows:
+            cells = row.cells
+            if not _ist_rollen_zeile(cells):
+                continue  # keine Deckblatt-Rollenzeile
+            labels = [get_cell_text(c).strip() for c in cells]
+
+            for cell, label in zip(cells, labels):
+                if not label:
+                    continue
+                m = _ROLLEN_LABEL_PATTERN.match(label)
+                # Bekanntes Label mit Text danach (z.B. "Ersteller: Max
+                # Mustermann") -> Name schon im Fließtext. Sonst (Label
+                # allein, oder Label komplett unbekannt) -> Name steckt
+                # im Dropdown-/Content-Control-Feld derselben Zelle.
+                name = label[m.end():].strip() if m else ""
+                if not name:
+                    name = _get_sdt_text(cell._element, ns)
+                if not name or _ist_rollen_platzhalter(name):
+                    continue  # Feld auf dem Deckblatt noch nicht befüllt
+                rollen_label = m.group(1) if m else label
+                spalte = _normalisiere_rollen_label(rollen_label)
+                if name not in treffer[spalte]:
+                    treffer[spalte].append(name)
+
+    return {spalte: "\n".join(namen) for spalte, namen in treffer.items() if namen}
+
+# ============================================================
+# VALIDIERUNG: Vollständigkeitsprüfung
+# ============================================================
+def validiere_kategorien(data, kategorien):
+    """
+    Prüft je Kategorie, ob genau EIN "r"-Wert (angekreuzt) vorhanden ist.
+    c-Werte werden nicht angezeigt - nur Kategoriename, ausgewählter
+    Wert (falls genau einer) und Status. `kategorien` kommt aus dem
+    jeweiligen Erweiterungs-Modul (VALIDATION_KATEGORIEN_V8/V10/V11).
+    """
+    print("\n" + "="*55)
+    print("✅ VALIDIERUNG: Vollständigkeitsprüfung")
+    print("="*55)
+    for name, optionen in kategorien:
+        gefunden = [label for feld, label in optionen if data.get(feld) == "r"]
+        if len(gefunden) == 1:
+            print(f"  ✅ {name:<32} = \"{gefunden[0]}\"")
+        elif len(gefunden) == 0:
+            print(f"  ❗ {name:<32} = KEIN Wert ausgewählt (erwartet: genau 1)")
+        else:
+            werte = ", ".join(f'"{g}"' for g in gefunden)
+            print(f"  ❌ {name:<32} = MEHRERE Werte: {werte} (erwartet: genau 1)")
+
+# ============================================================
+# DATEI-VALIDIERUNG (identisch in allen drei Vorgänger-Skripten
+# am Anfang von parse_systembewertung_vXX)
+# ============================================================
+def validiere_docx_datei(docx_path):
+    """
+    Bereinigt den Pfad (Anführungszeichen vom Drag & Drop) und prüft,
+    ob die Datei existiert, eine .docx/.doc-Endung hat und lokal
+    verfügbar ist (kein OneDrive-Platzhalter, nicht durch Word gesperrt).
+
+    Gibt den bereinigten Pfad zurück, wenn alles passt, sonst None
+    (Fehlermeldung wurde bereits ausgegeben). Wirft FileNotFoundError,
+    wenn die Datei nicht existiert (wie im Vorgänger-Verhalten).
+    """
+    docx_path = docx_path.strip().strip('"').strip("'")
+
+    if not os.path.exists(docx_path):
+        raise FileNotFoundError(f"Datei nicht gefunden: {docx_path}")
+
+    ext = os.path.splitext(docx_path)[1].lower()
+    if ext not in [".docx", ".doc"]:
+        print(f"\n  ❌ Keine Word-Datei: '{os.path.basename(docx_path)}'")
+        print(f"     Nur .docx Dateien werden unterstützt.")
+        return None
+
+    # Prüfe ob Datei lokal verfügbar (kein OneDrive-Platzhalter)
+    try:
+        with open(docx_path, 'rb') as f:
+            header = f.read(4)
+        if header[:2] != b'PK':
+            print(f"\n  ❌ Datei ist kein gültiges .docx!")
+            print(f"     Möglicherweise nur OneDrive-Platzhalter.")
+            print(f"     → Rechtsklick → 'Immer auf diesem Gerät behalten'")
+            return None
+    except PermissionError:
+        print(f"\n  ❌ Datei ist gesperrt!")
+        print(f"     ⚠️  WICHTIG: Bitte Word KOMPLETT schließen!")
+        print(f"     → Alle Word-Fenster schließen")
+        print(f"     → Task-Manager prüfen (Ctrl+Shift+Esc)")
+        print(f"     → Nach WINWORD.EXE suchen und beenden")
+        print(f"     → Dann Skript erneut starten")
+        return None
+    except OSError as e:
+        print(f"\n  ❌ Datei-Zugriffsfehler: {e}")
+        print(f"     OneDrive-Synchronisation abwarten und erneut versuchen.")
+        return None
+
+    return docx_path
+
+# ============================================================
+# MASTER-EXCEL-OUTPUT (identisch in allen drei Vorgänger-Skripten)
+# ============================================================
 def write_to_master_excel(data, docx_path, _versuch=1, _max_versuche=3):
     """
     Fügt die extrahierten Daten als neue Zeile in die Excel-Tabelle
@@ -1019,193 +1095,17 @@ def write_to_master_excel(data, docx_path, _versuch=1, _max_versuche=3):
         return None
 
 # ============================================================
-# HAUPTFUNKTION
+# KONSOLEN-VORSCHAU (identisch in allen drei Vorgänger-Skripten,
+# stand vorher im jeweiligen __main__-Block)
 # ============================================================
-def parse_systembewertung_v10(docx_path):
-    # Pfad bereinigen (Anführungszeichen vom Drag & Drop entfernen)
-    docx_path = docx_path.strip().strip('"').strip("'")
-
-    if not os.path.exists(docx_path):
-        raise FileNotFoundError(f"Datei nicht gefunden: {docx_path}")
-
-    ext = os.path.splitext(docx_path)[1].lower()
-    if ext not in [".docx", ".doc"]:
-        print(f"\n  ❌ Keine Word-Datei: '{os.path.basename(docx_path)}'")
-        print(f"     Nur .docx Dateien werden unterstützt.")
-        return {}
-
-    # Prüfe ob Datei lokal verfügbar (kein OneDrive-Platzhalter)
-    try:
-        with open(docx_path, 'rb') as f:
-            header = f.read(4)
-        if header[:2] != b'PK':
-            print(f"\n  ❌ Datei ist kein gültiges .docx!")
-            print(f"     Möglicherweise nur OneDrive-Platzhalter.")
-            print(f"     → Rechtsklick → 'Immer auf diesem Gerät behalten'")
-            return {}
-    except PermissionError:
-        print(f"\n  ❌ Datei ist gesperrt!")
-        print(f"     ⚠️  WICHTIG: Bitte Word KOMPLETT schließen!")
-        print(f"     → Alle Word-Fenster schließen")
-        print(f"     → Task-Manager prüfen (Ctrl+Shift+Esc)")
-        print(f"     → Nach WINWORD.EXE suchen und beenden")
-        print(f"     → Dann Skript erneut starten")
-        return {}
-    except OSError as e:
-        print(f"\n  ❌ Datei-Zugriffsfehler: {e}")
-        print(f"     OneDrive-Synchronisation abwarten und erneut versuchen.")
-        return {}
-
-    print(f"\n📄 Lese Datei: {os.path.basename(docx_path)}")
-    doc  = Document(docx_path)
-    data = {}
-
-    print("  → Prüfe Template-Version...")
-    template_version = detect_template_version(doc)
-
-    if template_version == 10:
-        print("  ✅ Template-Version: V10 — passt zu diesem Script")
-        data["Erkannte_Version"] = "V10"
-    else:
-        if template_version is not None:
-            print(f"  ❌ Template-Version: V{template_version}")
-            print(f"     Dieses Script ist nur für V10!")
-            print(f"     Bitte word_parser_v{template_version}.py verwenden.")
-        else:
-            print("  ❌ Template-Version: nicht erkannt")
-            print("     Dieses Script ist nur für V10!")
-        print("\n  ⛔ Verarbeitung abgebrochen.")
-        return {}
-
-    print("  → Extrahiere MLCS-ID...")
-    mlcs_id = extract_mlcs_id(doc)
-    if mlcs_id:
-        data["MLCSID"] = mlcs_id
-
-    print("  → Extrahiere Anlage/Equipment-Nr...")
-    anlage = extract_anlage(doc)
-    if anlage:
-        data["Anlage"] = anlage
-
-    print("  → Extrahiere Schnittstelle...")
-    schnittstelle = extract_schnittstelle(doc)
-    if schnittstelle:
-        data["Schnittstelle"] = schnittstelle
-
-    print("  → Extrahiere überlagertes MLCS...")
-    ueberlagertes_mlcs = extract_ueberlagertes_mlcs(doc)
-    if ueberlagertes_mlcs:
-        data["UeberlagerteMLCS"] = ueberlagertes_mlcs
-
-    print("  → Extrahiere Offen/Geschlossen/N-A (Kapitel 1 Systemtyp)...")
-    data.update(extract_systemtyp_zugang(doc))
-
-    print("  → Extrahiere Textfelder...")
-    data.update(extract_text_fields(doc))
-
-    print("  → Verarbeite Betrieb / API / Gebäude...")
-    betrieb_raw = data.pop("_betrieb_raw", None)
-    if betrieb_raw:
-        data.update(parse_betrieb(betrieb_raw))
-
-    print("  → Verarbeite Hersteller / Lieferant...")
-    hersteller_raw = data.pop("_hersteller_raw", None)
-    if hersteller_raw:
-        data.update(parse_hersteller(hersteller_raw))
-
-    print("  → Extrahiere Dok.-Nr. aus Dateiname...")
-    dok_nr = parse_dok_nr(os.path.basename(docx_path))
-    if dok_nr:
-        data["Dok. -Nr."] = dok_nr
-
-    print("  → Extrahiere Checkboxen (Kapitel 2 inkl. Testtiefe)...")
-    data.update(extract_checkboxes_formularfelder(doc))
-
-    print("  → Extrahiere Neuerstellung/Revisioniert (text-basiert)...")
-    data.update(extract_neuerstellung(doc))
-
-    print("  → Extrahiere GxP-Relevanz + BC (text-basiert)...")
-    data.update(extract_gxp_relevan_bc(doc))
-
-    print("  → Berechne Systemtyp_CE...")
-    data["Systemtyp_CE"] = berechne_systemtyp_ce(data)
-
-    print("  → Extrahiere Besonderheiten / SW-Version / GKAT...")
-    besonderheiten = extract_besonderheiten(doc)
-    if besonderheiten:
-        data["Besonderheiten"] = besonderheiten
-        data.update(parse_sw_version(besonderheiten))
-        data.update(parse_gkat_subtypen(besonderheiten))
-
-    print("  → Analysiere GxP-Begründung...")
-    begruendung = extract_begruendung_gxp(doc)
-    data.update(parse_gxp_einfluss(begruendung))
-
-    print("  → Extrahiere Dokumentenhistorie...")
-    data.update(extract_history(doc))
-
-    version_freigabe = extract_version_freigabedatum(doc)
-    data["Version"] = version_freigabe if version_freigabe else data.get("Version_Historie", "")
-
-    print("  → Setze Bemerkungen...")
-    data["Bemerkung1"] = data.get("Prozessbeschreibung", "")
-    data["Bemerkung2"] = data.get("Daten", "")
-    data["Bemerkung3"] = data.get("Audit Trail (AT)", "")
-    data["Bemerkung4"] = data.get("Parameter", "")
-
-    print(f"  ✅ Extraktion abgeschlossen: {len(data)} Felder gefunden")
-    return data
-
-# ============================================================
-# START: Drag & Drop ODER Kommandozeile
-# ============================================================
-if __name__ == "__main__":
-
-    if len(sys.argv) >= 2:
-        docx_path = sys.argv[1]
-    else:
-        print("="*55)
-        print("  V10 Systembewertung Extraktor")
-        print("="*55)
-        print("  ⚠️  WICHTIG: Word-Datei muss geschlossen sein!")
-        print("="*55)
-        print("  Tipp: Word-Datei auf dieses Script ziehen!")
-        print("="*55)
-        docx_path = input("\n📂 Pfad zur Word-Datei: ").strip().strip('"')
-    try:
-        data = parse_systembewertung_v10(docx_path)
-
-        if not data:
-            print("\n  Keine Daten extrahiert — kein Excel erstellt.")
-        else:
-            print("\n" + "="*55)
-            print("📊 EXTRAHIERTE DATEN (Vorschau):")
-            print("="*55)
-            for col, value in sorted(data.items()):
-                display_val = (
-                    str(value)[:60] + "..."
-                    if len(str(value)) > 60
-                    else str(value)
-                )
-                print(f"  {col:<35} = {display_val}")
-
-            validiere_kategorien(data, VALIDATION_KATEGORIEN_V10)
-
-            print("\n  → Füge Zeile in Master-Excel ein...")
-            ziel_zeile = write_to_master_excel(data, docx_path)
-            if ziel_zeile:
-                print(f"\n✅ In Master-Excel eingefügt (Zeile {ziel_zeile}):")
-                print(f"   {MASTER_EXCEL_PFAD}")
-            else:
-                print("\n❌ Master-Excel konnte nicht aktualisiert werden.")
-
-    except FileNotFoundError as e:
-        print(f"\n❌ Fehler: {e}")
-    except Exception as e:
-        print(f"\n❌ Unerwarteter Fehler: {e}")
-        import traceback
-        traceback.print_exc()
-
+def zeige_datenvorschau(data):
     print("\n" + "="*55)
-    print("  Drücke ENTER zum Beenden...")
-    input()
+    print("📊 EXTRAHIERTE DATEN (Vorschau):")
+    print("="*55)
+    for col, value in sorted(data.items()):
+        display_val = (
+            str(value)[:60] + "..."
+            if len(str(value)) > 60
+            else str(value)
+        )
+        print(f"  {col:<35} = {display_val}")
