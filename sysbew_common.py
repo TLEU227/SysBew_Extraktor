@@ -68,6 +68,9 @@ EXCEL_COLUMNS = [
     "Hyperlink",
     "Sonstiges", "KI Bewertung", "Besonderheiten",
     "Erkannte_Version",
+    # "ja" = Zeile wurde über word_parser_main.py eingetragen, leer/"nein"
+    # = manuell erfasst (wird vom Skript nie überschrieben)
+    "Python ja/nein",
 ]
 
 # ============================================================

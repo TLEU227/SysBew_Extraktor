@@ -50,6 +50,10 @@ def parse_systembewertung(docx_path):
     print(f"  ✅ Template-Version: V{template_version} erkannt")
 
     data = parse_fn(doc, docx_path)
+    if data:
+        # Kennzeichnet Zeilen, die über dieses Skript (statt manuell)
+        # in die Master-Excel eingetragen wurden.
+        data["Python ja/nein"] = "ja"
     return data, validation_kategorien
 
 # ============================================================
