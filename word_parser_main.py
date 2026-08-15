@@ -14,12 +14,18 @@
 # Die drei Erweiterungs-Module sind reine Bibliotheks-Module ohne
 # eigenes Drag & Drop mehr - alle Aufrufe laufen über diese Datei.
 #
-# Benötigt im selben Ordner: sysbew_common.py, word_parser_v8.py,
-# word_parser_v10.py, word_parser_v11.py
+# Diese Datei ist bewusst die einzige, die direkt im (öffentlichen)
+# Ordner neben der Master-Excel liegt - sysbew_common.py und die drei
+# Erweiterungs-Module liegen im Unterordner "lib/" (weniger sichtbar/
+# weniger versehentliches Anfassen). Der Unterordner wird unten
+# manuell in sys.path aufgenommen, da Python diesen sonst nicht
+# automatisch durchsucht.
 # ============================================================
 
 import os
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 
 from docx import Document
 

@@ -87,34 +87,45 @@ Version" mehr.
 
 | Datei | Zweck |
 |---|---|
-| `word_parser_main.py` | Einziger Drag-&-Drop-Einstiegspunkt. Erkennt die Template-Version und reicht an das passende Erweiterungs-Modul weiter. |
-| `sysbew_common.py` | Gemeinsame Basis: Excel-Spalten, Master-Excel-Konfiguration, alle Hilfs- und Extraktionsfunktionen, die nicht vom Template-Aufbau abhängen, sowie das Schreiben in die Master-Excel per COM-Automatisierung. |
-| `word_parser_v8.py` | Erweiterung für Template V8 (und V7). |
-| `word_parser_v10.py` | Erweiterung für Template V10. |
-| `word_parser_v11.py` | Erweiterung für Template V11. |
+| `word_parser_main.py` | Einziger Drag-&-Drop-Einstiegspunkt. Erkennt die Template-Version und reicht an das passende Erweiterungs-Modul weiter. Liegt bewusst direkt im (öffentlichen) Ordner, nicht im Unterordner. |
+| `lib/sysbew_common.py` | Gemeinsame Basis: Excel-Spalten, Master-Excel-Konfiguration, alle Hilfs- und Extraktionsfunktionen, die nicht vom Template-Aufbau abhängen, sowie das Schreiben in die Master-Excel per COM-Automatisierung. |
+| `lib/word_parser_v8.py` | Erweiterung für Template V8 (und V7). |
+| `lib/word_parser_v10.py` | Erweiterung für Template V10. |
+| `lib/word_parser_v11.py` | Erweiterung für Template V11. |
 
 Die drei Erweiterungs-Module sind reine Bibliotheksmodule ohne eigenes
 Drag & Drop mehr – alle Aufrufe laufen ausschließlich über
-`word_parser_main.py`.
+`word_parser_main.py`. Sie liegen zusammen mit `sysbew_common.py` im
+Unterordner `lib/`, damit im (öffentlichen) Hauptordner nur die eine
+Datei sichtbar ist, auf die tatsächlich gezogen wird. `word_parser_main.py`
+nimmt `lib/` beim Start selbst in den Python-Importpfad auf (`sys.path`)
+– das muss beim Kopieren nicht händisch gemacht werden.
 
 ## Dateien zum Publizieren / Ordnerstruktur
 
-Für den produktiven Einsatz müssen **alle fünf `.py`-Dateien plus diese
-README.md** im selben Ordner liegen (Python löst die Imports zwischen
-den Modulen über das Verzeichnis der gestarteten Datei auf):
+Für den produktiven Einsatz müssen **`word_parser_main.py`, diese
+README.md und der komplette Unterordner `lib/`** in den Zielordner
+kopiert werden:
 
 ```
 !Systembewertungen_CS\00_Serienbrief\
 ├── Systembewertungen_GESAMT.xlsx     (bereits vorhanden, nicht anfassen)
 ├── README.md                          <- diese Datei
 ├── word_parser_main.py                <- Drag & Drop-Ziel
-├── sysbew_common.py
-├── word_parser_v8.py
-├── word_parser_v10.py
-└── word_parser_v11.py
+└── lib\
+    ├── sysbew_common.py
+    ├── word_parser_v8.py
+    ├── word_parser_v10.py
+    └── word_parser_v11.py
 ```
 
-Kein Unterordner nötig – alles flach in einem Verzeichnis. Die drei
+Der Ordner ist öffentlich einsehbar - deshalb liegt im Hauptordner nur
+`word_parser_main.py` (das eigentliche Drag-&-Drop-Ziel), die
+restlichen vier Dateien liegen unauffälliger im Unterordner `lib/`.
+Wird `lib/` versehentlich mitgezogen oder umbenannt, meldet
+`word_parser_main.py` einen `ModuleNotFoundError` beim Start - dann
+prüfen, ob der Ordner `lib/` noch direkt neben `word_parser_main.py`
+liegt und exakt so heißt. Die drei
 alten Einzelskripte (`word_parser_v8/v10/v11_formularfelder_vX.X.py`)
 werden nicht mehr benötigt und sollten beim Update entfernt werden,
 damit niemand versehentlich noch das alte, nicht mehr gepflegte
