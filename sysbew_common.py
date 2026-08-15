@@ -37,13 +37,21 @@ EXCEL_COLUMNS = [
     "Systemtyp_CIS", "Systemtyp_CE", "Subtyp_PCS", "Subtyp_LCE", "Subtyp_EE",
     "VNAP_S0", "VNAP_S1", "VNAP_S2", "Subtyp_NA",
     "Offen", "Geschlossen", "NA",
+    # Klassifizierung Kapitel 1 (Lokales CS / Multi-Site-CS / Globales CS / Equipment ohne CS)
+    "KLASS_Lokal", "KLASS_MultiSite", "KLASS_MultiSite_NurLokal", "KLASS_MultiSite_LokalGlobal",
+    "KLASS_Global", "KLASS_Global_1a", "KLASS_Global_1b", "KLASS_Global_2", "KLASS_Global_3",
+    "KLASS_OhneCS",
     "KAT1", "KAT3", "KAT4", "KAT5", "KATNA",
     "Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ",
     "Datum", "Version_Historie", "Historie", "Bearbeiter",
     "Hersteller", "Phenix", "SAP",
     "ERESTYP1", "ERESTYP2", "ERESTYP3", "ERESTYP4", "ERESTYPNA",
     "TTIEFEHOCH", "TTIEFEMITTEL", "TTIEFENIEDRIG",
+    # DI EE-Anforderungen (Kapitel 2, Zusammenfassungstabelle)
+    "EE_P1", "EE_P2", "EE_P3", "EE_P4", "EE_NA",
     "Z1S1", "Z2S1", "Z3S1", "Z1S2", "Z1S3", "Z2S2", "Z2S3", "Z3S2", "Z3S3",
+    # Periodic Review (Kapitel 2, Zusammenfassungstabelle)
+    "PR_SOP", "PR_Andere", "PR_Zyklisch",
     "Lieferantennummer", "UeberlagerteMLCS", "Bedien-SOP", "SOP-Titel",
     "PLSTA", "DokNummerVorQualiPSO", "BE", "Raum", "Schnittstelle",
     "PNK", "BCkritisch", "BCunkritisch",
@@ -466,6 +474,60 @@ def extract_systemtyp_zugang(doc):
                     result["Geschlossen"] = cbs[1]["state"]
                     result["NA"]          = cbs[2]["state"]
                 return result
+    return result
+
+def extract_klassifizierung(doc):
+    """
+    Liest die Klassifizierung aus Kapitel 1 (Lokales CS / Multi-Site-CS
+    inkl. "nur lokal"/"lokal und global" / Globales CS inkl. Klasse
+    1a/1b/2/3 / Equipment ohne CS). Laut Formular ist hier
+    Mehrfachauswahl möglich.
+
+    Die eigentliche Checkbox-Zeile folgt direkt auf die Zeile mit dem
+    Label "Klassifizierung: (Mehrfachauswahl möglich)" - deshalb wird
+    per Textsuche zunächst diese Label-Zeile gesucht und dann die
+    Folgezeile ausgewertet (Kapitel 1 steht in einer eigenen Tabelle,
+    unabhängig von Tabellenindex/KI-Kapitel der jeweiligen Version -
+    an einem echten Dokument bestätigt: 4 Spalten mit 1/3/5/1
+    Checkboxen).
+    """
+    result = {}
+    for table in doc.tables:
+        rows = list(table.rows)
+        for row_idx, row in enumerate(rows):
+            cells = row.cells
+            if not cells:
+                continue
+            label = get_cell_text(cells[0]).lower()
+            if "klassifizierung" not in label or "mehrfachauswahl" not in label:
+                continue
+            if row_idx + 1 >= len(rows):
+                continue
+            werte = rows[row_idx + 1].cells
+
+            cbs = get_checkboxes_from_cell(werte[0]) if len(werte) > 0 else []
+            if cbs:
+                result["KLASS_Lokal"] = cbs[0]["state"]
+
+            cbs = get_checkboxes_from_cell(werte[1]) if len(werte) > 1 else []
+            if len(cbs) >= 3:
+                result["KLASS_MultiSite"]               = cbs[0]["state"]
+                result["KLASS_MultiSite_NurLokal"]       = cbs[1]["state"]
+                result["KLASS_MultiSite_LokalGlobal"]    = cbs[2]["state"]
+
+            cbs = get_checkboxes_from_cell(werte[2]) if len(werte) > 2 else []
+            if len(cbs) >= 5:
+                result["KLASS_Global"]    = cbs[0]["state"]
+                result["KLASS_Global_1a"] = cbs[1]["state"]
+                result["KLASS_Global_1b"] = cbs[2]["state"]
+                result["KLASS_Global_2"]  = cbs[3]["state"]
+                result["KLASS_Global_3"]  = cbs[4]["state"]
+
+            cbs = get_checkboxes_from_cell(werte[3]) if len(werte) > 3 else []
+            if cbs:
+                result["KLASS_OhneCS"] = cbs[0]["state"]
+
+            return result
     return result
 
 def extract_version_freigabedatum(doc):

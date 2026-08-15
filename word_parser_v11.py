@@ -25,6 +25,7 @@ from sysbew_common import (
     extract_mlcs_id,
     extract_ueberlagertes_mlcs,
     extract_systemtyp_zugang,
+    extract_klassifizierung,
     extract_version_freigabedatum,
     extract_anlage,
     extract_schnittstelle,
@@ -126,6 +127,15 @@ VALIDATION_KATEGORIEN_V11 = [
 # ============================================================
 CHECKBOX_MAPPING_V11 = {
     6: {
+        # Periodic Review gemäß (Zusammenfassungstabelle Kapitel 2, Zeile
+        # vor der Hauptzeile 6) - an einem echten Dokument bestätigt: die
+        # beiden Checkbox-Gruppen liegen (nach Zellverschmelzung) an
+        # Zellindex 3 (QU-SOP-0007359 / freie Angabe) und 6 (zyklische
+        # Requalifizierung).
+        4: {
+            3: {0: "PR_SOP", 1: "PR_Andere"},
+            6: {0: "PR_Zyklisch"},
+        },
         6: {
             0: {0: "GxP-C", 1: "GxP-M", 2: "GxP-m2", 3: "GxP-NA"},
             1: {
@@ -136,6 +146,7 @@ CHECKBOX_MAPPING_V11 = {
             2: {0: "ERESTYP1", 1: "ERESTYP2", 2: "ERESTYP3",
                 3: "ERESTYP4", 4: "ERESTYPNA"},
             3: {0: "KAT1", 1: "KAT3", 2: "KAT4", 3: "KAT5", 4: "KATNA"},
+            5: {0: "EE_P1", 1: "EE_P2", 2: "EE_P3", 3: "EE_P4", 4: "EE_NA"},
             6: {0: "GKATA", 1: "GKATB", 2: "GKATC", 3: "GKATNA"},
             7: {0: "QUAL", 1: "VAL"},
             8: {0: "KI1", 1: "KI2", 2: "KI3", 3: "KI4",
@@ -331,6 +342,9 @@ def parse_systembewertung_v11(doc, docx_path):
 
     print("  → Extrahiere Offen/Geschlossen/N-A (Kapitel 1 Systemtyp)...")
     data.update(extract_systemtyp_zugang(doc))
+
+    print("  → Extrahiere Klassifizierung (Lokal/Multi-Site/Global)...")
+    data.update(extract_klassifizierung(doc))
 
     print("  → Extrahiere Textfelder...")
     data.update(extract_text_fields(doc))
