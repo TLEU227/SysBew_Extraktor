@@ -1,6 +1,6 @@
 # ============================================================
 # word_parser_v11.py
-# V11-Erweiterung des Systembewertung-Extraktors - 3.0
+# V11-Erweiterung des Systembewertung-Extraktors - 4.0
 #
 # Enthält NUR das, was für Template V11 spezifisch ist. Alles
 # Gemeinsame steht in sysbew_common.py.
@@ -9,10 +9,11 @@
 # wird ausschließlich von word_parser_main.py importiert.
 #
 # Versionshistorie vor dem Umbau in Erweiterungs-Module: siehe
-# help.txt, Abschnitt 4 (dort als word_parser_v11_formularfelder
-# bis 2.8 protokolliert). Diese Datei setzt strukturell bei 3.0 neu
-# auf (Umbau auf Main-Datei + Erweiterungen), Extraktionslogik/
-# Verhalten ist unverändert zu 2.8.
+# README.md (dort als word_parser_v11_formularfelder bis 2.8
+# protokolliert). Diese Datei setzt strukturell bei 3.0 neu auf
+# (Umbau auf Main-Datei + Erweiterungen). 4.0: Deckblatt-Rollen,
+# Klassifizierung, DI EE-Anforderungen, Periodic Review ergänzt
+# (siehe README.md).
 # ============================================================
 
 import re
@@ -47,7 +48,7 @@ from sysbew_common import (
 # ============================================================
 # VALIDIERUNG: Kategorien, bei denen genau EIN "r"-Wert erwartet wird
 # ============================================================
-# Ausgeschlossen (noch unvollständig getrackt, siehe help.txt):
+# Ausgeschlossen (noch unvollständig getrackt, siehe README.md):
 #   - Validierung/Qualifizierung nach SOP (QUAL/VAL) - fehlende 3. SOP-Spalte
 #   (V11 hat keine direkte Testtiefe-Zelle wie V8/V10, sondern die
 #   Z-Felder-Matrix - siehe eigene Kategorie unten)

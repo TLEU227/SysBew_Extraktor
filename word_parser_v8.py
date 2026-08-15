@@ -1,6 +1,6 @@
 # ============================================================
 # word_parser_v8.py
-# V8-Erweiterung des Systembewertung-Extraktors - 2.0
+# V8-Erweiterung des Systembewertung-Extraktors - 3.0
 #
 # Enthält NUR das, was für Template V8 spezifisch ist. Alles
 # Gemeinsame (Hilfsfunktionen, Extraktionsfunktionen ohne
@@ -13,11 +13,12 @@
 # das Dokument als V8 (bzw. V7, siehe extract_template_basis_version)
 # erkannt hat.
 #
-# Versionshistorie vor dem Umbau in Erweiterungs-Module:
-# siehe help.txt, Abschnitt 4 (dort als word_parser_v8_formularfelder
-# bis 1.10 protokolliert). Diese Datei setzt strukturell bei 2.0 neu
-# auf (Umbau auf Main-Datei + Erweiterungen), Extraktionslogik/
-# Verhalten ist unverändert zu 1.10.
+# Versionshistorie vor dem Umbau in Erweiterungs-Module: siehe
+# README.md (dort als word_parser_v8_formularfelder bis 1.10
+# protokolliert). Diese Datei setzt strukturell bei 2.0 neu auf
+# (Umbau auf Main-Datei + Erweiterungen). 3.0: Deckblatt-Rollen,
+# Klassifizierung, DI EE-Anforderungen, Periodic Review ergänzt
+# (siehe README.md).
 # ============================================================
 
 import re
@@ -54,7 +55,7 @@ import os
 # ============================================================
 # VALIDIERUNG: Kategorien, bei denen genau EIN "r"-Wert erwartet wird
 # ============================================================
-# Ausgeschlossen (noch unvollständig getrackt, siehe help.txt):
+# Ausgeschlossen (noch unvollständig getrackt, siehe README.md):
 #   - Testtiefe (Gering/Mittel/Hoch) - fehlende N/A-Spalte
 #   - Validierung/Qualifizierung nach SOP (QUAL/VAL) - fehlende 3. SOP-Spalte
 VALIDATION_KATEGORIEN_V8 = [
@@ -216,7 +217,7 @@ def parse_hersteller(raw):
 
 # ============================================================
 # NUR IN V8: Basis-Template-Version aus dem Dokumenttext lesen
-# (für den Sonderfall V7, siehe help.txt)
+# (für den Sonderfall V7, siehe README.md)
 # ============================================================
 def extract_template_basis_version(doc):
     """

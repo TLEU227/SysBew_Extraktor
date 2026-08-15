@@ -1,6 +1,6 @@
 # ============================================================
 # word_parser_v10.py
-# V10-Erweiterung des Systembewertung-Extraktors - 2.0
+# V10-Erweiterung des Systembewertung-Extraktors - 3.0
 #
 # Enthält NUR das, was für Template V10 spezifisch ist. Alles
 # Gemeinsame steht in sysbew_common.py.
@@ -9,10 +9,11 @@
 # wird ausschließlich von word_parser_main.py importiert.
 #
 # Versionshistorie vor dem Umbau in Erweiterungs-Module: siehe
-# help.txt, Abschnitt 4 (dort als word_parser_v10_formularfelder
-# bis 1.8 protokolliert). Diese Datei setzt strukturell bei 2.0 neu
-# auf (Umbau auf Main-Datei + Erweiterungen), Extraktionslogik/
-# Verhalten ist unverändert zu 1.8.
+# README.md (dort als word_parser_v10_formularfelder bis 1.8
+# protokolliert). Diese Datei setzt strukturell bei 2.0 neu auf
+# (Umbau auf Main-Datei + Erweiterungen). 3.0: Deckblatt-Rollen,
+# Klassifizierung, DI EE-Anforderungen, Periodic Review ergänzt
+# (siehe README.md).
 # ============================================================
 
 import re
@@ -45,7 +46,7 @@ from sysbew_common import (
 # ============================================================
 # VALIDIERUNG: Kategorien, bei denen genau EIN "r"-Wert erwartet wird
 # ============================================================
-# Ausgeschlossen (noch unvollständig getrackt, siehe help.txt):
+# Ausgeschlossen (noch unvollständig getrackt, siehe README.md):
 #   - Testtiefe (Gering/Mittel/Hoch) - fehlende N/A-Spalte
 #   - Validierung/Qualifizierung nach SOP (QUAL/VAL) - fehlende 3. SOP-Spalte
 VALIDATION_KATEGORIEN_V10 = [

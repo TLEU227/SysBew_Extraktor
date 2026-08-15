@@ -1,13 +1,13 @@
 # ============================================================
 # word_parser_main.py
-# Systembewertung Extraktor - Main-Datei - 1.0
+# Systembewertung Extraktor - Main-Datei - 2.0
 #
 # EINZIGER Drag & Drop-Einstiegspunkt: Word-Datei auf DIESES Skript
 # ziehen (oder als Kommandozeilenargument übergeben). Die
 # Template-Version (V7/V8/V10/V11) wird automatisch erkannt
 # (sysbew_common.detect_template_version) und intern an die
 # passende Erweiterung weitergereicht:
-#   - word_parser_v8.py   (deckt auch V7 ab, siehe help.txt)
+#   - word_parser_v8.py   (deckt auch V7 ab, siehe README.md)
 #   - word_parser_v10.py
 #   - word_parser_v11.py
 #
