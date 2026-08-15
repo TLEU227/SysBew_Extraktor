@@ -644,12 +644,12 @@ def extract_text_fields(doc, text_field_mapping=None):
         text_field_mapping = TEXT_FIELD_MAPPING
     result = {}
     for table in doc.tables:
+        if _ist_rollen_tabelle(table):
+            continue  # Deckblatt-Rollentabelle, siehe extract_deckblatt_rollen()
         for row in table.rows:
             cells = row.cells
             if len(cells) < 2:
                 continue
-            if _ist_rollen_zeile(cells):
-                continue  # Deckblatt-Rollenzeile, siehe extract_deckblatt_rollen()
             label_text = get_cell_text(cells[0])
             for search_term, excel_col in text_field_mapping.items():
                 if text_matches(search_term, label_text):
@@ -712,95 +712,114 @@ def extract_history(doc):
 # ============================================================
 # DECKBLATT: Rollen/Namen (Ersteller, SME, SI/PL, TSO, BSO, BQR, CSQ)
 # ============================================================
-# Bekannte Rollen-Label-Varianten -> Ziel-Spalte in der Master-Excel.
-# "SI" und "PL" (Projektleiter) landen beide in der zusammengefassten
-# Spalte "SI/PL", weil die Master-Excel dafür nur eine gemeinsame
-# Spalte hat.
+# Reale Tabellenstruktur (in allen bisher geprüften V11-Dokumenten
+# identisch, vermutlich auch V8/V10): eine Unterschriften-Tabelle mit
+# je 2 Zeilen pro Rolle - Zeile 1 = Rollen-Label (Spalte 0, z.B. "TSO
+# (Technical System Owner) (FBC ENG FF)") + Name (Spalte 1), Zeile 2 =
+# Bestätigungstext (Spalte 0 und 1 enthalten denselben langen
+# Fließtext - wird übersprungen). "Projektleiter/SME" ist im Dokument
+# EINE kombinierte Rolle: der Name landet dann in BEIDEN Excel-Spalten
+# "SI/PL" und "SME".
+#
+# Bekannte Rollen-Label-Varianten -> Ziel-Spalte(n) in der Master-
+# Excel. Werte sind Listen, weil "Projektleiter/SME" auf zwei Spalten
+# zugleich zeigt.
 ROLLEN_LABEL_MAPPING = {
-    "ersteller": "Ersteller",
-    "sme": "SME",
-    "si": "SI/PL",
-    "pl": "SI/PL",
-    "si/pl": "SI/PL",
-    "systemintegrator": "SI/PL",
-    "projektleiter": "SI/PL",
-    "projektleitung": "SI/PL",
-    "tso": "TSO",
-    "bso": "BSO",
-    "bqr": "BQR",
-    "csq": "CSQ",
+    "autor": ["Ersteller"],
+    "ersteller": ["Ersteller"],
+    "sme": ["SME"],
+    "si": ["SI/PL"],
+    "pl": ["SI/PL"],
+    "si/pl": ["SI/PL"],
+    "systemintegrator": ["SI/PL"],
+    "projektleiter": ["SI/PL"],
+    "projektleiterin": ["SI/PL"],
+    "projektleitung": ["SI/PL"],
+    "projektleiter/sme": ["SI/PL", "SME"],
+    "projektleiterin/sme": ["SI/PL", "SME"],
+    "tso": ["TSO"],
+    "bso": ["BSO"],
+    "bqr": ["BQR"],
+    "csq": ["CSQ"],
 }
 
 ROLLEN_SPALTEN = ("Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ")
 
-# Reihenfolge wichtig: "SI/PL" bzw. die Projektleiter-Varianten müssen
-# vor dem kürzeren "SI"/"PL" geprüft werden, damit z.B. "SI/PL" nicht
-# fälschlich schon als reines "SI" erkannt wird.
+# Erfasst nur den Rollen-Kernbegriff am Zeilenanfang von Spalte 0,
+# der ggf. folgende Klammer-Zusatz (Abteilung o.ä.) wird NICHT erfasst
+# und bleibt unberücksichtigt. Reihenfolge wichtig: die kombinierte
+# Form "Projektleiter/SME" muss vor "Projektleiter" allein geprüft
+# werden, sonst würde nur "Projektleiter" greifen.
 _ROLLEN_LABEL_PATTERN = re.compile(
-    r'^\s*(Ersteller|SME|SI\s*/\s*PL|Systemintegrator|Projektleit(?:er|ung)|SI|PL|TSO|BSO|BQR|CSQ)\b[:\s]*',
+    r'^\s*(Autor(?:in)?|Ersteller|'
+    r'Projektleiter(?:in)?\s*/\s*SME|Projektleiter(?:in)?|'
+    r'Systemintegrator|SI\s*/\s*PL|SME|SI|PL|TSO|BSO|BQR|CSQ)\b',
     re.IGNORECASE
 )
 
-# Bekannte Word-Platzhaltertexte von noch nicht befüllten
-# Content-Control-Dropdownfeldern - dürfen nicht als Name durchgehen.
+# Bekannte Word-Platzhaltertexte von noch nicht befüllten Feldern -
+# dürfen nicht als Name durchgehen.
 _ROLLEN_PLATZHALTER = [
     r"^klicken sie",
     r"^choose an item",
     r"^wählen sie",
     r"^auswahl\.*$",
     r"^bitte auswählen",
+    r"^n/?a$",
 ]
 
 def _ist_rollen_platzhalter(text):
     t = text.lower().strip()
     return any(re.match(p, t) for p in _ROLLEN_PLATZHALTER)
 
-def _ist_bekanntes_rollen_label(text):
-    """True, wenn `text` (nach Bereinigung) exakt einem der bekannten
-    Rollen-Label entspricht - dient nur der Erkennung, ob eine
-    Tabellenzeile überhaupt die Deckblatt-Rollenzeile ist."""
-    l_clean = re.sub(r'[^a-zäöüß/]', '', text.strip().lower())
-    return l_clean in ROLLEN_LABEL_MAPPING
+def _ist_rollen_tabelle(table):
+    """
+    True, wenn mindestens 3 Zeilen dieser Tabelle mit einem bekannten
+    Rollen-Label beginnen (Spalte 0) - dann ist es die Deckblatt-
+    Unterschriften-/Rollentabelle. Wichtig auch für
+    extract_text_fields(): diese Tabelle wird dort komplett
+    übersprungen, damit z.B. "Autor ..." nicht versehentlich über den
+    laschen Teilstring-Vergleich in text_matches() mit einem anderen
+    Suchbegriff kollidiert.
+    """
+    treffer = 0
+    for row in table.rows:
+        cells = row.cells
+        if not cells:
+            continue
+        if _ROLLEN_LABEL_PATTERN.match(get_cell_text(cells[0])):
+            treffer += 1
+    return treffer >= 3
 
-def _ist_rollen_zeile(cells):
+def _normalisiere_rollen_label(rollen_kern):
     """
-    True, wenn mindestens 3 Zellen dieser Tabellenzeile ein bekanntes
-    Rollen-Label (Ersteller/SME/SI-PL/TSO/BSO/BQR/CSQ) enthalten - dann
-    ist es die Deckblatt-Rollenzeile. Wichtig auch für
-    extract_text_fields(): "Ersteller" würde sonst über den laschen
-    Teilstring-Vergleich in text_matches() fälschlich als Treffer für
-    den Suchbegriff "Hersteller / SW-Ersteller / Lieferant" durchgehen
-    (weil "ersteller" darin als Teilwort steckt) und die Nachbarzelle
-    (z.B. "SME") als Hersteller-Wert übernehmen.
+    Ordnet den erfassten Rollen-Kernbegriff (z.B. "TSO",
+    "Projektleiter/SME", "Autor") der/den passenden Excel-Spalte(n)
+    zu. `rollen_kern` ist entweder ein von _ROLLEN_LABEL_PATTERN
+    erfasster bekannter Begriff, oder - falls die Zeile in einer
+    erkannten Rollentabelle steht, aber KEIN bekanntes Label hat - der
+    komplette (abweichend benannte) Zellentext. Nicht erkennbare
+    Funktionsbezeichnungen fallen auf "SME" zurück, AUSSER der Text
+    deutet auf eine Projektleitungs-Funktion hin (enthält "pl" als
+    eigenständiges Kürzel oder "projektleit..."), dann "SI/PL".
     """
-    return sum(1 for c in cells if _ist_bekanntes_rollen_label(get_cell_text(c))) >= 3
-
-def _normalisiere_rollen_label(label):
-    """
-    Ordnet ein Rollen-Label (Feldbezeichnung auf dem Deckblatt) der
-    passenden Excel-Spalte zu. Bekannte Kurzformen (z.B. "PL" für
-    Projektleiter) werden erkannt und der zusammengefassten Spalte
-    "SI/PL" zugeordnet. Nicht erkennbare Funktionsbezeichnungen
-    fallen auf "SME" zurück - AUSSER das Label deutet auf eine
-    Projektleitungs-Funktion hin (enthält "pl" als eigenständiges
-    Kürzel oder "projektleit..."), dann "SI/PL".
-    """
-    l = label.strip().lower()
-    l_clean = re.sub(r'[^a-zäöüß/]', '', l)
+    l_clean = re.sub(r'[^a-zäöüß/]', '', rollen_kern.strip().lower())
     if l_clean in ROLLEN_LABEL_MAPPING:
         return ROLLEN_LABEL_MAPPING[l_clean]
+    l = rollen_kern.strip().lower()
     if re.search(r'\bpl\b', l) or "projektleit" in l:
-        return "SI/PL"
-    return "SME"
+        return ["SI/PL"]
+    return ["SME"]
 
 def _get_sdt_text(cell_element, ns):
     """
     Liest den aktuell angezeigten Text aus Content-Control-Feldern
-    (w:sdt, z.B. Dropdown-Auswahlfelder) einer Zelle ein. Nötig, weil
-    solche Felder ihren Text nicht zuverlässig über die normalen
-    Zellen-Absätze (cell.paragraphs) liefern - aus demselben Grund
-    liest get_checkboxes_from_cell() Checkbox-Formularfelder direkt
-    über die SDT-XML-Struktur statt über den Absatztext.
+    (w:sdt, z.B. Dropdown-Auswahlfelder) einer Zelle ein - Fallback,
+    falls eine Namens-Zelle über die normalen Zellen-Absätze
+    (cell.paragraphs) leer erscheint, der Name aber in einem
+    Formularfeld steckt (in den bisher geprüften Dokumenten stehen
+    die Namen als reiner Fließtext, dieser Fallback greift daher
+    normalerweise nicht, schadet aber nicht).
     """
     texte = []
     for t in cell_element.findall(".//w:sdtContent//w:t", ns):
@@ -811,20 +830,16 @@ def _get_sdt_text(cell_element, ns):
 def extract_deckblatt_rollen(doc):
     """
     Liest die Namen zu den Rollen Ersteller/SME/SI-PL/TSO/BSO/BQR/CSQ
-    vom Deckblatt. Jede Rollen-Zelle besteht aus dem Label
-    ("Ersteller" usw.) als Fließtext plus dem Namen direkt daneben
-    bzw. als Dropdown-Auswahl darunter/dahinter.
+    aus der Deckblatt-Unterschriftentabelle (siehe Modul-Kommentar
+    oben für die Tabellenstruktur).
 
-    Eine Tabellenzeile wird als Deckblatt-Rollenzeile behandelt, wenn
-    mindestens 3 ihrer Zellen ein bekanntes Rollen-Label enthalten -
-    ERST DANN werden alle Zellen dieser Zeile ausgewertet (auch die,
-    deren Label NICHT bekannt ist). So greift der Fallback auch für
-    abweichend benannte Funktionen, die sonst nie erkannt würden:
-    über _normalisiere_rollen_label() geht alles mit "PL"/
-    "Projektleit..." nach Spalte "SI/PL", alles andere nicht
-    erkennbare nach Spalte "SME".
+    Nicht erkannte Rollenbezeichnungen (z.B. abweichend benannte
+    Funktionen) werden trotzdem verarbeitet, sobald die Zeile in einer
+    als Rollentabelle erkannten Tabelle steht - über
+    _normalisiere_rollen_label() geht alles mit "PL"/"Projektleit..."
+    nach Spalte "SI/PL", alles andere nicht erkennbare nach "SME".
 
-    Kommt eine Rolle mehrfach vor (z.B. zwei BSO-Felder, weil es zwei
+    Kommt eine Rolle mehrfach vor (z.B. zwei BSO-Zeilen, weil es zwei
     Business Owner gibt), werden alle für die jeweilige Spalte
     gefundenen Namen mit einem Zeilenumbruch ("\\n" - erscheint in
     Excel als Alt+Enter-Umbruch innerhalb der Zelle) zusammengefügt.
@@ -833,27 +848,28 @@ def extract_deckblatt_rollen(doc):
     treffer = {spalte: [] for spalte in ROLLEN_SPALTEN}
 
     for table in doc.tables:
+        if not _ist_rollen_tabelle(table):
+            continue
         for row in table.rows:
             cells = row.cells
-            if not _ist_rollen_zeile(cells):
-                continue  # keine Deckblatt-Rollenzeile
-            labels = [get_cell_text(c).strip() for c in cells]
-
-            for cell, label in zip(cells, labels):
-                if not label:
-                    continue
-                m = _ROLLEN_LABEL_PATTERN.match(label)
-                # Bekanntes Label mit Text danach (z.B. "Ersteller: Max
-                # Mustermann") -> Name schon im Fließtext. Sonst (Label
-                # allein, oder Label komplett unbekannt) -> Name steckt
-                # im Dropdown-/Content-Control-Feld derselben Zelle.
-                name = label[m.end():].strip() if m else ""
-                if not name:
-                    name = _get_sdt_text(cell._element, ns)
-                if not name or _ist_rollen_platzhalter(name):
-                    continue  # Feld auf dem Deckblatt noch nicht befüllt
-                rollen_label = m.group(1) if m else label
-                spalte = _normalisiere_rollen_label(rollen_label)
+            if len(cells) < 2:
+                continue
+            label = get_cell_text(cells[0]).strip()
+            if not label:
+                continue
+            name = get_cell_text(cells[1]).strip()
+            if not name:
+                name = _get_sdt_text(cells[1]._element, ns)
+            # Bestätigungstext-Zeilen: Label und "Name" sind derselbe
+            # lange Fließtext, oder der Wert ist für einen Namen viel
+            # zu lang -> keine echte Namenszeile, überspringen.
+            if (not name or len(name) > 60 or
+                    name[:30].strip() == label[:30].strip() or
+                    _ist_rollen_platzhalter(name)):
+                continue
+            m = _ROLLEN_LABEL_PATTERN.match(label)
+            rollen_kern = m.group(1) if m else label
+            for spalte in _normalisiere_rollen_label(rollen_kern):
                 if name not in treffer[spalte]:
                     treffer[spalte].append(name)
 
