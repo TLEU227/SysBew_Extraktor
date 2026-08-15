@@ -1,6 +1,6 @@
 # ============================================================
 # sysbew_common.py
-# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.0
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.1
 #
 # Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
 # (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
@@ -979,6 +979,58 @@ def validiere_kategorien(data, kategorien):
             print(f"  ❌ {name:<32} = MEHRERE Werte: {werte} (erwartet: genau 1)")
 
 # ============================================================
+# VALIDIERUNG: Mehrfachauswahl-Kategorien (Klassifizierung,
+# DI EE-Anforderungen, Periodic Review - laut Formular ist hier
+# AUSDRÜCKLICH Mehrfachauswahl möglich, mehrere angekreuzte Werte
+# sind also KEIN Konflikt, anders als bei validiere_kategorien()).
+# Identisch in V8/V10/V11, da diese Tabellen(-bereiche) versions-
+# unabhängig gleich aufgebaut sind - deshalb hier zentral definiert
+# statt in den Erweiterungs-Modulen.
+# ============================================================
+MEHRFACHAUSWAHL_KATEGORIEN = [
+    ("Klassifizierung", [
+        ("KLASS_Lokal", "Lokales CS"),
+        ("KLASS_Multisite", "Multi-Site-CS"),
+        ("KLASS_Multisite_NurLokal", "nur lokal"),
+        ("KLASS_Multisite_LokalGlobal", "lokal und global"),
+        ("KLASS_Global", "Globales CS"),
+        ("KLASS_Global_1a", "Klasse 1a"),
+        ("KLASS_Global_1b", "Klasse 1b"),
+        ("KLASS_Global_2", "Klasse 2"),
+        ("KLASS_Global_3", "Klasse 3"),
+        ("KLASS_OhneCS", "Equipment ohne CS"),
+    ]),
+    ("DI EE-Anforderungen", [
+        ("EE_P1", "P1"), ("EE_P2", "P2"), ("EE_P3", "P3"),
+        ("EE_P4", "P4"), ("EE_NA", "N/A"),
+    ]),
+    ("Periodic Review", [
+        ("PR_SOP", "QU-SOP-0007359"),
+        ("PR_Andere", "andere/freie Angabe"),
+        ("PR-Zyklisch", "zyklische Requalifizierung"),
+    ]),
+]
+
+def validiere_mehrfachauswahl_kategorien(data, kategorien=MEHRFACHAUSWAHL_KATEGORIEN):
+    """
+    Wie validiere_kategorien(), aber für Kategorien mit laut Formular
+    erlaubter Mehrfachauswahl: zeigt ALLE angekreuzten Werte einer
+    Kategorie an (kein "❌ Konflikt" bei mehreren Treffern, das ist
+    hier normal) - nur "KEIN Wert ausgewählt" wird als Hinweis
+    markiert.
+    """
+    print("\n" + "="*55)
+    print("✅ VALIDIERUNG: Mehrfachauswahl-Kategorien")
+    print("="*55)
+    for name, optionen in kategorien:
+        gefunden = [label for feld, label in optionen if data.get(feld) == "r"]
+        if gefunden:
+            werte = ", ".join(f'"{g}"' for g in gefunden)
+            print(f"  ✅ {name:<32} = {werte}")
+        else:
+            print(f"  ❗ {name:<32} = KEIN Wert ausgewählt")
+
+# ============================================================
 # DATEI-VALIDIERUNG (identisch in allen drei Vorgänger-Skripten
 # am Anfang von parse_systembewertung_vXX)
 # ============================================================
@@ -1195,13 +1247,25 @@ def write_to_master_excel(data, docx_path, _versuch=1, _max_versuche=3):
 # stand vorher im jeweiligen __main__-Block)
 # ============================================================
 def zeige_datenvorschau(data):
+    """
+    Zeigt alle extrahierten Felder in der Konsole an. Checkbox-Felder
+    (Rohwert exakt "r" bzw. "c") werden dabei in Klartext übersetzt
+    ("angekreuzt"/"nicht angekreuzt") statt als rohe SDT-Zeichen
+    angezeigt - alle anderen Felder (Text, Namen, Daten usw.) bleiben
+    unverändert.
+    """
     print("\n" + "="*55)
     print("📊 EXTRAHIERTE DATEN (Vorschau):")
     print("="*55)
     for col, value in sorted(data.items()):
-        display_val = (
-            str(value)[:60] + "..."
-            if len(str(value)) > 60
-            else str(value)
-        )
+        if value == "r":
+            display_val = "angekreuzt"
+        elif value == "c":
+            display_val = "nicht angekreuzt"
+        else:
+            display_val = (
+                str(value)[:60] + "..."
+                if len(str(value)) > 60
+                else str(value)
+            )
         print(f"  {col:<35} = {display_val}")

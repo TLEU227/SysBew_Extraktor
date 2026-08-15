@@ -1,6 +1,6 @@
 # ============================================================
 # word_parser_main.py
-# Systembewertung Extraktor - Main-Datei - 2.0
+# Systembewertung Extraktor - Main-Datei - 2.1
 #
 # EINZIGER Drag & Drop-Einstiegspunkt: Word-Datei auf DIESES Skript
 # ziehen (oder als Kommandozeilenargument übergeben). Die
@@ -87,6 +87,7 @@ if __name__ == "__main__":
         else:
             common.zeige_datenvorschau(data)
             common.validiere_kategorien(data, validation_kategorien)
+            common.validiere_mehrfachauswahl_kategorien(data)
 
             print("\n  → Füge Zeile in Master-Excel ein...")
             ziel_zeile = common.write_to_master_excel(data, docx_path)
