@@ -131,7 +131,7 @@ CHECKBOX_MAPPING_V8 = {
         # Requalifizierung).
         4: {
             3: {0: "PR_SOP", 1: "PR_Andere"},
-            6: {0: "PR_Zyklisch"},
+            6: {0: "PR-Zyklisch"},
         },
         6: {
             0: {0: "GxP-C", 1: "GxP-M", 2: "GxP-m2", 3: "GxP-NA"},

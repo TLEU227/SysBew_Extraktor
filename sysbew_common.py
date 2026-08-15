@@ -38,7 +38,7 @@ EXCEL_COLUMNS = [
     "VNAP_S0", "VNAP_S1", "VNAP_S2", "Subtyp_NA",
     "Offen", "Geschlossen", "NA",
     # Klassifizierung Kapitel 1 (Lokales CS / Multi-Site-CS / Globales CS / Equipment ohne CS)
-    "KLASS_Lokal", "KLASS_MultiSite", "KLASS_MultiSite_NurLokal", "KLASS_MultiSite_LokalGlobal",
+    "KLASS_Lokal", "KLASS_Multisite", "KLASS_Multisite_NurLokal", "KLASS_Multisite_LokalGlobal",
     "KLASS_Global", "KLASS_Global_1a", "KLASS_Global_1b", "KLASS_Global_2", "KLASS_Global_3",
     "KLASS_OhneCS",
     "KAT1", "KAT3", "KAT4", "KAT5", "KATNA",
@@ -51,7 +51,7 @@ EXCEL_COLUMNS = [
     "EE_P1", "EE_P2", "EE_P3", "EE_P4", "EE_NA",
     "Z1S1", "Z2S1", "Z3S1", "Z1S2", "Z1S3", "Z2S2", "Z2S3", "Z3S2", "Z3S3",
     # Periodic Review (Kapitel 2, Zusammenfassungstabelle)
-    "PR_SOP", "PR_Andere", "PR_Zyklisch",
+    "PR_SOP", "PR_Andere", "PR-Zyklisch",
     "Lieferantennummer", "UeberlagerteMLCS", "Bedien-SOP", "SOP-Titel",
     "PLSTA", "DokNummerVorQualiPSO", "BE", "Raum", "Schnittstelle",
     "PNK", "BCkritisch", "BCunkritisch",
@@ -511,9 +511,9 @@ def extract_klassifizierung(doc):
 
             cbs = get_checkboxes_from_cell(werte[1]) if len(werte) > 1 else []
             if len(cbs) >= 3:
-                result["KLASS_MultiSite"]               = cbs[0]["state"]
-                result["KLASS_MultiSite_NurLokal"]       = cbs[1]["state"]
-                result["KLASS_MultiSite_LokalGlobal"]    = cbs[2]["state"]
+                result["KLASS_Multisite"]               = cbs[0]["state"]
+                result["KLASS_Multisite_NurLokal"]       = cbs[1]["state"]
+                result["KLASS_Multisite_LokalGlobal"]    = cbs[2]["state"]
 
             cbs = get_checkboxes_from_cell(werte[2]) if len(werte) > 2 else []
             if len(cbs) >= 5:
