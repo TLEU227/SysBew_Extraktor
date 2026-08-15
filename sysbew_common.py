@@ -850,7 +850,8 @@ def extract_deckblatt_rollen(doc):
     for table in doc.tables:
         if not _ist_rollen_tabelle(table):
             continue
-        for row in table.rows:
+        rows = list(table.rows)
+        for row_idx, row in enumerate(rows):
             cells = row.cells
             if len(cells) < 2:
                 continue
@@ -869,7 +870,21 @@ def extract_deckblatt_rollen(doc):
                 continue
             m = _ROLLEN_LABEL_PATTERN.match(label)
             rollen_kern = m.group(1) if m else label
-            for spalte in _normalisiere_rollen_label(rollen_kern):
+            spalten = _normalisiere_rollen_label(rollen_kern)
+
+            # Sonderfall: Das Label steht manchmal nur als "SME"
+            # (ohne "Projektleiter/"), obwohl es sich laut dem
+            # Bestätigungstext der Folgezeile trotzdem um die
+            # kombinierte Rolle "Projektleiter/SME" handelt (in den
+            # geprüften Dokumenten uneinheitlich gehandhabt). Steht
+            # dort "Projektleiter", zählt der Name zusätzlich als
+            # SI/PL.
+            if spalten == ["SME"] and row_idx + 1 < len(rows):
+                bestaetigung = get_cell_text(rows[row_idx + 1].cells[0])
+                if "projektleit" in bestaetigung.lower():
+                    spalten = ["SME", "SI/PL"]
+
+            for spalte in spalten:
                 if name not in treffer[spalte]:
                     treffer[spalte].append(name)
 
