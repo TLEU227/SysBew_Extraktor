@@ -1,6 +1,6 @@
 # ============================================================
 # sysbew_common.py
-# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.2
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.3
 #
 # Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
 # (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
@@ -1011,6 +1011,27 @@ MEHRFACHAUSWAHL_KATEGORIEN = [
     ]),
 ]
 
+# ============================================================
+# NUR FÜR DIE VORSCHAU (zeige_datenvorschau): zusätzliche
+# gruppierbare Felder, die bewusst NICHT in den Validierungsblöcken
+# auftauchen, weil ihre Konfliktprüfung wegen bekannter Lücken
+# unzuverlässig wäre (fehlende Testtiefe-N/A-Spalte, fehlende 3.
+# SOP-Spalte bei Validierung/Qualifizierung - siehe README.md,
+# "Bekannte Einschränkungen"). Für die reine Anzeige als eine Zeile
+# statt drei/zwei Einzelfeldern reicht das aber.
+# ============================================================
+ANZEIGE_ZUSATZ_KATEGORIEN = [
+    ("Testtiefe", [
+        ("TTIEFENIEDRIG", "Gering"),
+        ("TTIEFEMITTEL", "Mittel"),
+        ("TTIEFEHOCH", "Hoch"),
+    ]),
+    ("Validierung/Qualifizierung nach SOP", [
+        ("QUAL", "QU-SOP-0021736 (Qualifizierung)"),
+        ("VAL", "QU-SOP-0049866 (Validierung)"),
+    ]),
+]
+
 def validiere_mehrfachauswahl_kategorien(data, kategorien=MEHRFACHAUSWAHL_KATEGORIEN):
     """
     Wie validiere_kategorien(), aber für Kategorien mit laut Formular
@@ -1246,25 +1267,50 @@ def write_to_master_excel(data, docx_path, _versuch=1, _max_versuche=3):
 # KONSOLEN-VORSCHAU (identisch in allen drei Vorgänger-Skripten,
 # stand vorher im jeweiligen __main__-Block)
 # ============================================================
-def zeige_datenvorschau(data):
+def zeige_datenvorschau(data, kategorien=None):
     """
-    Zeigt alle extrahierten Felder in der Konsole an. Checkbox-Felder
-    (Rohwert exakt "r" bzw. "c") werden dabei in Klartext übersetzt
-    ("ja"/"nein") statt als rohe SDT-Zeichen angezeigt - alle anderen
-    Felder (Text, Namen, Daten usw.) bleiben unverändert.
+    Zeigt alle extrahierten Felder in der Konsole an.
+
+    `kategorien` (typischerweise VALIDATION_KATEGORIEN_VX +
+    MEHRFACHAUSWAHL_KATEGORIEN zusammen) fasst alle Felder, die zu
+    einer bekannten Kategorie gehören (z.B. GxP-C/GxP-M/GxP-m2/GxP-NA),
+    zu EINER Zeile "<Kategorie> = <ausgewähltes Label>" zusammen,
+    statt jedes Einzelfeld als r/c-Zeile anzuzeigen. Sind mehrere
+    Werte einer Kategorie angekreuzt, werden alle kommasepariert
+    angezeigt (z.B. bei den Mehrfachauswahl-Kategorien normal, bei den
+    "genau 1 erwartet"-Kategorien ein Hinweis auf einen Konflikt -
+    Details dazu liefert der nachfolgende VALIDIERUNG-Block).
+
+    Alle übrigen Felder (Text, Namen, Daten, nicht gruppierte
+    Checkboxen) bleiben wie gewohnt einzeln stehen - deren
+    Checkbox-Rohwerte ("r"/"c") werden dabei in "ja"/"nein" übersetzt.
     """
+    kategorien = kategorien or []
+    gruppierte_felder = set()
+    kategorie_werte = {}
+    for name, optionen in kategorien:
+        gruppierte_felder.update(feld for feld, _ in optionen)
+        gefunden = [label for feld, label in optionen if data.get(feld) == "r"]
+        kategorie_werte[name] = ", ".join(gefunden) if gefunden else "-"
+
     print("\n" + "="*55)
     print("📊 EXTRAHIERTE DATEN (Vorschau):")
     print("="*55)
-    for col, value in sorted(data.items()):
+
+    zeilen = {name: wert for name, wert in kategorie_werte.items()}
+    for col, value in data.items():
+        if col in gruppierte_felder:
+            continue
         if value == "r":
-            display_val = "ja"
+            zeilen[col] = "ja"
         elif value == "c":
-            display_val = "nein"
+            zeilen[col] = "nein"
         else:
-            display_val = (
+            zeilen[col] = (
                 str(value)[:60] + "..."
                 if len(str(value)) > 60
                 else str(value)
             )
-        print(f"  {col:<35} = {display_val}")
+
+    for col in sorted(zeilen):
+        print(f"  {col:<35} = {zeilen[col]}")

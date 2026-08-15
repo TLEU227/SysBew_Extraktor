@@ -1,6 +1,6 @@
 # ============================================================
 # word_parser_main.py
-# Systembewertung Extraktor - Main-Datei - 2.1
+# Systembewertung Extraktor - Main-Datei - 2.2
 #
 # EINZIGER Drag & Drop-Einstiegspunkt: Word-Datei auf DIESES Skript
 # ziehen (oder als Kommandozeilenargument übergeben). Die
@@ -85,7 +85,12 @@ if __name__ == "__main__":
         if not data:
             print("\n  Keine Daten extrahiert — kein Excel erstellt.")
         else:
-            common.zeige_datenvorschau(data)
+            alle_kategorien = (
+                validation_kategorien
+                + common.MEHRFACHAUSWAHL_KATEGORIEN
+                + common.ANZEIGE_ZUSATZ_KATEGORIEN
+            )
+            common.zeige_datenvorschau(data, alle_kategorien)
             common.validiere_kategorien(data, validation_kategorien)
             common.validiere_mehrfachauswahl_kategorien(data)
 
