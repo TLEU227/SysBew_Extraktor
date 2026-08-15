@@ -1,6 +1,6 @@
 # ============================================================
 # sysbew_common.py
-# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.1
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.2
 #
 # Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
 # (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
@@ -1250,18 +1250,17 @@ def zeige_datenvorschau(data):
     """
     Zeigt alle extrahierten Felder in der Konsole an. Checkbox-Felder
     (Rohwert exakt "r" bzw. "c") werden dabei in Klartext übersetzt
-    ("angekreuzt"/"nicht angekreuzt") statt als rohe SDT-Zeichen
-    angezeigt - alle anderen Felder (Text, Namen, Daten usw.) bleiben
-    unverändert.
+    ("ja"/"nein") statt als rohe SDT-Zeichen angezeigt - alle anderen
+    Felder (Text, Namen, Daten usw.) bleiben unverändert.
     """
     print("\n" + "="*55)
     print("📊 EXTRAHIERTE DATEN (Vorschau):")
     print("="*55)
     for col, value in sorted(data.items()):
         if value == "r":
-            display_val = "angekreuzt"
+            display_val = "ja"
         elif value == "c":
-            display_val = "nicht angekreuzt"
+            display_val = "nein"
         else:
             display_val = (
                 str(value)[:60] + "..."
