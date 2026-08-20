@@ -1,6 +1,6 @@
 # ============================================================
 # word_parser_v8.py
-# V8-Erweiterung des Systembewertung-Extraktors - 3.0
+# V8-Erweiterung des Systembewertung-Extraktors - 3.1
 #
 # Enthält NUR das, was für Template V8 spezifisch ist. Alles
 # Gemeinsame (Hilfsfunktionen, Extraktionsfunktionen ohne
@@ -128,10 +128,12 @@ CHECKBOX_MAPPING_V8 = {
         # Periodic Review gemäß (Zusammenfassungstabelle Kapitel 2, Zeile
         # vor der Hauptzeile 6) - an einem echten Dokument bestätigt: die
         # beiden Checkbox-Gruppen liegen (nach Zellverschmelzung) an
-        # Zellindex 3 (QU-SOP-0007359 / freie Angabe) und 6 (zyklische
-        # Requalifizierung).
+        # Zellindex 3 (3 echte Checkboxen: QU-SOP-0007359 / QU-SOP-0028559 /
+        # freie Angabe - Bugfix: vorher wurde die mittlere Checkbox
+        # uebersehen und "PR_Andere" zeigte faelschlich auf QU-SOP-0028559
+        # statt auf die freie Angabe) und 6 (zyklische Requalifizierung).
         4: {
-            3: {0: "PR_SOP", 1: "PR_Andere"},
+            3: {0: "PR_SOP", 1: "PR_SOP2", 2: "PR_Andere"},
             6: {0: "PR-Zyklisch"},
         },
         6: {
