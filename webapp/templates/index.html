@@ -34,8 +34,10 @@
         <tr>
           {% for spalte in spalten %}<td>{{ row.get(spalte, '') or '' }}</td>{% endfor %}
           <td class="aktionen">
-            <a class="knopf klein" href="{{ url_for('db_uebernehmen', zeile=row['_zeile']) }}">Direkt erzeugen</a>
-            <a class="knopf klein sekundaer" href="{{ url_for('db_bearbeiten', zeile=row['_zeile']) }}">Bearbeiten</a>
+            <span class="aktionen-inner">
+              <a class="knopf klein" href="{{ url_for('db_uebernehmen', zeile=row['_zeile']) }}">Direkt erzeugen</a>
+              <a class="knopf klein sekundaer" href="{{ url_for('db_bearbeiten', zeile=row['_zeile']) }}">Bearbeiten</a>
+            </span>
           </td>
         </tr>
         {% else %}

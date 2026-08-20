@@ -1283,8 +1283,10 @@ VORSCHAU_ABSCHNITTE = [
         "Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ",
     ]),
     ("Deckblatt – Identifikation", [
-        "MLCSID", "UeberlagerteMLCS", "Dok. -Nr.", "Hyperlink",
-        "Erkannte_Version", "Version", "AS/BDIS-Name", "Anlage",
+        # MLCS-ID bewusst DIREKT vor dem Systemnamen (AS/BDIS-Name) -
+        # beide gehoeren fachlich zusammen ("welches System ist das").
+        "MLCSID", "AS/BDIS-Name", "UeberlagerteMLCS", "Dok. -Nr.", "Hyperlink",
+        "Erkannte_Version", "Version", "Anlage",
         "API", "Betrieb", "Gebaeude", "BE", "Raum", "PLSTA",
         "DokNummerVorQualiPSO", "Lieferantennummer", "Schnittstelle",
     ]),

@@ -106,7 +106,12 @@ BEMERKUNG_LABELS = {
 # gibt es aktuell KEINE gesicherte Definition in Template oder Skripten
 # - das wird hier bewusst ehrlich ausgewiesen statt geraten.
 FELD_HINWEISE = {
-    "Dok. -Nr.": "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des Vorgänger-Dokuments.",
+    "Dok. -Nr.": (
+        "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des "
+        "Vorgänger-Dokuments. ℹ️ Diese Systembewertung wird auf Basis der im System hinterlegten "
+        "Vorlage V11 erstellt (\"Erkannte Version2\" in der Master-Excel) - aktuell die einzige "
+        "hinterlegte Version, wird automatisch gesetzt."
+    ),
     "Hyperlink": "Link auf das Dokument in QualiPSO (sobald dort abgelegt).",
     "MLCSID": "System-Identifier/CS-Inventarnummer gemäß QU-SOP-0052370. Keine MLCS erforderlich für S0 und Equipment ohne CS.",
     "UeberlagerteMLCS": "Übergeordnetes System: Systemname, MLCS-ID und ggf. Doc-ID der zugehörigen Systembewertung.",
@@ -125,14 +130,33 @@ FELD_HINWEISE = {
     "Historie": "Grund der Erstellung/Änderung - siehe Textbaustein-Vorschläge unten.",
     "Besonderheiten": "Bei Gerätekategorien A, B und C bitte die Subkategorisierung (z. B. B1, C2) nach QU-SOP-0021736 begründen - siehe Textbaustein-Vorschläge unten.",
 }
+# Funktion/Rolle je Person (aus den Bestätigungstexten der Deckblatt-
+# Unterschriftentabelle übernommen) - als Hinweis unter dem jeweiligen
+# Namensfeld, damit auf Anhieb klar ist, wer z. B. "TSO" ist.
+ROLLEN_FUNKTIONEN = {
+    "Ersteller": "Autor CSV/SME - bestätigt die inhaltliche Richtigkeit und Vollständigkeit der Systembewertung.",
+    "SME": "Subject Matter Expert.",
+    "SI/PL": "Systemintegrator/Projektleiter - hat bei der Erstellung der Systembewertung mitgewirkt.",
+    "TSO": "Technical System Owner / Leiter Technik / Laborleiter - prüft die Systembewertung auf inhaltliche Richtigkeit und Vollständigkeit.",
+    "BSO": "Business System Owner / Leiter Produktion / Herstellungsleiter / Laborleiter - bestätigt, dass die Systembewertung den aktuellen Anforderungen entspricht.",
+    "BQR": "Business Quality Representative - bestätigt die Bewertung im Hinblick auf den Einfluss auf die Produktqualität.",
+    "CSQ": "Computerized System Quality (FBC Quality Q&V CSV) - bestätigt die aktuellen GMP-Anforderungen und genehmigt Qualifizierung/Validierung.",
+}
 for _rolle in common.ROLLEN_SPALTEN:
-    FELD_HINWEISE.setdefault(_rolle, "Bei mehreren Personen mit Zeilenumbruch trennen.")
+    _funktion = ROLLEN_FUNKTIONEN.get(_rolle, "")
+    FELD_HINWEISE.setdefault(
+        _rolle,
+        f"{_funktion} Bei mehreren Personen mit Zeilenumbruch trennen.".strip(),
+    )
 for _abteilung_feld in ABTEILUNG_FELDER.values():
     FELD_HINWEISE[_abteilung_feld] = 'Site/Organisationseinheit dieser Person - ersetzt den Platzhalter "(Site/Unit)" im Dokument.'
 
 KATEGORIE_HINWEISE = {
     "Klassifizierung": "Diese Auswahl wird zusätzlich in Kapitel 3 des Dokuments übernommen (Systemeinstufung Globales CS).",
     "Periodic Review": "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und Spreadsheets).",
+    "ERES-Typ": "Diese Auswahl wird zusätzlich in Kapitel 6 des Dokuments übernommen.",
+    "GAMP5 Software-Kategorie": "Diese Auswahl wird zusätzlich in Kapitel 7 des Dokuments übernommen.",
+    "GxP-Kritikalität": "Diese Auswahl fließt zusammen mit der Software-Kategorie automatisch in die Testtiefe (Kapitel 2 + Kapitel 8) ein.",
 }
 
 # ERES-Typ 4 hat im Template eine eigene Unterfrage "Art der Signatur"
@@ -238,6 +262,9 @@ def baue_formular(data):
                     "mehrfachauswahl": info["mehrfachauswahl"],
                     "optionen": info["optionen"], "ausgewaehlt": ausgewaehlt,
                     "hinweis": KATEGORIE_HINWEISE.get(feld),
+                    # "— keine Angabe —" waere hier redundant, wenn die
+                    # Kategorie ohnehin schon eine eigene N/A-Option hat.
+                    "hat_na": any(label.strip().upper() == "N/A" for _, label in info["optionen"]),
                 })
                 if feld == "Periodic Review":
                     items.append({

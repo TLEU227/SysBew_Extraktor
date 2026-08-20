@@ -51,9 +51,16 @@ h1 { margin-top: 0; font-size: 1.3em; }
 .suchleiste input { flex: 1; padding: 8px; border: 1px solid #c8c8c8; border-radius: 6px; }
 
 table { width: 100%; border-collapse: collapse; font-size: .92em; }
-th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5e5e5; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; }
 th { color: #616161; font-weight: 600; }
-td.aktionen { display: flex; gap: 6px; white-space: nowrap; }
+/* "display: flex" direkt auf einem td hebt dessen normale
+   Tabellenzellen-Ausrichtung auf (die Zelle zaehlt dann nicht mehr als
+   table-cell) - dadurch stand sie nicht mehr auf einer Linie mit den
+   Text-Zellen derselben Zeile. Das Flex-Layout sitzt deshalb auf einem
+   inneren Element, die Zelle selbst bleibt eine normale, wie alle
+   anderen Zellen vertikal zentrierte Tabellenzelle. */
+td.aktionen { white-space: nowrap; }
+.aktionen-inner { display: flex; gap: 6px; align-items: center; }
 
 .knopf, button {
   display: inline-block;
@@ -74,8 +81,20 @@ td.aktionen { display: flex; gap: 6px; white-space: nowrap; }
 button.knopf-primaer { background: #107c10; border-color: #107c10; }
 form.inline { display: inline; }
 
-fieldset { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; padding: 12px 16px; }
-legend { font-weight: 600; color: #0f6cbd; padding: 0 6px; }
+fieldset {
+  border: 1px solid #b9d6ef;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  padding: 14px 16px 10px;
+  background: #f7fbfe;
+}
+legend {
+  font-weight: 600;
+  color: #ffffff;
+  background: #0f6cbd;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
 
 /* Raster: kompakte Felder (kurze Werte, Namen, Abteilungen) stehen
    nebeneinander, um Platz zu sparen; "volle" Felder (grosse Freitexte,

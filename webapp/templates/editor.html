@@ -12,11 +12,6 @@
     Alle anderen Kapitel (inkl. 3, 6, 7, 8 sowie die Testtiefe) werden aus den unten
     gemachten Angaben automatisch mitbefüllt.
   </p>
-  <p class="hinweis info">
-    ℹ️ Diese Systembewertung wird auf Basis der im System hinterlegten Vorlage
-    <strong>V11</strong> erstellt ("Erkannte Version2" in der Master-Excel) - das ist
-    aktuell die einzige hinterlegte Version und wird automatisch gesetzt.
-  </p>
   <p class="hinweis warnung">
     ⚠️ Dieser Editor schreibt NICHT in die Master-Excel - er erzeugt nur das
     Word-Dokument zum Download. Die Master-Excel wird ausschließlich befüllt,
@@ -35,12 +30,6 @@
             <label class="feldgruppe-titel">{{ item.name }}</label>
             {% if item.hinweis %}<small class="feld-hinweis">{{ item.hinweis }}</small>{% endif %}
             <div class="optionen">
-              {% if not item.mehrfachauswahl %}
-                <label class="option">
-                  <input type="radio" name="kat__{{ item.name }}" value="" {% if not item.ausgewaehlt %}checked{% endif %}>
-                  — keine Angabe —
-                </label>
-              {% endif %}
               {% for feld, label in item.optionen %}
                 <label class="option">
                   <input type="{{ 'checkbox' if item.mehrfachauswahl else 'radio' }}"
@@ -49,6 +38,12 @@
                   {{ label }}
                 </label>
               {% endfor %}
+              {% if not item.mehrfachauswahl and not item.hat_na %}
+                <label class="option">
+                  <input type="radio" name="kat__{{ item.name }}" value="" {% if not item.ausgewaehlt %}checked{% endif %}>
+                  — keine Angabe —
+                </label>
+              {% endif %}
             </div>
           </div>
         {% else %}
