@@ -459,6 +459,13 @@ def name_setzen():
 # Startseite: Datenbank filtern (Weg 1 + Einstieg Weg 2)
 # ============================================================
 @app.route("/")
+def start():
+    """Startseite: fragt zuerst, WAS gemacht werden soll, bevor die
+    eigentlichen Seiten (Datenbank-Suche bzw. Draft-Übersicht) kommen -
+    vorher landete man direkt auf der Datenbank-Suche."""
+    return render_template("start.html", anzahl_offene_drafts=draft_store.anzahl_offene_drafts())
+
+@app.route("/datenbank")
 def index():
     suchtext = request.args.get("q", "")
     fehler = None

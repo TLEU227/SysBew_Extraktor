@@ -141,6 +141,12 @@ def list_drafts():
     ergebnis.sort(key=lambda e: e.get("geaendert_am", ""), reverse=True)
     return ergebnis
 
+def anzahl_offene_drafts():
+    """Anzahl der Drafts, die noch "in_bearbeitung" sind (nicht
+    "fertig") - fuer einen kurzen Hinweis auf der Startseite, ohne dass
+    diese jeden Draft komplett auflisten muss."""
+    return sum(1 for d in list_drafts() if d.get("status") != "fertig")
+
 # ============================================================
 # Sperren (Locking)
 # ============================================================
