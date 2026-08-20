@@ -246,6 +246,9 @@ def baue_formular(data):
                     "mehrfachauswahl": info["mehrfachauswahl"],
                     "optionen": info["optionen"], "ausgewaehlt": ausgewaehlt,
                     "hinweis": KATEGORIE_HINWEISE.get(feld),
+                    # "— keine Angabe —" waere hier redundant, wenn die
+                    # Kategorie ohnehin schon eine eigene N/A-Option hat.
+                    "hat_na": any(label.strip().upper() == "N/A" for _, label in info["optionen"]),
                 })
                 if feld == "Periodic Review":
                     items.append({

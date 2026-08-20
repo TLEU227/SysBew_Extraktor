@@ -30,12 +30,6 @@
             <label class="feldgruppe-titel">{{ item.name }}</label>
             {% if item.hinweis %}<small class="feld-hinweis">{{ item.hinweis }}</small>{% endif %}
             <div class="optionen">
-              {% if not item.mehrfachauswahl %}
-                <label class="option">
-                  <input type="radio" name="kat__{{ item.name }}" value="" {% if not item.ausgewaehlt %}checked{% endif %}>
-                  — keine Angabe —
-                </label>
-              {% endif %}
               {% for feld, label in item.optionen %}
                 <label class="option">
                   <input type="{{ 'checkbox' if item.mehrfachauswahl else 'radio' }}"
@@ -44,6 +38,12 @@
                   {{ label }}
                 </label>
               {% endfor %}
+              {% if not item.mehrfachauswahl and not item.hat_na %}
+                <label class="option">
+                  <input type="radio" name="kat__{{ item.name }}" value="" {% if not item.ausgewaehlt %}checked{% endif %}>
+                  — keine Angabe —
+                </label>
+              {% endif %}
             </div>
           </div>
         {% else %}
