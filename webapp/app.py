@@ -130,8 +130,24 @@ FELD_HINWEISE = {
     "Historie": "Grund der Erstellung/Änderung - siehe Textbaustein-Vorschläge unten.",
     "Besonderheiten": "Bei Gerätekategorien A, B und C bitte die Subkategorisierung (z. B. B1, C2) nach QU-SOP-0021736 begründen - siehe Textbaustein-Vorschläge unten.",
 }
+# Funktion/Rolle je Person (aus den Bestätigungstexten der Deckblatt-
+# Unterschriftentabelle übernommen) - als Hinweis unter dem jeweiligen
+# Namensfeld, damit auf Anhieb klar ist, wer z. B. "TSO" ist.
+ROLLEN_FUNKTIONEN = {
+    "Ersteller": "Autor CSV/SME - bestätigt die inhaltliche Richtigkeit und Vollständigkeit der Systembewertung.",
+    "SME": "Subject Matter Expert.",
+    "SI/PL": "Systemintegrator/Projektleiter - hat bei der Erstellung der Systembewertung mitgewirkt.",
+    "TSO": "Technical System Owner / Leiter Technik / Laborleiter - prüft die Systembewertung auf inhaltliche Richtigkeit und Vollständigkeit.",
+    "BSO": "Business System Owner / Leiter Produktion / Herstellungsleiter / Laborleiter - bestätigt, dass die Systembewertung den aktuellen Anforderungen entspricht.",
+    "BQR": "Business Quality Representative - bestätigt die Bewertung im Hinblick auf den Einfluss auf die Produktqualität.",
+    "CSQ": "Computerized System Quality (FBC Quality Q&V CSV) - bestätigt die aktuellen GMP-Anforderungen und genehmigt Qualifizierung/Validierung.",
+}
 for _rolle in common.ROLLEN_SPALTEN:
-    FELD_HINWEISE.setdefault(_rolle, "Bei mehreren Personen mit Zeilenumbruch trennen.")
+    _funktion = ROLLEN_FUNKTIONEN.get(_rolle, "")
+    FELD_HINWEISE.setdefault(
+        _rolle,
+        f"{_funktion} Bei mehreren Personen mit Zeilenumbruch trennen.".strip(),
+    )
 for _abteilung_feld in ABTEILUNG_FELDER.values():
     FELD_HINWEISE[_abteilung_feld] = 'Site/Organisationseinheit dieser Person - ersetzt den Platzhalter "(Site/Unit)" im Dokument.'
 
