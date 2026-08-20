@@ -22,6 +22,7 @@
     <p class="fehler">❌ Master-Excel konnte nicht gelesen werden: {{ fehler }}</p>
   {% else %}
     <p class="hinweis">{{ gesamt }} Treffer{% if gesamt > 200 %} (zeige die ersten 200){% endif %}</p>
+    <div class="tabellen-scroll">
     <table>
       <thead>
         <tr>
@@ -45,6 +46,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

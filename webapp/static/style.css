@@ -50,8 +50,13 @@ h1 { margin-top: 0; font-size: 1.3em; }
 .suchleiste { display: flex; gap: 8px; margin-bottom: 12px; }
 .suchleiste input { flex: 1; padding: 8px; border: 1px solid #c8c8c8; border-radius: 6px; }
 
+/* Horizontales Scrollen statt Zeilenumbruch in den Zellen - bei vielen
+   Spalten und langen Werten (z.B. "QU-OPE-XXXXX") sonst unterschiedlich
+   hohe, "zerrissene" Zeilen, in denen die Buttons optisch nicht mehr
+   auf einer Linie mit dem Text stehen. */
+.tabellen-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .92em; }
-th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; white-space: nowrap; }
 th { color: #616161; font-weight: 600; }
 /* "display: flex" direkt auf einem td hebt dessen normale
    Tabellenzellen-Ausrichtung auf (die Zelle zaehlt dann nicht mehr als
@@ -108,7 +113,12 @@ legend {
 .feldgruppe { margin-bottom: 12px; }
 .feldgruppe.voll { grid-column: 1 / -1; }
 .feldgruppe-titel { display: block; font-weight: 600; margin-bottom: 2px; }
-.feld-hinweis { display: block; color: #616161; font-size: .85em; margin-bottom: 4px; }
+/* Hinweistext ist standardmaessig ausgeblendet und erscheint erst,
+   waehrend man das zugehoerige Feld tatsaechlich bearbeitet (Fokus auf
+   einem Eingabeelement innerhalb derselben Feldgruppe) - dauerhaft
+   sichtbare Hinweise bei jedem Feld waeren zu viel auf einmal. */
+.feld-hinweis { display: none; color: #616161; font-size: .85em; margin-bottom: 4px; }
+.feldgruppe:focus-within .feld-hinweis { display: block; }
 .feldgruppe input[type=text], .feldgruppe textarea {
   width: 100%; padding: 6px 8px; border: 1px solid #c8c8c8; border-radius: 6px; font-family: inherit;
 }
