@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titel %}Start{% endblock %}
+{% block inhalt %}
+<div class="karte">
+  <h1>Was möchtest du tun?</h1>
+  <p class="hinweis">
+    Hier entscheidest du zuerst, ob du eine komplett neue Systembewertung
+    anstoßen oder an einem bereits begonnenen Entwurf weiterarbeiten möchtest.
+  </p>
+
+  <div class="start-optionen">
+    <a class="start-kachel" href="{{ url_for('index') }}">
+      <div class="start-kachel-titel">🆕 Neue Systembewertung erstellen</div>
+      <p>
+        Durchsucht die Master-Excel ("Datenbank") nach einem passenden bestehenden
+        Eintrag. Von dort aus kannst du die Daten entweder <strong>direkt</strong>
+        in eine neue Systembewertung übernehmen, oder sie vorher im
+        <strong>Editor</strong> überarbeiten. Es geht auch komplett ohne
+        Datenbank-Eintrag ("Neue leere Systembewertung").
+      </p>
+    </a>
+
+    <a class="start-kachel" href="{{ url_for('drafts_uebersicht') }}">
+      <div class="start-kachel-titel">📋 Draft weiterbearbeiten</div>
+      <p>
+        Zeigt alle bereits angelegten, zwischengespeicherten Bearbeitungsstände
+        (Drafts) - auch die von anderen Personen bzw. an anderen PCs angelegten.
+        {% if anzahl_offene_drafts %}
+          Aktuell <strong>{{ anzahl_offene_drafts }}</strong> noch nicht fertiggestellte(r) Draft{{ 's' if anzahl_offene_drafts != 1 }}.
+        {% else %}
+          Aktuell keine offenen Drafts.
+        {% endif %}
+      </p>
+    </a>
+  </div>
+</div>
+{% endblock %}

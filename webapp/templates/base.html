@@ -7,8 +7,9 @@
 </head>
 <body>
   <header class="kopf">
-    <a class="logo" href="{{ url_for('index') }}">📋 Systembewertung-Editor</a>
+    <a class="logo" href="{{ url_for('start') }}">📋 Systembewertung-Editor</a>
     <nav>
+      <a href="{{ url_for('start') }}">Start</a>
       <a href="{{ url_for('index') }}">Datenbank</a>
       <a href="{{ url_for('drafts_uebersicht') }}">Drafts</a>
       {% if session.get('user') %}

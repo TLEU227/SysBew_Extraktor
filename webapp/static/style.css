@@ -136,3 +136,23 @@ legend {
 fieldset > .aktionsleiste { margin-top: 8px; justify-content: flex-end; }
 
 .fusszeile { max-width: 1100px; margin: 24px auto 16px; padding: 0 16px; color: #9a9a9a; font-size: .8em; }
+
+.start-optionen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.start-kachel {
+  display: block;
+  border: 1px solid #b9d6ef;
+  border-radius: 8px;
+  padding: 18px 20px;
+  background: #f7fbfe;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow .15s, border-color .15s;
+}
+.start-kachel:hover { box-shadow: 0 2px 8px rgba(15,108,189,.18); border-color: #0f6cbd; }
+.start-kachel-titel { font-size: 1.15em; font-weight: 600; color: #0f6cbd; margin-bottom: 6px; }
+.start-kachel p { margin: 0; color: #444; font-size: .92em; }
