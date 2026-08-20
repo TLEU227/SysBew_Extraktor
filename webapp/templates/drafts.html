@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titel %}Drafts{% endblock %}
+{% block inhalt %}
+<div class="karte">
+  <h1>Bearbeitungsstände (Drafts)</h1>
+  <p>Alle Drafts sind für jede:n sichtbar und öffenbar - unabhängig davon, wer sie
+     angelegt hat oder an welchem PC gerade gearbeitet wird.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Titel</th><th>Status</th><th>Angelegt von</th><th>Zuletzt geändert</th>
+        <th>Sperre</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in drafts %}
+      <tr>
+        <td>{{ d.titel }}</td>
+        <td>{% if d.status == 'fertig' %}✅ fertig{% else %}📝 in Bearbeitung{% endif %}</td>
+        <td>{{ d.erstellt_von }}</td>
+        <td>{{ d.geaendert_von }} ({{ d.geaendert_am }})</td>
+        <td>
+          {% if d.sperre %}
+            {% if d.sperre.user == user %}
+              🔓 von dir geöffnet
+            {% else %}
+              🔒 {{ d.sperre.user }} (seit {{ d.sperre.seit }})
+            {% endif %}
+          {% else %}
+            frei
+          {% endif %}
+        </td>
+        <td class="aktionen">
+          <a class="knopf klein" href="{{ url_for('editor', draft_id=d.id) }}">Öffnen</a>
+          {% if d.status == 'fertig' %}
+            <a class="knopf klein sekundaer" href="{{ url_for('draft_herunterladen', draft_id=d.id) }}">Erneut herunterladen</a>
+          {% endif %}
+          <form method="post" action="{{ url_for('draft_loeschen', draft_id=d.id) }}" class="inline"
+                onsubmit="return confirm('Draft \'{{ d.titel }}\' wirklich löschen?');">
+            <button type="submit" class="knopf klein gefahr">Löschen</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Noch keine Drafts vorhanden.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

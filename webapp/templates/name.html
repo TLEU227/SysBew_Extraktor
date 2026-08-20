@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titel %}Name eingeben{% endblock %}
+{% block inhalt %}
+<div class="karte schmal">
+  <h1>Wer bist du?</h1>
+  <p>Der Name wird nur genutzt, um Drafts zu sperren ("in Bearbeitung von ...")
+     und in der Draft-Übersicht anzuzeigen - keine echte Anmeldung.</p>
+  <form method="post">
+    <input type="text" name="name" placeholder="Vor- und Nachname" required autofocus>
+    <button type="submit">Weiter</button>
+  </form>
+</div>
+{% endblock %}

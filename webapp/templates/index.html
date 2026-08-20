@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titel %}Datenbank{% endblock %}
+{% block inhalt %}
+<div class="karte">
+  <h1>Neue Systembewertung erstellen</h1>
+  <p>
+    <strong>Weg 1:</strong> Zeile aus der Datenbank suchen und mit "Direkt erzeugen"
+    sofort eine neue Systembewertung (docx) herunterladen.<br>
+    <strong>Weg 2:</strong> Mit "Bearbeiten" die Daten zuerst im Editor überarbeiten,
+    bevor das Dokument erzeugt wird (Zwischenspeichern möglich).
+  </p>
+  <a class="knopf" href="{{ url_for('editor_neu') }}">+ Neue leere Systembewertung (ohne Datenbank)</a>
+</div>
+
+<div class="karte">
+  <form method="get" class="suchleiste">
+    <input type="text" name="q" value="{{ q }}" placeholder="Suche nach MLCS-ID, Systemname, Dok.-Nr., Betrieb ...">
+    <button type="submit">Suchen</button>
+  </form>
+
+  {% if fehler %}
+    <p class="fehler">❌ Master-Excel konnte nicht gelesen werden: {{ fehler }}</p>
+  {% else %}
+    <p class="hinweis">{{ gesamt }} Treffer{% if gesamt > 200 %} (zeige die ersten 200){% endif %}</p>
+    <table>
+      <thead>
+        <tr>
+          {% for spalte in spalten %}<th>{{ spalte }}</th>{% endfor %}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for spalte in spalten %}<td>{{ row.get(spalte, '') or '' }}</td>{% endfor %}
+          <td class="aktionen">
+            <a class="knopf klein" href="{{ url_for('db_uebernehmen', zeile=row['_zeile']) }}">Direkt erzeugen</a>
+            <a class="knopf klein sekundaer" href="{{ url_for('db_bearbeiten', zeile=row['_zeile']) }}">Bearbeiten</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ spalten|length + 1 }}">Keine Treffer.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}

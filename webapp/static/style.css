@@ -1,0 +1,86 @@
+* { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  margin: 0;
+  background: #f4f5f7;
+  color: #1f2328;
+}
+.kopf {
+  background: #0f6cbd;
+  color: white;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kopf .logo { color: white; font-weight: 600; text-decoration: none; font-size: 1.1em; }
+.kopf nav a { color: white; margin-left: 18px; text-decoration: none; }
+.kopf nav a:hover { text-decoration: underline; }
+.kopf .user { margin-left: 18px; opacity: .85; }
+
+main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+
+.karte {
+  background: white;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.karte.schmal { max-width: 480px; }
+
+h1 { margin-top: 0; font-size: 1.3em; }
+
+.flash {
+  max-width: 1100px;
+  margin: 16px auto 0;
+  padding: 10px 16px;
+  background: #fff4ce;
+  border: 1px solid #e8c34a;
+  border-radius: 6px;
+}
+.flash p { margin: 2px 0; }
+
+.hinweis { color: #616161; font-size: .92em; }
+.hinweis.warnung { background: #fff4ce; border: 1px solid #e8c34a; padding: 8px 12px; border-radius: 6px; }
+.fehler { color: #b10e1c; }
+
+.suchleiste { display: flex; gap: 8px; margin-bottom: 12px; }
+.suchleiste input { flex: 1; padding: 8px; border: 1px solid #c8c8c8; border-radius: 6px; }
+
+table { width: 100%; border-collapse: collapse; font-size: .92em; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5e5e5; }
+th { color: #616161; font-weight: 600; }
+td.aktionen { display: flex; gap: 6px; white-space: nowrap; }
+
+.knopf, button {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #0f6cbd;
+  background: #0f6cbd;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: .95em;
+}
+.knopf.sekundaer, button.sekundaer {
+  background: white; color: #0f6cbd;
+}
+.knopf.klein, button.klein { padding: 4px 10px; font-size: .85em; }
+.knopf.gefahr, button.gefahr { background: white; color: #b10e1c; border-color: #b10e1c; }
+button.knopf-primaer { background: #107c10; border-color: #107c10; }
+form.inline { display: inline; }
+
+fieldset { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; padding: 12px 16px; }
+legend { font-weight: 600; color: #0f6cbd; padding: 0 6px; }
+
+.feldgruppe { margin-bottom: 12px; }
+.feldgruppe-titel { display: block; font-weight: 600; margin-bottom: 4px; }
+.feldgruppe input[type=text], .feldgruppe textarea {
+  width: 100%; padding: 6px 8px; border: 1px solid #c8c8c8; border-radius: 6px; font-family: inherit;
+}
+.optionen { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.option { display: flex; align-items: center; gap: 4px; font-weight: normal; white-space: nowrap; }
+
+.aktionsleiste { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }

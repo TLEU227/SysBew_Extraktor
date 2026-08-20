@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titel %}Editor - {{ draft.titel }}{% endblock %}
+{% block inhalt %}
+<div class="karte">
+  <h1>{{ draft.titel }}</h1>
+  <p class="hinweis">
+    Status: {{ draft.status }} · zuletzt gespeichert von {{ draft.geaendert_von }} ({{ draft.geaendert_am }})
+  </p>
+  <p class="hinweis warnung">
+    ⚠️ Kapitel 3 (Detail Klasse 1a/1b), Kapitel 5-9 (Entscheidungsbaum) und
+    die Testtiefe-Matrix (Kapitel 8) werden NICHT automatisch befüllt und
+    müssen nach dem Erzeugen manuell in Word ergänzt werden - siehe README.md.
+  </p>
+
+  <form method="post" id="editor-formular">
+    {% for titel, items in formular %}
+    <fieldset>
+      <legend>{{ titel }}</legend>
+      {% for item in items %}
+        {% if item.art == 'kategorie' %}
+          <div class="feldgruppe">
+            <label class="feldgruppe-titel">{{ item.name }}</label>
+            <div class="optionen">
+              {% if not item.mehrfachauswahl %}
+                <label class="option">
+                  <input type="radio" name="kat__{{ item.name }}" value="" {% if not item.ausgewaehlt %}checked{% endif %}>
+                  — keine Angabe —
+                </label>
+              {% endif %}
+              {% for feld, label in item.optionen %}
+                <label class="option">
+                  <input type="{{ 'checkbox' if item.mehrfachauswahl else 'radio' }}"
+                         name="kat__{{ item.name }}" value="{{ feld }}"
+                         {% if feld in item.ausgewaehlt %}checked{% endif %}>
+                  {{ label }}
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <div class="feldgruppe">
+            <label class="feldgruppe-titel" for="f_{{ item.name }}">{{ item.name }}</label>
+            {% if item.typ == 'textarea' %}
+              <textarea id="f_{{ item.name }}" name="feld__{{ item.name }}" rows="3">{{ item.wert }}</textarea>
+            {% else %}
+              <input type="text" id="f_{{ item.name }}" name="feld__{{ item.name }}" value="{{ item.wert }}">
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+    {% endfor %}
+
+    <div class="aktionsleiste">
+      <button type="submit" formaction="{{ url_for('editor_speichern', draft_id=draft.id) }}">💾 Zwischenspeichern</button>
+      <label class="option">
+        <input type="checkbox" name="excel_eintragen" checked>
+        Auch in Master-Excel eintragen
+      </label>
+      <button type="submit" formaction="{{ url_for('editor_fertigstellen', draft_id=draft.id) }}" class="knopf-primaer">
+        ✅ Fertigstellen &amp; Dokument erzeugen
+      </button>
+    </div>
+  </form>
+
+  <form method="post" action="{{ url_for('editor_freigeben', draft_id=draft.id) }}" class="inline">
+    <button type="submit" class="knopf klein sekundaer">Sperre freigeben (ohne zu speichern)</button>
+  </form>
+</div>
+
+<script>
+  // Sperre alle 60s erneuern, solange der Editor offen ist - laeuft
+  // die Sperre ohne Heartbeat ab, gibt draft_store sie automatisch
+  // wieder frei (siehe lib/draft_store.py).
+  setInterval(function () {
+    fetch("{{ url_for('editor_heartbeat', draft_id=draft.id) }}", {method: "POST"});
+  }, 60000);
+</script>
+{% endblock %}

@@ -131,6 +131,70 @@ werden nicht mehr benötigt und sollten beim Update entfernt werden,
 damit niemand versehentlich noch das alte, nicht mehr gepflegte
 Skript benutzt.
 
+## Web-Editor: neue Systembewertungen erstellen
+
+Zweites, unabhängiges Werkzeug in diesem Repo (Ordner `webapp/`) - die
+**Umkehrung** von `word_parser_main.py`: statt Daten AUS einer
+Systembewertung IN die Master-Excel zu übernehmen, wird hier aus
+Daten der Master-Excel (oder von Grund auf) eine NEUE Systembewertung
+(V11) erzeugt.
+
+**Start:** `python webapp/app.py` (oder Doppelklick auf
+`webapp/Systembewertung_Editor_starten.bat`) - öffnet automatisch den
+Browser auf `http://127.0.0.1:5151`. Läuft **lokal bei jeder/jedem
+Nutzer:in**, kein zentraler Server nötig.
+
+**Drei Arbeitswege:**
+1. **Direkt übernehmen:** Auf der Startseite eine Zeile aus der
+   Master-Excel suchen/filtern, "Direkt erzeugen" klicken -> sofort
+   fertige Systembewertung als Download, ohne Zwischenschritt.
+2. **Bearbeiten:** Wie 1, aber "Bearbeiten" statt "Direkt erzeugen" -
+   öffnet einen Editor mit allen Feldern (Rollen, Kapitel 1, Kapitel 2
+   Zusammenfassungstabelle, Beschreibungsfelder), vorausgefüllt mit
+   den Daten der gewählten Zeile. Auch eine komplett leere
+   Systembewertung ("+ Neue leere Systembewertung") ist möglich. Nach
+   Änderungen "Fertigstellen" klickt das Dokument fertig.
+3. **Zwischenspeichern (Drafts):** Im Editor jederzeit
+   "Zwischenspeichern" statt "Fertigstellen" - der Bearbeitungsstand
+   landet als Draft im Ordner `Drafts/` neben der Master-Excel (selbes
+   Netzlaufwerk, kein zusätzlicher Speicherort nötig) und kann über
+   die Draft-Übersicht (`/drafts`) von **jeder Person, an jedem PC**,
+   am nächsten Tag weiter bearbeitet werden.
+
+**Mehrbenutzerfähigkeit ohne zentralen Server:** Es gibt keine feste
+Anzahl an "Plätzen" - es werden so viele Draft-Dateien angelegt, wie
+gerade gebraucht werden, beliebig viele Personen können gleichzeitig
+an unterschiedlichen Drafts arbeiten. Damit sich niemand gegenseitig
+überschreibt, wird ein Draft beim Öffnen mit einer Sperr-Datei
+(`<id>.lock`, Name + Zeitstempel) markiert:
+- Versucht jemand anderes denselben Draft zu öffnen, wird klar
+  angezeigt, wer ihn gerade bearbeitet und seit wann - **nie eine
+  stille Blockade ohne Erklärung**.
+- Der Browser schickt alle 60 Sekunden einen Heartbeat, der die Sperre
+  verlängert. Ohne Heartbeat (Tab geschlossen, PC abgestürzt) verfällt
+  die Sperre nach 15 Minuten automatisch - der Draft wird dann von
+  selbst wieder frei, ohne dass jemand manuell entsperren muss.
+- Über "Sperre freigeben" im Editor kann man einen Draft auch bewusst
+  vorzeitig wieder freigeben.
+
+Optional kann beim Fertigstellen die Checkbox "Auch in Master-Excel
+eintragen" gesetzt bleiben - dann wird zusätzlich zum docx-Download
+per COM-Automatisierung eine neue Zeile in die Master-Excel
+eingetragen (derselbe Mechanismus wie bei `word_parser_main.py`,
+inkl. `Python ja/nein = ja`).
+
+**Bekannte Einschränkung:** Kapitel 3 (Detailfestlegung Klasse
+1a/1b), Kapitel 5-9 (Entscheidungsbaum Gerätekategorie/CS-Typ/ERES-Typ/
+KI) und die Testtiefe-Matrix (Kapitel 8) werden **nicht** automatisch
+befüllt - aus dem in der Master-Excel gespeicherten Endergebnis lässt
+sich der zugrunde liegende Entscheidungsweg nicht eindeutig
+rekonstruieren (mehrere Antwortpfade können zum selben Endergebnis
+führen). Ein Raten wäre in einem GxP-Dokument nicht vertretbar - diese
+Kapitel müssen nach dem automatischen Erzeugen manuell in Word
+ergänzt werden. Alles, was auf dem Deckblatt und in der
+Zusammenfassungstabelle (Kapitel 2) steht, wird dagegen vollständig
+befüllt.
+
 ## Voraussetzungen
 
 - Python ≥ 3.8 (getestet mit 3.12)
@@ -142,7 +206,32 @@ Skript benutzt.
 pip install python-docx pywin32
 ```
 
+Für den Web-Editor (`webapp/`) zusätzlich:
+
+```
+pip install -r webapp/requirements.txt
+```
+
+(entspricht `flask`, `openpyxl`, plus die beiden oben genannten)
+
 ## Versionshistorie
+
+### webapp/ (Web-Editor, neu)
+
+- Erste Version: Startseite mit Datenbank-Filter (Weg 1: direkt
+  erzeugen; Weg 2: im Editor bearbeiten), Editor mit allen Feldern
+  der Systembewertung (Rollen, Kapitel 1, Kapitel 2), Draft-
+  Zwischenspeicherung mit Sperr-Mechanismus (mehrbenutzerfähig, siehe
+  Abschnitt "Web-Editor" oben).
+- Neues Modul `lib/template_filler.py`: erzeugt aus einem Daten-Dict
+  eine neue Systembewertung auf Basis von
+  `assets/templates_docx/Systembewertung_V11_leer.docx` - Gegenstück
+  zu den `extract_*`-Funktionen in `sysbew_common.py`. Per Round-Trip-
+  Test (füllen -> mit dem bestehenden Extraktor wieder auslesen ->
+  vergleichen) gegen die Extraktion abgesichert.
+- Neue Module `lib/draft_store.py` (Draft-JSON + Sperr-Dateien im
+  Ordner `Drafts/` neben der Master-Excel) und `lib/db_reader.py`
+  (liest die Master-Excel per `openpyxl`, nur lesend, ohne COM).
 
 ### Main-Datei + Erweiterungen (aktuelle Architektur)
 
