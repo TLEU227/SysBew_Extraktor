@@ -1,0 +1,4 @@
+flask
+openpyxl
+python-docx
+pywin32

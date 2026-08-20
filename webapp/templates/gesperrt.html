@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titel %}Gesperrt{% endblock %}
+{% block inhalt %}
+<div class="karte schmal">
+  <h1>🔒 Dieser Draft wird gerade bearbeitet</h1>
+  <p>
+    <strong>{{ draft.titel }}</strong> wird gerade von
+    <strong>{{ sperre.user }}</strong> bearbeitet (seit {{ sperre.seit }},
+    zuletzt aktiv {{ sperre.heartbeat }}).
+  </p>
+  <p>Die Sperre läuft automatisch nach 15 Minuten ohne Aktivität ab
+     (z.B. wenn der Browser-Tab geschlossen wurde) - du kannst es dann
+     erneut versuchen. Alternativ kannst du in der Draft-Übersicht
+     einen anderen Draft öffnen.</p>
+  <a class="knopf" href="{{ url_for('drafts_uebersicht') }}">Zurück zur Draft-Übersicht</a>
+</div>
+{% endblock %}

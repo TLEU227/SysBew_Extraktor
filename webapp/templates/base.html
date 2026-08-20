@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>{% block titel %}Systembewertung-Editor{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="kopf">
+    <a class="logo" href="{{ url_for('index') }}">📋 Systembewertung-Editor</a>
+    <nav>
+      <a href="{{ url_for('index') }}">Datenbank</a>
+      <a href="{{ url_for('drafts_uebersicht') }}">Drafts</a>
+      {% if session.get('user') %}
+        <span class="user">{{ session['user'] }}</span>
+      {% endif %}
+    </nav>
+  </header>
+
+  {% with nachrichten = get_flashed_messages() %}
+    {% if nachrichten %}
+      <div class="flash">
+        {% for n in nachrichten %}<p>{{ n }}</p>{% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block inhalt %}{% endblock %}
+  </main>
+</body>
+</html>
