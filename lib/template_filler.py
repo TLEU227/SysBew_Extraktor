@@ -16,6 +16,27 @@
 # ermittelt durch direkte Inspektion von
 # assets/templates_docx/Systembewertung_V11_leer.docx.
 #
+# TEMPLATE-VERSION FEST VERANKERT: assets/templates_docx/
+# Systembewertung_V11_leer.docx ist DIE im System hinterlegte,
+# maßgebliche Vorlage fuer alle neu erzeugten Systembewertungen -
+# bewusst als normale Datei im Repo abgelegt (sichtbar/ersetzbar bei
+# Bedarf, kein verstecktes Binaerformat), aber NICHT einfach durch
+# eine andere Datei ersetzbar: fill_template() prueft beim Laden per
+# common.detect_template_version(), dass die Datei tatsaechlich V11
+# ist, und bricht mit einer klaren Fehlermeldung ab, falls nicht.
+#
+# Ein Wechsel auf eine neue Template-Version (z.B. V12) darf NICHT
+# durch einfaches Austauschen dieser Datei erfolgen - die Tabellen-/
+# Zeilen-/Zellen-Indizes in diesem Modul (fill_deckblatt_rollen,
+# fill_klassifizierung, CHECKBOX_MAPPING_V11 usw.) sind exakt auf die
+# Struktur DIESER Datei abgestimmt und wuerden bei einer strukturell
+# abweichenden Vorlage falsche Zellen befuellen, ohne dass das
+# auffaellt. Eine neue Version muss daher ueber eine echte
+# Code-Anpassung (Struktur-Analyse + Anpassung der Fill-Funktionen +
+# Round-Trip-Test gegen die Extraktion, wie bei V11 geschehen) erfolgen
+# - dafuer wieder Claude Code hinzuziehen, nicht die Datei manuell
+# ersetzen.
+#
 # BEKANNTE EINSCHRAENKUNG (siehe auch README.md): folgende Bereiche
 # des Templates werden NICHT automatisch befuellt, weil sich aus den
 # in der Master-Excel gespeicherten Endergebnissen nicht eindeutig
@@ -43,10 +64,28 @@ _NS = {
     "w14": "http://schemas.microsoft.com/office/word/2010/wordml",
 }
 
+# Im System fest verankerte Vorlage - siehe Modul-Kommentar oben.
+# TEMPLATE_VERSION ist die einzige Stelle, die bei einer neuen
+# Template-Generation angepasst werden muss (nach Umsetzung der
+# zugehoerigen Fill-Funktionen fuer die neue Struktur).
+#
+# Es gibt zu jedem Zeitpunkt IMMER NUR GENAU EINE aktive Version: kein
+# Auswahl-Dropdown, kein Fallback auf eine aeltere Version. Steht z.B.
+# V12 zur Verfuegung, wird TEMPLATE_VERSION auf 12 und
+# DEFAULT_TEMPLATE_PATH auf die neue Datei umgestellt, die alte
+# V11-Datei wird entfernt (nicht parallel weiter angeboten) - die
+# Umstellung erfolgt ausschliesslich ueber eine Code-Aenderung
+# (Claude Code hinzuziehen), niemals durch Ersetzen der Datei allein.
+TEMPLATE_VERSION = 11
 DEFAULT_TEMPLATE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "assets", "templates_docx", "Systembewertung_V11_leer.docx",
 )
+
+class TemplateVersionError(RuntimeError):
+    """Die unter DEFAULT_TEMPLATE_PATH/template_path hinterlegte Datei
+    ist keine gueltige V11-Vorlage (falsche Version, versehentlich
+    ersetzt, oder beschaedigt)."""
 
 # ============================================================
 # Low-Level: Checkbox-Zustand schreiben (inkl. sichtbarem Glyph)
@@ -342,9 +381,28 @@ def fill_template(data, template_path=None, output_path=None):
     aufgerufen wird.
     """
     from word_parser_v11 import CHECKBOX_MAPPING_V11
+    import sysbew_common as common
 
     template_path = template_path or DEFAULT_TEMPLATE_PATH
+    if not os.path.exists(template_path):
+        raise TemplateVersionError(
+            f"Template nicht gefunden: {template_path}\n"
+            f"Die im System hinterlegte V{TEMPLATE_VERSION}-Vorlage fehlt oder "
+            f"wurde verschoben - bitte assets/templates_docx/ pruefen."
+        )
     doc = Document(template_path)
+
+    erkannt = common.detect_template_version(doc)
+    if erkannt != TEMPLATE_VERSION:
+        raise TemplateVersionError(
+            f"Das Template unter {template_path} ist keine gueltige "
+            f"V{TEMPLATE_VERSION}-Vorlage (erkannt: V{erkannt}). Diese Datei "
+            f"darf nicht einfach durch eine andere Version ersetzt werden - "
+            f"die Tabellen-/Zellzuordnung in diesem Modul ist exakt auf die "
+            f"V{TEMPLATE_VERSION}-Struktur abgestimmt. Eine neue Template-"
+            f"Version muss ueber eine Code-Anpassung (Struktur-Analyse + "
+            f"neue Fill-Funktionen + Round-Trip-Test) integriert werden."
+        )
 
     fill_deckblatt_rollen(doc, data)
     fill_historie(doc, data)

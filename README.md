@@ -183,6 +183,21 @@ per COM-Automatisierung eine neue Zeile in die Master-Excel
 eingetragen (derselbe Mechanismus wie bei `word_parser_main.py`,
 inkl. `Python ja/nein = ja`).
 
+**Template fest im System verankert:** Die Vorlage
+(`assets/templates_docx/Systembewertung_V11_leer.docx`) liegt bewusst
+als normale, sichtbare Datei im Repo - kein verstecktes/verschlüsseltes
+Format, sie darf bei Bedarf angeschaut werden. Sie ist aber NICHT
+einfach durch eine andere Datei ersetzbar: `template_filler.py` prüft
+bei jedem Erzeugen per `detect_template_version()`, dass die Datei
+tatsächlich V11 ist, und bricht sonst mit klarer Fehlermeldung ab. Es
+gibt zu jedem Zeitpunkt **nur genau eine aktive Version** - kein
+Auswahl-Dropdown, kein Fallback auf eine ältere Version. Sobald eine
+V12-Vorlage benötigt wird, gilt **ausschließlich** noch diese; die
+Umstellung (neue Datei + angepasste Fill-Funktionen für die neue
+Struktur + `TEMPLATE_VERSION` in `lib/template_filler.py` hochsetzen +
+Round-Trip-Test) erfolgt über eine Code-Änderung (Claude Code
+hinzuziehen) - niemals durch bloßes Austauschen der Datei.
+
 **Bekannte Einschränkung:** Kapitel 3 (Detailfestlegung Klasse
 1a/1b), Kapitel 5-9 (Entscheidungsbaum Gerätekategorie/CS-Typ/ERES-Typ/
 KI) und die Testtiefe-Matrix (Kapitel 8) werden **nicht** automatisch
