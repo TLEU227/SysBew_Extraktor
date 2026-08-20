@@ -64,7 +64,14 @@ th { color: #616161; font-weight: 600; }
    Text-Zellen derselben Zeile. Das Flex-Layout sitzt deshalb auf einem
    inneren Element, die Zelle selbst bleibt eine normale, wie alle
    anderen Zellen vertikal zentrierte Tabellenzelle. */
-td.aktionen { white-space: nowrap; }
+/* Die Aktions-Spalte (Buttons) bleibt beim horizontalen Scrollen der
+   Tabelle sichtbar am rechten Rand "kleben" - sonst verschwinden die
+   Buttons bei vielen/breiten Spalten hinter dem Scrollbereich. */
+td.aktionen, th.aktionen {
+  white-space: nowrap; position: sticky; right: 0;
+  background: white; box-shadow: -4px 0 4px -2px rgba(0,0,0,.06);
+}
+tr:nth-child(even) td.aktionen { background: #fafafa; }
 .aktionen-inner { display: flex; gap: 6px; align-items: center; }
 
 .knopf, button {
