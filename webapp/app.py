@@ -106,7 +106,12 @@ BEMERKUNG_LABELS = {
 # gibt es aktuell KEINE gesicherte Definition in Template oder Skripten
 # - das wird hier bewusst ehrlich ausgewiesen statt geraten.
 FELD_HINWEISE = {
-    "Dok. -Nr.": "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des Vorgänger-Dokuments.",
+    "Dok. -Nr.": (
+        "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des "
+        "Vorgänger-Dokuments. ℹ️ Diese Systembewertung wird auf Basis der im System hinterlegten "
+        "Vorlage V11 erstellt (\"Erkannte Version2\" in der Master-Excel) - aktuell die einzige "
+        "hinterlegte Version, wird automatisch gesetzt."
+    ),
     "Hyperlink": "Link auf das Dokument in QualiPSO (sobald dort abgelegt).",
     "MLCSID": "System-Identifier/CS-Inventarnummer gemäß QU-SOP-0052370. Keine MLCS erforderlich für S0 und Equipment ohne CS.",
     "UeberlagerteMLCS": "Übergeordnetes System: Systemname, MLCS-ID und ggf. Doc-ID der zugehörigen Systembewertung.",
@@ -133,6 +138,9 @@ for _abteilung_feld in ABTEILUNG_FELDER.values():
 KATEGORIE_HINWEISE = {
     "Klassifizierung": "Diese Auswahl wird zusätzlich in Kapitel 3 des Dokuments übernommen (Systemeinstufung Globales CS).",
     "Periodic Review": "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und Spreadsheets).",
+    "ERES-Typ": "Diese Auswahl wird zusätzlich in Kapitel 6 des Dokuments übernommen.",
+    "GAMP5 Software-Kategorie": "Diese Auswahl wird zusätzlich in Kapitel 7 des Dokuments übernommen.",
+    "GxP-Kritikalität": "Diese Auswahl fließt zusammen mit der Software-Kategorie automatisch in die Testtiefe (Kapitel 2 + Kapitel 8) ein.",
 }
 
 # ERES-Typ 4 hat im Template eine eigene Unterfrage "Art der Signatur"
