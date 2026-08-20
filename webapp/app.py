@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.0
+# Systembewertung-Editor - Web-Oberflaeche - 1.1
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -11,6 +11,14 @@
 # gemeinsamen Ordner "Drafts" neben der Master-Excel, sind also fuer
 # alle sichtbar/oeffenbar, unabhaengig davon, auf welchem PC sie
 # angelegt wurden.
+#
+# WICHTIG (1.1): dieser Web-Editor schreibt NICHT (mehr) in die Master-
+# Excel. Er erzeugt ausschliesslich das neue .docx zum Download. Die
+# Master-Excel wird weiterhin ausschliesslich ueber den bestehenden,
+# geprueften Import-Weg aktualisiert: das FINALE, tatsaechlich
+# abgeschlossene/unterschriebene Dokument wird auf word_parser_main.py
+# gezogen. Damit gibt es fuer die Excel-Befuellung nur EINEN Codepfad,
+# und es landen keine Entwuerfe/Zwischenstaende in der Excel.
 #
 # Start: python app.py  (oeffnet automatisch den Browser)
 # Benoetigt zusaetzlich zu den Anforderungen von word_parser_main.py:
@@ -43,14 +51,23 @@ app.secret_key = "sysbew-editor-lokal"
 
 PORT = 5151
 
-# Felder, die nicht als Eingabe im Formular auftauchen, weil sie
-# automatisch berechnet werden (Systemtyp_CE, Erkannte_Version) oder
-# weil das Filler-Modul sie (noch) nicht ins Dokument schreiben kann
-# (Testtiefe/Testtiefe-Matrix - siehe README.md "Bekannte
-# Einschraenkungen": haengt an Kapitel 8, das nicht automatisch
-# befuellt wird).
+# Felder, die nicht als Eingabe im Formular auftauchen:
+#   - automatisch berechnet: Systemtyp_CE, Erkannte_Version (siehe
+#     info.html-Baustein direkt hinter "Dok. -Nr." - immer V11, solange
+#     das nur eine hinterlegte Version ist), Testtiefe/Testtiefe-Matrix
+#     (wird seit 1.1 automatisch aus GxP-Kritikalitaet + Software-
+#     Kategorie berechnet, siehe template_filler.fill_testtiefe)
+#   - Phenix: Phenix-Nummern gibt es laut Fachbereich nicht mehr
+#   - DI EE-Anforderungen: das Ergebnis laesst sich nur ueber den
+#     Entscheidungsbaum in Kapitel 5 korrekt ermitteln, den diese App
+#     nicht abbildet - ein direktes Ankreuzen ohne den Baum waere
+#     Raten und in einem GxP-Dokument nicht vertretbar
+#   - "Steuerung erfolgt über?": hat keine eigene Frage im Template,
+#     gehoert inhaltlich zur Prozessbeschreibung und wird dort direkt
+#     mit erfasst statt als eigenes Feld abgefragt
 SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
-               "Testtiefe", "Testtiefe-Matrix"}
+               "Testtiefe", "Testtiefe-Matrix", "Phenix",
+               "DI EE-Anforderungen", "Steuerung erfolgt über?"}
 
 _TEXTAREA_FELDER = (
     set(template_filler._BESCHREIBUNG_ZEILEN.values())
@@ -58,6 +75,131 @@ _TEXTAREA_FELDER = (
        "GxP_Datenintegritaet", "Kurzbeschreibung", "Historie"}
     | set(common.ROLLEN_SPALTEN)
 )
+
+# Abteilungs-Felder (webapp-only, nicht Teil von EXCEL_COLUMNS): jede
+# Rollenzeile im Deckblatt hat einen "(Site/Unit)"-Platzhalter (ausser
+# CSQ - dort ist die Abteilung im Template fest vorgegeben). Werden im
+# Formular direkt neben dem jeweiligen Namensfeld angezeigt (siehe
+# baue_formular()) und von template_filler.fill_deckblatt_rollen() in
+# das Label der jeweiligen Zeile eingesetzt.
+ABTEILUNG_FELDER = {
+    "Ersteller": "Ersteller_Abteilung",
+    "SI/PL":     "SI_PL_Abteilung",
+    "TSO":       "TSO_Abteilung",
+    "BSO":       "BSO_Abteilung",
+    "BQR":       "BQR_Abteilung",
+}
+
+# Freundliche Beschriftung fuer die 4 generischen "BemerkungX"-Spalten
+# der Master-Excel - haben laut Fachbereich eine feste Bedeutung
+# innerhalb des Kapitels "Informationen und Bemerkungen".
+BEMERKUNG_LABELS = {
+    "Bemerkung1": "Bemerkung 1 (Prozessbeschreibung)",
+    "Bemerkung2": "Bemerkung 2 (Daten)",
+    "Bemerkung3": "Bemerkung 3 (Audit Trail)",
+    "Bemerkung4": "Bemerkung 4 (Parameter)",
+}
+
+# Hinweistexte, die im Editor unter dem jeweiligen Feld/der jeweiligen
+# Kategorie angezeigt werden - wo moeglich woertlich aus dem Template
+# uebernommen. Fuer PLSTA und "SW-Version / Typ:" (Bedeutung von "VV")
+# gibt es aktuell KEINE gesicherte Definition in Template oder Skripten
+# - das wird hier bewusst ehrlich ausgewiesen statt geraten.
+FELD_HINWEISE = {
+    "Dok. -Nr.": "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des Vorgänger-Dokuments.",
+    "Hyperlink": "Link auf das Dokument in QualiPSO (sobald dort abgelegt).",
+    "MLCSID": "System-Identifier/CS-Inventarnummer gemäß QU-SOP-0052370. Keine MLCS erforderlich für S0 und Equipment ohne CS.",
+    "UeberlagerteMLCS": "Übergeordnetes System: Systemname, MLCS-ID und ggf. Doc-ID der zugehörigen Systembewertung.",
+    "Schnittstelle": "Schnittstelle zu anderen/übergeordneten Systemen: Systemname, MLCS-ID und ggf. Doc-ID der Systembewertung.",
+    "Anlage": "Anlagen-IDs/Equipment-Nr./QC-ID.",
+    "PLSTA": "⚠️ Bedeutung nicht dokumentiert (in keinem der Vorgänger-Skripte befüllt worden) - bitte klären oder leer lassen.",
+    "AS/BDIS-Name": "Bei Equipment z. B. Laborwaage; bei System: Software-/Systemname.",
+    "Kurzbeschreibung": "Wozu wird das System/Equipment/die Anlage eingesetzt?",
+    "Betrieb": "Einsatzort: Site/Organisationseinheit.",
+    "Gebaeude": "Gebäude-Kürzel, falls vorhanden.",
+    "Hersteller": "Name Hersteller/Lieferant. Bei zugelassenen Lieferanten die QualiPSO-ID im Feld „Lieferantennummer“ ergänzen.",
+    "SW-Hersteller": "Hersteller/Lieferant der Software (falls abweichend vom Equipment-Hersteller).",
+    "SW-Version / Typ:": "⚠️ Bedeutung von „VV“ und den weiteren dort üblichen Optionen ist uns nicht dokumentiert - bitte bei Bedarf klären. Frei ausfüllen.",
+    "DokNummerVorQualiPSO": "Dokumentennummer des Vorgänger-Dokuments vor Überführung nach QualiPSO, falls vorhanden.",
+    "Lieferantennummer": "QualiPSO-/QTP-Customer-ID des Lieferanten, falls vorhanden.",
+    "Historie": "Grund der Erstellung/Änderung - siehe Textbaustein-Vorschläge unten.",
+    "Besonderheiten": "Bei Gerätekategorien A, B und C bitte die Subkategorisierung (z. B. B1, C2) nach QU-SOP-0021736 begründen - siehe Textbaustein-Vorschläge unten.",
+}
+for _rolle in common.ROLLEN_SPALTEN:
+    FELD_HINWEISE.setdefault(_rolle, "Bei mehreren Personen mit Zeilenumbruch trennen.")
+for _abteilung_feld in ABTEILUNG_FELDER.values():
+    FELD_HINWEISE[_abteilung_feld] = 'Site/Organisationseinheit dieser Person - ersetzt den Platzhalter "(Site/Unit)" im Dokument.'
+
+KATEGORIE_HINWEISE = {
+    "Klassifizierung": "Diese Auswahl wird zusätzlich in Kapitel 3 des Dokuments übernommen (Systemeinstufung Globales CS).",
+    "Periodic Review": "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und Spreadsheets).",
+}
+
+# ERES-Typ 4 hat im Template eine eigene Unterfrage "Art der Signatur"
+# (3 Checkboxen) - webapp-only, nicht Teil von EXCEL_COLUMNS. Nur
+# relevant, wenn oben ERES-Typ 4 ausgewaehlt wurde, wird aber unabhaengig
+# davon immer angezeigt (kein bedingtes Ein-/Ausblenden).
+_KATEGORIEN_ZUSATZ = {
+    "ERES-Typ 4 – Art der Signatur": {
+        "optionen": [
+            ("ERES4_SIG_ID_PW", "Identifikation und Passwort"),
+            ("ERES4_SIG_BIOMETRISCH", "Biometrisch"),
+            ("ERES4_SIG_TOKEN_PW", "Token und Passwort"),
+        ],
+        "mehrfachauswahl": True,
+    },
+}
+
+# Vorschlags-Textbausteine fuer Historie ("Grund der Erstellung") und
+# Besonderheiten - werden per Knopf im Editor in das jeweilige Feld
+# eingefuegt (siehe editor.html), koennen danach frei angepasst werden.
+HISTORIE_VORLAGEN = [
+    {
+        "label": "Vorlage 1: Anpassung",
+        "text": (
+            "Anpassung mit inhaltlicher Überführung der gültigen Systemeinstufung "
+            "AS/BDIS für dieses System (Dok.-Nr.: FRA-BERI-G-011453 / Version 2) in "
+            "die Systembewertung gemäß QU-MT-0001344 Version 11. Überführung in das "
+            "Dokumenten-Managementsystem QualiPSO.\n\n"
+            "Dabei erfolgte keine Änderung der gültigen Bewertungen. Ergänzende "
+            "Angaben wurden im Kapitel „Informationen und Bemerkungen“ notiert."
+        ),
+    },
+    {
+        "label": "Vorlage 2: Neuerstellung (Papier → QualiPSO)",
+        "text": (
+            "Neuerstellung mit inhaltlicher Überführung der gültigen Systemeinstufung "
+            "AS/BDIS für das PLS Lantus (Dok.-Nr.: L_QUA_1143 / Version 4 / "
+            "MLCS-ID: 1193) in die Systembewertung gemäß FRA-FORM-001283 Version 4.0.\n"
+            "Dabei erfolgte keine Änderung der gültigen Bewertungen. Ergänzende "
+            "Angaben wurden im Kapitel „Informationen und Bemerkungen“ notiert.\n"
+            "Anpassungen auf Basis der FRA-QU-MT-0001344 (FRA-FORM-001283) Version "
+            "11.0 anlässlich der Qualifizierung für ..."
+        ),
+    },
+]
+BESONDERHEITEN_VORLAGEN = [
+    {
+        "label": "GxP minor → kein Periodic Review",
+        "text": "Da das System mit GxP Kritikalität minor bewertet wurde, ist kein Periodic Review gemäß QU-SOP-0007359 nötig.",
+    },
+    {
+        "label": "Gerätekategorie Bx (allgemein)",
+        "text": "Es handelt sich gemäß QU-SOP-0021736 Kapitel 2.4.1 um Gerätekategorie Bx (gemäß Kapitel 5.8).",
+    },
+    {
+        "label": "Vereinfachte Qualifizierung – B1",
+        "text": "Das System wird vereinfacht qualifiziert, da es sich gemäß QU-SOP-0021736 um Gerätekategorie B1 handelt (nicht parametrierbares, Firmware-basiertes System).",
+    },
+    {
+        "label": "Vereinfachte Qualifizierung – B3",
+        "text": "Das System wird vereinfacht qualifiziert, da es sich gemäß QU-SOP-0021736 um Gerätekategorie B3 handelt (parametrierbares, jedoch nicht konfigurierbares Firmware-basiertes System).",
+    },
+    {
+        "label": "Vereinfachte Qualifizierung – C1",
+        "text": "Das System wird vereinfacht qualifiziert, da es sich gemäß QU-SOP-0021736 um Gerätekategorie C1 handelt (parametrierbares, jedoch nicht konfigurierbares Software-basiertes System).",
+    },
+]
 
 def _kategorien_lookup():
     lookup = {}
@@ -71,13 +213,16 @@ def _kategorien_lookup():
         if name == "Testtiefe":
             continue
         lookup[name] = {"optionen": optionen, "mehrfachauswahl": False}
+    lookup.update(_KATEGORIEN_ZUSATZ)
     return lookup
 
 def baue_formular(data):
     """Baut die Formularstruktur fuer editor.html aus den
     VORSCHAU_ABSCHNITTE (dieselbe Gliederung wie die
     Konsolen-Vorschau von word_parser_main.py - Deckblatt zuerst,
-    dann Kapitel 1/2 usw.)."""
+    dann Kapitel 1/2 usw.), ergaenzt um webapp-only Zusatzfelder
+    (Abteilungen, Periodic-Review-Freitext, ERES-Typ-4-Signatur) und
+    Hinweistexte."""
     kategorien = _kategorien_lookup()
     abschnitte = []
     for titel, felder in common.VORSCHAU_ABSCHNITTE:
@@ -92,13 +237,47 @@ def baue_formular(data):
                     "art": "kategorie", "name": feld,
                     "mehrfachauswahl": info["mehrfachauswahl"],
                     "optionen": info["optionen"], "ausgewaehlt": ausgewaehlt,
+                    "hinweis": KATEGORIE_HINWEISE.get(feld),
                 })
+                if feld == "Periodic Review":
+                    items.append({
+                        "art": "feld", "name": "PR_Andere_Text", "typ": "text", "breite": "kompakt",
+                        "wert": data.get("PR_Andere_Text") or "",
+                        "label": "Freie Angabe - Details",
+                        "hinweis": 'Nur ausfüllen, wenn oben „andere/freie Angabe“ ausgewählt wurde.',
+                    })
+                if feld == "ERES-Typ":
+                    zusatz = _KATEGORIEN_ZUSATZ["ERES-Typ 4 – Art der Signatur"]
+                    items.append({
+                        "art": "kategorie", "name": "ERES-Typ 4 – Art der Signatur",
+                        "mehrfachauswahl": zusatz["mehrfachauswahl"],
+                        "optionen": zusatz["optionen"],
+                        "ausgewaehlt": [f for f, _ in zusatz["optionen"] if data.get(f) == "r"],
+                        "hinweis": "Nur relevant, wenn oben ERES-Typ 4 ausgewählt wurde.",
+                    })
             else:
+                # "Breite" der Feldgruppe im CSS-Raster: grosse Freitext-
+                # Felder bekommen die volle Breite, kurze Werte (auch
+                # die Rollen-Namen, obwohl technisch als Textarea
+                # gerendert) stehen platzsparend nebeneinander.
+                ist_textarea = feld in _TEXTAREA_FELDER
+                breite = "voll" if (ist_textarea and feld not in common.ROLLEN_SPALTEN) else "kompakt"
                 items.append({
                     "art": "feld", "name": feld,
-                    "typ": "textarea" if feld in _TEXTAREA_FELDER else "text",
+                    "typ": "textarea" if ist_textarea else "text",
+                    "breite": breite,
                     "wert": data.get(feld) or "",
+                    "label": BEMERKUNG_LABELS.get(feld),
+                    "hinweis": FELD_HINWEISE.get(feld),
                 })
+                abteilung_feld = ABTEILUNG_FELDER.get(feld)
+                if abteilung_feld:
+                    items.append({
+                        "art": "feld", "name": abteilung_feld, "typ": "text", "breite": "kompakt",
+                        "wert": data.get(abteilung_feld) or "",
+                        "label": f"{feld} - Abteilung",
+                        "hinweis": FELD_HINWEISE.get(abteilung_feld),
+                    })
         if items:
             abschnitte.append((titel, items))
     return abschnitte
@@ -124,31 +303,31 @@ def formular_auswerten(form, bestehende_daten):
 def _heute():
     return date.today().strftime("%d.%m.%Y")
 
+def _draft_titel(daten):
+    """MLCS-ID vor den Systemnamen setzen (z.B. "MLCS-1193 - PLS
+    Lantus"), damit man einen Draft in der Uebersicht sofort zuordnen
+    kann - ausser es gibt (noch) keine MLCS-ID, dann nur der
+    Systemname/die MLCS-ID allein."""
+    name = (daten.get("AS/BDIS-Name") or "").strip()
+    mlcs = (daten.get("MLCSID") or "").strip()
+    if mlcs and name:
+        return f"{mlcs} - {name}"
+    return name or mlcs or "(ohne Titel)"
+
 def _dateiname_vorschlag(data):
     basis = data.get("Dok. -Nr.") or data.get("MLCSID") or data.get("AS/BDIS-Name") or "Systembewertung"
     basis = re.sub(r"[^A-Za-z0-9_\-]+", "_", basis).strip("_") or "Systembewertung"
     return f"{basis}_Systembewertung.docx"
 
-def _dokument_erzeugen_und_senden(data, excel_eintragen=False):
+def _dokument_erzeugen_und_senden(data):
+    """Erzeugt das .docx und schickt es zum Download - schreibt NICHT
+    in die Master-Excel (siehe Modul-Kommentar oben, Abschnitt 1.1)."""
     data = dict(data)
     data.setdefault("Erkannte_Version", "V11")
     tmp_dir = tempfile.mkdtemp(prefix="sysbew_")
     dateiname = _dateiname_vorschlag(data)
     ausgabe_pfad = os.path.join(tmp_dir, dateiname)
     template_filler.fill_template(data, output_path=ausgabe_pfad)
-
-    if excel_eintragen:
-        try:
-            data_mit_flag = dict(data)
-            data_mit_flag["Python ja/nein"] = "ja"
-            ziel_zeile = common.write_to_master_excel(data_mit_flag, ausgabe_pfad)
-            if ziel_zeile:
-                flash(f"Auch in Master-Excel eingetragen (Zeile {ziel_zeile}).")
-            else:
-                flash("Dokument erzeugt, Eintrag in Master-Excel ist aber fehlgeschlagen (siehe Konsole).")
-        except Exception as e:
-            flash(f"Dokument erzeugt, aber Eintrag in Master-Excel fehlgeschlagen: {e}")
-
     return send_file(ausgabe_pfad, as_attachment=True, download_name=dateiname)
 
 # ============================================================
@@ -215,7 +394,9 @@ def db_bearbeiten(zeile):
         flash("Zeile nicht gefunden.")
         return redirect(url_for("index"))
     data = {k: v for k, v in row.items() if k != "_zeile"}
-    draft_id = draft_store.create_draft(data, session["user"], quelle_zeile=zeile)
+    draft_id = draft_store.create_draft(
+        data, session["user"], titel=_draft_titel(data), quelle_zeile=zeile,
+    )
     return redirect(url_for("editor", draft_id=draft_id))
 
 @app.route("/editor/neu")
@@ -237,7 +418,11 @@ def editor(draft_id):
     if not draft_store.acquire_lock(draft_id, session["user"]):
         return render_template("gesperrt.html", draft=draft, sperre=draft_store.lock_status(draft_id))
     formular = baue_formular(draft["daten"])
-    return render_template("editor.html", draft=draft, formular=formular)
+    return render_template(
+        "editor.html", draft=draft, formular=formular,
+        historie_vorlagen=HISTORIE_VORLAGEN,
+        besonderheiten_vorlagen=BESONDERHEITEN_VORLAGEN,
+    )
 
 @app.route("/editor/<draft_id>/speichern", methods=["POST"])
 def editor_speichern(draft_id):
@@ -246,10 +431,7 @@ def editor_speichern(draft_id):
         flash("Draft nicht gefunden.")
         return redirect(url_for("drafts_uebersicht"))
     daten = formular_auswerten(request.form, draft["daten"])
-    draft_store.save_draft(
-        draft_id, daten, session["user"],
-        titel=daten.get("AS/BDIS-Name") or daten.get("MLCSID"),
-    )
+    draft_store.save_draft(draft_id, daten, session["user"], titel=_draft_titel(daten))
     draft_store.acquire_lock(draft_id, session["user"])
     flash("Zwischengespeichert.")
     return redirect(url_for("editor", draft_id=draft_id))
@@ -267,10 +449,11 @@ def editor_fertigstellen(draft_id):
         return redirect(url_for("drafts_uebersicht"))
     daten = formular_auswerten(request.form, draft["daten"])
     daten["Systemtyp_CE"] = common.berechne_systemtyp_ce(daten)
-    draft_store.save_draft(draft_id, daten, session["user"], status="fertig")
+    draft_store.save_draft(
+        draft_id, daten, session["user"], status="fertig", titel=_draft_titel(daten),
+    )
     draft_store.release_lock(draft_id, session["user"])
-    excel_eintragen = request.form.get("excel_eintragen") == "on"
-    return _dokument_erzeugen_und_senden(daten, excel_eintragen=excel_eintragen)
+    return _dokument_erzeugen_und_senden(daten)
 
 @app.route("/editor/<draft_id>/freigeben", methods=["POST"])
 def editor_freigeben(draft_id):

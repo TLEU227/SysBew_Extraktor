@@ -1,6 +1,6 @@
 # ============================================================
 # template_filler.py
-# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.0
+# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.1
 #
 # Gegenstueck zu den extract_*-Funktionen in sysbew_common.py: dort
 # werden Werte AUS einem ausgefuellten Dokument GELESEN, hier werden
@@ -37,20 +37,26 @@
 # - dafuer wieder Claude Code hinzuziehen, nicht die Datei manuell
 # ersetzen.
 #
-# BEKANNTE EINSCHRAENKUNG (siehe auch README.md): folgende Bereiche
-# des Templates werden NICHT automatisch befuellt, weil sich aus den
-# in der Master-Excel gespeicherten Endergebnissen nicht eindeutig
-# der zugrunde liegende Entscheidungsweg rekonstruieren laesst (mehrere
-# Antwortpfade koennen zum selben Endergebnis fuehren - ein Raten
-# waere in einem GxP-Dokument nicht vertretbar):
-#   - Kapitel 3 (Detailfestlegung Klasse 1a/1b bei Globales CS)
-#   - Kapitel 5-9 (Entscheidungsbaum Geraetekategorie/CS-Typ/ERES-Typ/
-#     KI, inkl. der zugehoerigen Ja/Nein-Antworten)
-#   - Kapitel 8 (Testtiefe-Matrix)
-# Diese Kapitel muessen nach der automatischen Erstellung manuell in
-# Word ergaenzt werden. Alles, was in der Zusammenfassungstabelle
-# (Kapitel 2) und auf dem Deckblatt steht, wird dagegen vollstaendig
-# befuellt.
+# BEKANNTE EINSCHRAENKUNG (siehe auch README.md): Kapitel 5 (der
+# Entscheidungsbaum Geraetekategorie/CS-Typ selbst, inkl. der
+# zugehoerigen Ja/Nein-Antworten, Tabellen 9-10) wird NICHT automatisch
+# befuellt, weil sich aus dem in der Zusammenfassungstabelle
+# gespeicherten Endergebnis nicht eindeutig der zugrunde liegende
+# Entscheidungsweg rekonstruieren laesst (mehrere Antwortpfade koennen
+# zum selben Endergebnis fuehren - ein Raten waere in einem GxP-
+# Dokument nicht vertretbar). Kapitel 5 muss nach der automatischen
+# Erstellung manuell in Word ergaenzt werden.
+#
+# Kapitel 3 (Systemeinstufung Globales CS), 6 (ERES-Typ) und 7 (GAMP5-
+# Kategorie) fragen NUR dieselbe Information nochmal ab, die auch in
+# der Zusammenfassungstabelle (Kapitel 2) steht - dort gibt es klare
+# 1:1-Checkboxen ohne Entscheidungsbaum, deshalb werden sie mit
+# denselben Werten automatisch mitbefuellt (fill_kapitel3/6/7). Die
+# Testtiefe (Kapitel 2 direkt + die Z-Felder-Matrix in Kapitel 8) wird
+# aus GxP-Kritikalitaet + GAMP5 Software-Kategorie automatisch berechnet
+# (fill_testtiefe) - ebenfalls kein Entscheidungsbaum, sondern eine
+# feste Matrix. Alles, was in der Zusammenfassungstabelle (Kapitel 2)
+# und auf dem Deckblatt steht, wird vollstaendig befuellt.
 # ============================================================
 
 import os
@@ -58,6 +64,8 @@ import re
 from datetime import date
 
 from docx import Document
+
+from sysbew_common import get_cell_text
 
 _NS = {
     "w":   "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
@@ -149,12 +157,58 @@ def set_checkboxes_in_cell(cell, states):
 
 def set_cell_text(cell, text):
     """Ersetzt den gesamten Zellinhalt durch `text` (mehrzeilig via
-    "\\n" wird von python-docx automatisch als Zeilenumbruch
-    dargestellt). Leerer/None-Text wird als leere Zelle geschrieben
-    (Platzhalter wird also auch dann entfernt, wenn keine Daten da
-    sind - bewusst, damit kein "<<...>>"-Platzhaltertext im Enddokument
-    uebrig bleibt)."""
-    cell.text = text or ""
+    "\\n" wird weiterhin als Zeilenumbruch dargestellt). Leerer/None-
+    Text wird als leere Zelle geschrieben (Platzhalter wird also auch
+    dann entfernt, wenn keine Daten da sind).
+
+    Schreibt bewusst NICHT ueber `cell.text = text` (python-docx loescht
+    dabei die komplette Zelle und legt einen NEUEN Absatz/Run mit
+    Standardformatierung an) - das hat im Template-Platzhaltertext
+    (z.B. "<<Vorname Nachname>>") eine andere Schriftart/-groesse als
+    der Rest des Dokuments zur Folge. Stattdessen wird der Text in den
+    ERSTEN bestehenden Run des ersten Absatzes geschrieben (dessen
+    Formatierung bleibt erhalten), alle weiteren Runs/Absaetze der
+    Zelle werden nur geleert, nicht entfernt."""
+    text = text or ""
+    absaetze = cell.paragraphs
+    erster = absaetze[0] if absaetze else None
+    if erster is None or not erster.runs:
+        cell.text = text  # Fallback: keine Formatierung erkennbar/vorhanden
+        return
+    erster.runs[0].text = text
+    for r in erster.runs[1:]:
+        r.text = ""
+    for p in absaetze[1:]:
+        for r in p.runs:
+            r.text = ""
+
+def replace_in_cell_paragraphs(cell, platzhalter, ersatz):
+    """Ersetzt `platzhalter` (Text-Teilstring, z.B. "(Site/Unit)") durch
+    `ersatz` in jedem Absatz einer Zelle, der ihn enthaelt - OHNE den
+    Rest des Absatzes anzutasten (anders als set_cell_text(), das die
+    ganze Zelle ueberschreibt). Wird u.a. fuer die Abteilungs-Platzhalter
+    in der Deckblatt-Rollentabelle gebraucht, wo der Platzhalter nur ein
+    Teil eines laengeren Labeltexts ist (z.B. "TSO (Technical System
+    Owner)  (Site/Unit)").
+
+    Baut den gesamten (ggf. ueber mehrere Runs verteilten) Absatztext neu
+    zusammen: der erste Run behaelt seine Formatierung und bekommt den
+    ersetzten Text, alle weiteren Runs des Absatzes werden leer - das
+    reicht fuer diese kurzen, einheitlich formatierten Label-Zeilen."""
+    aendert = False
+    for p in cell.paragraphs:
+        voller_text = "".join(r.text for r in p.runs)
+        if platzhalter not in voller_text:
+            continue
+        neuer_text = voller_text.replace(platzhalter, ersatz)
+        if p.runs:
+            p.runs[0].text = neuer_text
+            for r in p.runs[1:]:
+                r.text = ""
+        else:
+            p.text = neuer_text
+        aendert = True
+    return aendert
 
 # ============================================================
 # Checkbox-Gruppen: generisch ueber CHECKBOX_MAPPING_V11 (identische
@@ -178,6 +232,23 @@ def fill_checkboxes_formularfelder(doc, checkbox_mapping, data):
 # ============================================================
 # Deckblatt: Rollen/Namen
 # ============================================================
+
+# Abteilungs-Felder (webapp-only, nicht Teil von EXCEL_COLUMNS - siehe
+# webapp/app.py, ABTEILUNG_FELDER): jede Rollenzeile im Template enthaelt
+# im Label (Zelle 0) den Platzhalter "(Site/Unit)", der die Site/
+# Organisationseinheit der jeweiligen Person benennen soll (z.B.
+# "TSO (Technical System Owner)  (Site/Unit)"). CSQ hat dafuer KEINEN
+# Platzhalter (Label ist fest "... (FBC Quality Q&V CSV)") und braucht
+# daher kein Abteilungsfeld. SME hat keine eigene Zeile (siehe unten).
+_ABTEILUNG_FELD_JE_ROLLE = {
+    "Ersteller": "Ersteller_Abteilung",
+    "SI/PL":     "SI_PL_Abteilung",
+    "TSO":       "TSO_Abteilung",
+    "BSO":       "BSO_Abteilung",
+    "BQR":       "BQR_Abteilung",
+}
+_PLATZHALTER_SITE_UNIT = "(Site/Unit)"
+
 def fill_deckblatt_rollen(doc, data):
     """Tabelle 0 (Unterschriftentabelle): Zeile 0/2/4/6/8/10, Spalte 1
     (siehe ROLLEN_SPALTEN-Reihenfolge in sysbew_common.py)."""
@@ -190,16 +261,30 @@ def fill_deckblatt_rollen(doc, data):
         wert = data.get(spalte, "")
         if wert:
             set_cell_text(table.rows[row_idx].cells[1], wert)
+        abteilung_feld = _ABTEILUNG_FELD_JE_ROLLE.get(spalte)
+        if abteilung_feld:
+            abteilung = data.get(abteilung_feld, "")
+            if abteilung:
+                replace_in_cell_paragraphs(
+                    table.rows[row_idx].cells[0],
+                    _PLATZHALTER_SITE_UNIT, f"({abteilung})",
+                )
     # SME: nur befuellen, wenn nicht ohnehin schon mit SI/PL identisch
     # (kombinierte Rolle "Projektleiter/SME" - Name steht dann bereits
     # in Zeile 2 bei SI/PL). Ansonsten SME wie eigene Rolle behandeln;
-    # das Template hat dafuer keine eigene Zeile, SME wird deshalb bei
-    # abweichendem Namen an die SI/PL-Zeile angehaengt.
+    # das Template hat dafuer keine eigene Zeile, SME wird deshalb an
+    # die SI/PL-Zeile angehaengt.
+    #
+    # WICHTIG: der bestehende Zellentext wird hier NICHT zurueckgelesen
+    # (Bugfix) - ist SI/PL leer, wurde die Zeile oben NICHT beschrieben
+    # (der "if wert:"-Schutz greift), der Platzhalter "<<Vorname
+    # Nachname>>" stuende dann noch drin und wuerde faelschlich vor den
+    # SME-Namen gehaengt. Stattdessen wird der bekannte Datenwert
+    # `si_pl` verwendet - leer, wenn keine SI/PL-Person angegeben ist.
     sme = data.get("SME", "")
     si_pl = data.get("SI/PL", "")
     if sme and sme != si_pl:
-        bestehend = table.rows[2].cells[1].text.strip()
-        neu = f"{bestehend}\n{sme}" if bestehend else sme
+        neu = f"{si_pl}\n{sme}" if si_pl else sme
         set_cell_text(table.rows[2].cells[1], neu)
 
 # ============================================================
@@ -233,6 +318,14 @@ def fill_kapitel1(doc, data):
         0: data.get("Neuerstellung") == "r",
         1: data.get("Revisioniert") == "r",
     })
+    # Grund der Systembewertung: ersetzt den Hinweistext "(Grund: Gemäß
+    # CC-Nummer und ggf. Text/PR) (CC-Nr. und ggf. Text/PR/Re-
+    # Qualifizierung/Re-Validierung)" durch den bereits an anderer
+    # Stelle erfassten Grund (Historie/"Grund der Erstellung", siehe
+    # auch fill_historie() fuer die Dokumentenhistorie-Tabelle - hier
+    # dieselbe Angabe direkt neben Neuerstellung/Änderung).
+    if data.get("Historie"):
+        set_cell_text(table.rows[1].cells[1], data["Historie"])
 
     if data.get("AS/BDIS-Name"):
         set_cell_text(table.rows[3].cells[1], data["AS/BDIS-Name"])
@@ -294,7 +387,44 @@ def fill_zusammenfassung_text(doc, data):
         set_cell_text(table.rows[3].cells[3], schnittstelle)
 
     if data.get("Besonderheiten"):
-        set_cell_text(table.rows[9].cells[1], data["Besonderheiten"])
+        # Nicht ersetzen, sondern ergaenzen: die Zelle enthaelt im
+        # Leer-Template einen Hinweistext ("Bei Gerätekategorien A, B
+        # und C bitte die Subkategorisierung ... nach QU-SOP-0021736
+        # angeben") - der bleibt als Anleitung stehen, die eigentliche
+        # Besonderheiten-Angabe wird dahinter angehaengt.
+        zelle = table.rows[9].cells[1]
+        bestehend = zelle.text.strip()
+        neu = f"{bestehend}\n{data['Besonderheiten']}" if bestehend else data["Besonderheiten"]
+        set_cell_text(zelle, neu)
+
+    # Periodic Review "andere/freie Angabe": die Checkbox selbst laeuft
+    # ueber CHECKBOX_MAPPING_V11 (PR_Andere), hier wird zusaetzlich der
+    # dahinterstehende Blanko-Platzhalter ("_______________") durch den
+    # tatsaechlichen Freitext ersetzt, falls angegeben (webapp-only
+    # Zusatzfeld "PR_Andere_Text", nicht Teil von EXCEL_COLUMNS).
+    if data.get("PR_Andere") == "r" and data.get("PR_Andere_Text"):
+        replace_in_cell_paragraphs(
+            table.rows[4].cells[3], "_______________", data["PR_Andere_Text"],
+        )
+
+# ============================================================
+# Kapitel 3 (Tabelle 7): Systemeinstufung Globales CS - Detail-
+# Entscheidung, ob Klasse 1a oder 1b vorliegt (Nein/Ja-Frage), plus
+# Klasse 2/Klasse 3. Fachlich dieselbe Information wie die Klasse-1a/
+# 1b/2/3-Checkboxen der Klassifizierung in Kapitel 1 (Tabelle 3) - es
+# gibt dafuer bewusst KEINE eigenen Excel-Spalten, sondern es werden
+# dieselben KLASS_Global_1a/1b/2/3-Werte hier zusaetzlich eingetragen,
+# damit Kapitel 1 und Kapitel 3 im erzeugten Dokument konsistent sind
+# (vorher wurde Kapitel 3 gar nicht befuellt).
+# ============================================================
+def fill_kapitel3(doc, data):
+    table = doc.tables[7]
+    set_checkboxes_in_cell(table.rows[0].cells[0], {
+        0: data.get("KLASS_Global_1a") == "r",  # "Nein" -> Klasse 1a
+        1: data.get("KLASS_Global_1b") == "r",  # "Ja"   -> Klasse 1b
+    })
+    set_checkboxes_in_cell(table.rows[1].cells[2], {0: data.get("KLASS_Global_2") == "r"})
+    set_checkboxes_in_cell(table.rows[1].cells[3], {0: data.get("KLASS_Global_3") == "r"})
 
 # ============================================================
 # GxP-Risikoklassifizierung im Detail (Tabelle 8) - Duplikat der
@@ -324,6 +454,134 @@ def fill_gxp_risikoklassifizierung(doc, data):
             table.rows[2].cells[0],
             f"Begründung der GxP Risikoklassifizierung: {begruendung}",
         )
+
+# ============================================================
+# Kapitel 6 (Tabelle 11): ERES-Typ im Detail - dieselbe Auswahl wie
+# ERESTYP1-4/NA in der Zusammenfassungstabelle (Kapitel 2), hier
+# zusaetzlich an der Kapitel-6-Frage selbst eingetragen. Bei ERES Typ 4
+# zusaetzlich "Art der Signatur" (3 webapp-only Zusatz-Checkboxen, nicht
+# Teil von EXCEL_COLUMNS - im Template als eigene Unterfrage nur bei
+# Typ 4 vorhanden).
+# ============================================================
+def fill_kapitel6(doc, data):
+    table = doc.tables[11]
+    zeilen = {
+        "ERESTYP1": 1, "ERESTYP2": 2, "ERESTYP3": 3,
+        "ERESTYP4": 4, "ERESTYPNA": 5,
+    }
+    for feld, row_idx in zeilen.items():
+        if data.get(feld) == "r":
+            set_checkboxes_in_cell(table.rows[row_idx].cells[1], {0: True})
+
+    if data.get("ERESTYP4") == "r":
+        set_checkboxes_in_cell(table.rows[4].cells[2], {
+            0: data.get("ERES4_SIG_ID_PW") == "r",
+            1: data.get("ERES4_SIG_BIOMETRISCH") == "r",
+            2: data.get("ERES4_SIG_TOKEN_PW") == "r",
+        })
+
+# ============================================================
+# Kapitel 7 (Tabelle 12): GAMP5-Software-Kategorie im Detail -
+# dieselbe Auswahl wie GAMP5 Software-Kategorie in der
+# Zusammenfassungstabelle (Kapitel 2), hier zusaetzlich an der
+# Kapitel-7-Frage selbst eingetragen (kein N/A-Fall vorgesehen).
+# ============================================================
+def fill_kapitel7(doc, data):
+    table = doc.tables[12]
+    zeilen = {"KAT1": 1, "KAT3": 2, "KAT4": 3, "KAT5": 4}
+    for feld, row_idx in zeilen.items():
+        if data.get(feld) == "r":
+            set_checkboxes_in_cell(table.rows[row_idx].cells[1], {0: True})
+
+# ============================================================
+# Kapitel 9 (Tabelle 14): 9.1 "Kommt KI zum Einsatz?" - ergibt sich
+# direkt aus der KI-Reifegrad-Auswahl der Zusammenfassungstabelle
+# (Kapitel 2): KINA (N/A) bedeutet kein KI-Einsatz -> "Nein", jede
+# andere Reifegrad-Auswahl (I-VI) bedeutet KI-Einsatz -> "Ja". Die
+# weiteren Detailfragen 9.2-9.5 (verbotene Praktiken, Autonomie-Stufe,
+# Steuerungsdesign-Stufe) haengen von zusaetzlichen Antworten ab, die
+# NICHT aus dem KI-Reifegrad alleine rekonstruierbar sind - werden
+# daher bewusst nicht befuellt (wie Kapitel 5, siehe Modul-Kommentar
+# oben).
+# ============================================================
+def fill_kapitel9(doc, data):
+    table = doc.tables[14]
+    if data.get("KINA") == "r":
+        set_checkboxes_in_cell(table.rows[2].cells[1], {0: True})
+    elif any(data.get(f) == "r" for f in ("KI1", "KI2", "KI3", "KI4", "KI5", "KI6")):
+        set_checkboxes_in_cell(table.rows[1].cells[1], {0: True})
+
+# ============================================================
+# Testtiefe (Zusammenfassungstabelle Kapitel 2, Tabelle 6 Zeile 6
+# Zelle 4 UND Z-Felder-Matrix in Kapitel 8): wird automatisch aus GxP-
+# Kritikalitaet (Kapitel 2) und GAMP5 Software-Kategorie (Kapitel 2)
+# berechnet - dieselbe Matrix, die word_parser_v11.berechne_testtiefe()
+# beim LESEN eines echten Dokuments aus den Z-Feldern zurueckrechnet,
+# hier in Schreibrichtung. Keine manuelle Nacharbeit mehr noetig, sofern
+# GxP-Kritikalitaet und Software-Kategorie ausgefuellt sind (bei N/A
+# bei einem der beiden bleibt die Testtiefe bewusst leer).
+# ============================================================
+_TESTTIEFE_ZEILE_JE_KRITIKALITAET = {"GxP-C": "critical", "GxP-M": "major", "GxP-m2": "minor"}
+_TESTTIEFE_SPALTE_JE_KATEGORIE = {"KAT1": 0, "KAT3": 0, "KAT4": 1, "KAT5": 2}
+_TESTTIEFE_Z_FELDER = {
+    "critical": ("Z1S1", "Z2S1", "Z3S1"),
+    "major":    ("Z1S2", "Z2S2", "Z3S2"),
+    "minor":    ("Z1S3", "Z2S3", "Z3S3"),
+}
+
+def fill_testtiefe(doc, data):
+    kritikalitaet_feld = next(
+        (f for f in _TESTTIEFE_ZEILE_JE_KRITIKALITAET if data.get(f) == "r"), None,
+    )
+    kategorie_feld = next(
+        (f for f in _TESTTIEFE_SPALTE_JE_KATEGORIE if data.get(f) == "r"), None,
+    )
+    if not kritikalitaet_feld or not kategorie_feld:
+        return  # GxP-NA oder SW-Kat-NA -> keine Testtiefe ableitbar
+
+    zeile = _TESTTIEFE_ZEILE_JE_KRITIKALITAET[kritikalitaet_feld]
+    spalte = _TESTTIEFE_SPALTE_JE_KATEGORIE[kategorie_feld]
+    z_feld = _TESTTIEFE_Z_FELDER[zeile][spalte]
+
+    if z_feld in ("Z2S1", "Z3S1", "Z3S2"):
+        ttiefe = "TTIEFEHOCH"
+    elif z_feld in ("Z1S1", "Z2S2", "Z3S3"):
+        ttiefe = "TTIEFEMITTEL"
+    else:
+        ttiefe = "TTIEFENIEDRIG"
+
+    # 1) Zusammenfassungstabelle Kapitel 2 - dieselbe Zelle, die V8/V10
+    #    direkt per Checkbox abfragen (bei V11 im Template zwar
+    #    vorhanden, wird laut Praxis aber meist nur ueber Kapitel 8
+    #    bestimmt - wir befuellen sie trotzdem konsistent mit).
+    set_checkboxes_in_cell(doc.tables[6].rows[6].cells[4], {
+        0: ttiefe == "TTIEFENIEDRIG",
+        1: ttiefe == "TTIEFEMITTEL",
+        2: ttiefe == "TTIEFEHOCH",
+    })
+
+    # 2) Z-Felder-Matrix in Kapitel 8 (nested Tabelle in Tabelle 13)
+    for table in doc.tables:
+        table_text = " ".join(
+            get_cell_text(c) for row in table.rows for c in row.cells
+        ).lower()
+        if "8.0" not in table_text and "festlegung der testtiefe" not in table_text:
+            continue
+        for row in table.rows:
+            for cell in row.cells:
+                for nested in cell.tables:
+                    nested_text = " ".join(
+                        get_cell_text(c) for r in nested.rows for c in r.cells
+                    ).lower()
+                    if not all(k in nested_text for k in ("critical", "major", "minor")):
+                        continue
+                    for nrow in nested.rows:
+                        label = get_cell_text(nrow.cells[0]).strip().lower()
+                        if label != zeile:
+                            continue
+                        for i in range(3):
+                            set_checkboxes_in_cell(nrow.cells[1 + i], {0: i == spalte})
+                        return
 
 # ============================================================
 # Historie (Tabelle 1, Zeile 1) - fuer eine NEUE Systembewertung
@@ -358,12 +616,44 @@ _BESCHREIBUNG_ZEILEN = {
     11: "KI Bewertung",
 }
 
+# Die 4 generischen "BemerkungX"-Spalten der Master-Excel haben laut
+# Fachbereich eine feste Bedeutung (siehe auch BEMERKUNG_LABELS in
+# webapp/app.py) und gehoeren inhaltlich zu den jeweiligen Zeilen
+# dieser Tabelle ("Informationen und Bemerkungen") - werden also, falls
+# befuellt, dort zusaetzlich eingetragen statt (wie bisher) gar nicht
+# in ein erzeugtes Dokument uebernommen zu werden.
+_BEMERKUNG_ZUORDNUNG = {
+    "Bemerkung1": "Prozessbeschreibung",
+    "Bemerkung2": "Daten",
+    "Bemerkung3": "Audit Trail (AT)",
+    "Bemerkung4": "Parameter",
+}
+
 def fill_beschreibungstabelle(doc, data):
     table = doc.tables[16]
+
+    werte = {excel_col: data.get(excel_col) or "" for excel_col in _BESCHREIBUNG_ZEILEN.values()}
+
+    # "Steuerung erfolgt über?" hat im Template KEINE eigene Zeile -
+    # gehoert inhaltlich zur Prozessbeschreibung und wird deshalb dort
+    # vorangestellt (vorher wurde dieser Wert erfasst, aber nie in ein
+    # Dokument uebernommen).
+    if data.get("Steuerung erfolgt über?"):
+        vorspann = f"Steuerung erfolgt über: {data['Steuerung erfolgt über?']}"
+        werte["Prozessbeschreibung"] = (
+            f"{vorspann}\n{werte['Prozessbeschreibung']}" if werte["Prozessbeschreibung"] else vorspann
+        )
+
+    # BemerkungX anhaengen (nicht ersetzen, falls das dedizierte Feld
+    # zusaetzlich befuellt wurde).
+    for bemerkung_feld, excel_col in _BEMERKUNG_ZUORDNUNG.items():
+        zusatz = data.get(bemerkung_feld)
+        if zusatz:
+            werte[excel_col] = f"{werte[excel_col]}\n{zusatz}" if werte[excel_col] else zusatz
+
     for row_idx, excel_col in _BESCHREIBUNG_ZEILEN.items():
-        wert = data.get(excel_col)
-        if wert:
-            set_cell_text(table.rows[row_idx].cells[1], wert)
+        if werte[excel_col]:
+            set_cell_text(table.rows[row_idx].cells[1], werte[excel_col])
 
 # ============================================================
 # HAUPTFUNKTION
@@ -408,11 +698,16 @@ def fill_template(data, template_path=None, output_path=None):
     fill_historie(doc, data)
     fill_kapitel1(doc, data)
     fill_klassifizierung(doc, data)
+    fill_kapitel3(doc, data)
     fill_business_kritikalitaet(doc, data)
     fill_gxp_relevanz(doc, data)
     fill_zusammenfassung_text(doc, data)
     fill_checkboxes_formularfelder(doc, CHECKBOX_MAPPING_V11, data)
     fill_gxp_risikoklassifizierung(doc, data)
+    fill_kapitel6(doc, data)
+    fill_kapitel7(doc, data)
+    fill_kapitel9(doc, data)
+    fill_testtiefe(doc, data)
     fill_beschreibungstabelle(doc, data)
 
     if output_path:

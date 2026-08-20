@@ -1,6 +1,6 @@
 # ============================================================
 # sysbew_common.py
-# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.5
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.6
 #
 # Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
 # (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
@@ -50,8 +50,12 @@ EXCEL_COLUMNS = [
     # DI EE-Anforderungen (Kapitel 2, Zusammenfassungstabelle)
     "EE_P1", "EE_P2", "EE_P3", "EE_P4", "EE_NA",
     "Z1S1", "Z2S1", "Z3S1", "Z1S2", "Z1S3", "Z2S2", "Z2S3", "Z3S2", "Z3S3",
-    # Periodic Review (Kapitel 2, Zusammenfassungstabelle)
-    "PR_SOP", "PR_Andere", "PR-Zyklisch",
+    # Periodic Review (Kapitel 2, Zusammenfassungstabelle) - 3 echte
+    # Checkboxen in der Zelle (QU-SOP-0007359 / QU-SOP-0028559 / freie
+    # Angabe), vorher wurde die mittlere (PR_SOP2) uebersehen und
+    # "PR_Andere" zeigte faelschlich auf QU-SOP-0028559 statt auf die
+    # freie Angabe.
+    "PR_SOP", "PR_SOP2", "PR_Andere", "PR-Zyklisch",
     "Lieferantennummer", "UeberlagerteMLCS", "Bedien-SOP", "SOP-Titel",
     "PLSTA", "DokNummerVorQualiPSO", "BE", "Raum", "Schnittstelle",
     "PNK", "BCkritisch", "BCunkritisch",
@@ -1006,6 +1010,7 @@ MEHRFACHAUSWAHL_KATEGORIEN = [
     ]),
     ("Periodic Review", [
         ("PR_SOP", "QU-SOP-0007359"),
+        ("PR_SOP2", "QU-SOP-0028559"),
         ("PR_Andere", "andere/freie Angabe"),
         ("PR-Zyklisch", "zyklische Requalifizierung"),
     ]),
@@ -1278,8 +1283,8 @@ VORSCHAU_ABSCHNITTE = [
         "Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ",
     ]),
     ("Deckblatt – Identifikation", [
-        "MLCSID", "UeberlagerteMLCS", "Erkannte_Version",
-        "Dok. -Nr.", "Version", "AS/BDIS-Name", "Anlage",
+        "MLCSID", "UeberlagerteMLCS", "Dok. -Nr.", "Hyperlink",
+        "Erkannte_Version", "Version", "AS/BDIS-Name", "Anlage",
         "API", "Betrieb", "Gebaeude", "BE", "Raum", "PLSTA",
         "DokNummerVorQualiPSO", "Lieferantennummer", "Schnittstelle",
     ]),
@@ -1299,22 +1304,28 @@ VORSCHAU_ABSCHNITTE = [
         "CS-Typ", "Systemtyp_CE",
         "ERES-Typ",
         "GAMP5 Software-Kategorie",
+        "KI-Reifegrad",
         "DI EE-Anforderungen",
         "Gerätekategorie",
         "Periodic Review",
         "Vereinfachte Qualifizierung",
         "Validierung/Qualifizierung nach SOP",
-        "KI-Reifegrad",
         "Testtiefe", "Testtiefe-Matrix",
+        "Besonderheiten",
     ]),
-    ("Kapitel 2 – Systembeschreibung", [
+    # Entspricht dem Kapitel "Informationen und Bemerkungen" im
+    # Template (Tabelle 16) - inkl. der 4 generischen "BemerkungX"-
+    # Spalten der Master-Excel, die laut Fachbereich konkret folgende
+    # Bedeutung haben: Bemerkung1=Prozessbeschreibung,
+    # Bemerkung2=Daten, Bemerkung3=Audit Trail, Bemerkung4=Parameter
+    # (siehe auch BEMERKUNG_LABELS in webapp/app.py fuer die
+    # entsprechend beschrifteten Editor-Felder).
+    ("Informationen und Bemerkungen", [
         "Steuerung erfolgt über?", "Prozessbeschreibung", "Daten",
         "Parameter", "Alarme (GxP-relevant)", "Chargenprotokoll",
         "Audit Trail (AT)", "Benutzer-verwaltung?",
         "Schnittstellen mit PLS", "Angeschlossenes Equipment",
-    ]),
-    ("Sonstiges", [
-        "Hyperlink", "Sonstiges", "KI Bewertung", "Besonderheiten",
+        "Sonstiges", "KI Bewertung",
         "Bemerkung1", "Bemerkung2", "Bemerkung3", "Bemerkung4",
     ]),
     ("Dokumentenhistorie", [

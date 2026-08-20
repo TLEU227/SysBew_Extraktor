@@ -248,6 +248,64 @@ pip install -r webapp/requirements.txt
   Ordner `Drafts/` neben der Master-Excel) und `lib/db_reader.py`
   (liest die Master-Excel per `openpyxl`, nur lesend, ohne COM).
 
+### webapp/ - Überarbeitung nach erstem Praxistest
+
+- **Schreibt nicht mehr in die Master-Excel.** Der Editor erzeugt nur
+  noch das `.docx` zum Download; die Master-Excel wird ausschließlich
+  über den bestehenden Weg (fertiges Dokument auf `word_parser_main.py`
+  ziehen) befüllt - ein einziger Codepfad für die Excel-Befüllung.
+- **Bugfix (Formatierung):** `template_filler.set_cell_text()`
+  überschrieb bisher die komplette Zelle inkl. Formatierung (Schriftart
+  wechselte auf Standard). Schreibt jetzt in den ersten bestehenden Run
+  und behält dessen Formatierung.
+- **Bugfix (Namens-Zusammenführung):** War nur "SME" ohne "SI/PL"
+  angegeben, blieb der Platzhalter `<<Vorname Nachname>>` stehen und
+  wurde fälschlich vor den SME-Namen gehängt (der Code las den noch
+  unbefüllten Zellentext zurück statt den bekannten Datenwert).
+- **Bugfix (Periodic Review):** Die Checkbox-Zelle hat 3 Optionen
+  (QU-SOP-0007359 / QU-SOP-0028559 / freie Angabe), nicht 2 - die
+  mittlere wurde übersehen, "PR_Andere" zeigte fälschlich auf
+  QU-SOP-0028559 statt auf die freie Angabe. Neue Spalte `PR_SOP2`,
+  neues Freitext-Feld `PR_Andere_Text` für die freie Angabe.
+- Kapitel 3 (Systemeinstufung Globales CS), 6 (ERES-Typ), 7 (GAMP5-
+  Kategorie) und 9.1 (KI-Einsatz Ja/Nein) werden jetzt automatisch mit
+  denselben Werten befüllt wie die Zusammenfassungstabelle (Kapitel 2) -
+  vorher blieben diese Kapitel leer, obwohl die Information bereits
+  vorlag.
+- Testtiefe (Kapitel 2 + Z-Felder-Matrix in Kapitel 8) wird jetzt
+  automatisch aus GxP-Kritikalität + GAMP5 Software-Kategorie berechnet
+  (`template_filler.fill_testtiefe`) - keine manuelle Nacharbeit mehr
+  nötig.
+- Neue webapp-only Zusatzfelder (nicht Teil der Master-Excel-Spalten):
+  Abteilung je Rolle (ersetzt den Platzhalter "(Site/Unit)" im
+  Deckblatt), "ERES-Typ 4 – Art der Signatur" (3 Checkboxen aus
+  Kapitel 6).
+- Grund der Systembewertung (Kapitel 1, neben Neuerstellung/Änderung)
+  wird jetzt ebenfalls mit dem Wert aus "Historie" befüllt (vorher nur
+  in der Dokumentenhistorie-Tabelle).
+- Feld "Besonderheiten": wird an den vorhandenen Hinweistext der Zelle
+  angehängt statt ihn zu ersetzen.
+- "Steuerung erfolgt über?" hat keine eigene Frage im Template und
+  wird nicht mehr separat abgefragt, sondern der Prozessbeschreibung
+  vorangestellt, falls befüllt.
+- Die 4 generischen `BemerkungX`-Spalten haben laut Fachbereich eine
+  feste Bedeutung (Bemerkung1=Prozessbeschreibung, 2=Daten, 3=Audit
+  Trail, 4=Parameter) - werden im Editor entsprechend beschriftet, in
+  der Anzeige zum Kapitel "Informationen und Bemerkungen" gruppiert und
+  beim Erzeugen an die jeweilige Zeile angehängt.
+- Phenix-Nummern und "DI EE-Anforderungen" werden im Editor nicht mehr
+  abgefragt (Phenix existiert laut Fachbereich nicht mehr; DI EE-
+  Anforderungen lässt sich ohne den Entscheidungsbaum aus Kapitel 5
+  nicht verlässlich ableiten).
+- Layout: Felder stehen platzsparend im Raster nebeneinander statt
+  untereinander, jedes Feld/jede Kategorie hat einen Hinweistext, jeder
+  Themenbereich hat einen eigenen "Zwischenspeichern"-Knopf, Textbaustein-
+  Vorschläge für "Historie" (Grund der Erstellung) und "Besonderheiten".
+- Draft-Titel: MLCS-ID wird dem Systemnamen vorangestellt (z. B.
+  "MLCS-1193 - PLS Lantus"), sofern vorhanden.
+- **Offene Fragen** (siehe "Bekannte Einschränkungen"): Bedeutung von
+  `PLSTA` und von "VV" bei "SW-Version / Typ:" ist nicht dokumentiert.
+
 ### Main-Datei + Erweiterungen (aktuelle Architektur)
 
 - Umbau der drei bisher eigenständigen Skripte
@@ -362,3 +420,21 @@ direkten Zelle in Kapitel 2, V8 erkennt zusätzlich den Sonderfall V7
   echte V11-Dokumente verifiziert; für V8/V10 liegen aktuell nur die
   leeren Master-Template-PDFs zum Strukturabgleich vor, noch keine
   echten ausgefüllten Dokumente zum End-to-End-Test.
+- **webapp/**: Kapitel 5 (Entscheidungsbaum Gerätekategorie/CS-Typ,
+  Tabellen 9-10) wird nicht automatisch befüllt - der zugrunde
+  liegende Antwortweg lässt sich aus dem Endergebnis nicht eindeutig
+  rekonstruieren und muss nach dem Erzeugen manuell in Word ergänzt
+  werden.
+- **webapp/**: Bedeutung des Feldes `PLSTA` ist nicht dokumentiert (in
+  keinem der Vorgänger-Skripte befüllt) - wird im Editor mit
+  entsprechendem Warnhinweis angezeigt, aber inhaltlich nicht
+  aufgelöst.
+- **webapp/**: Bedeutung von "VV" und den weiteren dort üblichen
+  Optionen beim Feld "SW-Version / Typ:" ist nicht dokumentiert -
+  Feld bleibt frei ausfüllbar, mit entsprechendem Warnhinweis.
+- **webapp/**: Die ERES-Typ-4-Unterfrage "Art der Signatur" hat im
+  tatsächlichen Leer-Template nur 3 Checkboxen (Identifikation und
+  Passwort / Biometrisch / Token und Passwort) - die zusätzlichen
+  Optionen "eSignature ohne/mit GxP-Bezug" aus einer anderen
+  Quelle/Version wurden im Template nicht gefunden und daher nicht
+  umgesetzt.
