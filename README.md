@@ -194,6 +194,10 @@ pip install python-docx pywin32
     eigener Überschrift statt einer alphabetischen Gesamtliste. Ein
     Abschnitt erscheint nur, wenn er tatsächlich befüllte Felder
     enthält.
+  - `Systemtyp_CE` zeigt bei allen CS-Typen außer LCE/PCS/EE jetzt
+    `-` statt `nein` an (ist nur ein abgeleitetes Merkmal, keine
+    eigenständig gestellte Ja/Nein-Frage - bei CIS/S0-S2/N/A schlicht
+    nicht einschlägig).
 
 ### word_parser_v10_formularfelder (Vorgänger-Skript, bis 1.8)
 

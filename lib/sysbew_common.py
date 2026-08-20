@@ -1,6 +1,6 @@
 # ============================================================
 # sysbew_common.py
-# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.4
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.5
 #
 # Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
 # (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
@@ -1379,7 +1379,12 @@ def zeige_datenvorschau(data, kategorien=None):
         if value == "r":
             zeilen[col] = "ja"
         elif value == "c":
-            zeilen[col] = "nein"
+            # Systemtyp_CE ist kein eigenstaendig gestelltes Ja/Nein,
+            # sondern nur ein abgeleitetes Merkmal ("gehoert CS-Typ zu
+            # LCE/PCS/EE?") - bei allen anderen CS-Typen (CIS, S0-S2,
+            # N/A) ist die Frage schlicht nicht einschlaegig, "nein"
+            # waere hier irrefuehrend.
+            zeilen[col] = "-" if col == "Systemtyp_CE" else "nein"
         else:
             zeilen[col] = (
                 str(value)[:60] + "..."
