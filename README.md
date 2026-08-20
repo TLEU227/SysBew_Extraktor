@@ -180,6 +180,20 @@ pip install python-docx pywin32
   - Neue Spalte `Python ja/nein`: wird automatisch mit `ja` befüllt.
 - Spaltenname `SI` auf `SI/PL` korrigiert (entsprach nicht dem
   echten Master-Excel-Spaltenkopf).
+- Konsolen-Vorschau (`📊 EXTRAHIERTE DATEN`) überarbeitet:
+  - Rohe Checkbox-Werte `r`/`c` werden als `ja`/`nein` angezeigt.
+  - Gruppierbare Checkbox-Felder (z. B. GxP-Kritikalität,
+    Klassifizierung, DI EE-Anforderungen, ERES-Typ, ...) erscheinen
+    als eine Zeile mit dem/den ausgewählten Wert(en) statt als
+    Einzelfelder.
+  - Reihenfolge und Gliederung folgen jetzt dem Template: die
+    Ausgabe ist in Abschnitte unterteilt (Deckblatt – Rollen,
+    Deckblatt – Identifikation, Deckblatt – Beschreibung/Hersteller,
+    Kapitel 1, Kapitel 2 – Zusammenfassungstabelle, Kapitel 2 –
+    Systembeschreibung, Sonstiges, Dokumentenhistorie), jeweils mit
+    eigener Überschrift statt einer alphabetischen Gesamtliste. Ein
+    Abschnitt erscheint nur, wenn er tatsächlich befüllte Felder
+    enthält.
 
 ### word_parser_v10_formularfelder (Vorgänger-Skript, bis 1.8)
 
