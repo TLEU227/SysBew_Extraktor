@@ -1,6 +1,6 @@
 # ============================================================
 # sysbew_common.py
-# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.3
+# Gemeinsame Basis der Systembewertungs-Extraktoren - 2.4
 #
 # Enthält ausschließlich Code, der in den drei Vorgänger-Skripten
 # (word_parser_v8/v10/v11_formularfelder) Zeile für Zeile identisch
@@ -1267,6 +1267,70 @@ def write_to_master_excel(data, docx_path, _versuch=1, _max_versuche=3):
 # KONSOLEN-VORSCHAU (identisch in allen drei Vorgänger-Skripten,
 # stand vorher im jeweiligen __main__-Block)
 # ============================================================
+# Reihenfolge UND Gliederung der Konsolen-Vorschau: entspricht der
+# Abschnittsfolge im Template (Deckblatt -> Kapitel 1 -> Kapitel 2 ->
+# Rest -> Historie). Jeder Abschnitt bekommt in zeige_datenvorschau()
+# eine eigene Überschrift - aber NUR, wenn mindestens eines seiner
+# Felder tatsächlich Daten enthält (kein leerer Abschnitt in der
+# Ausgabe).
+VORSCHAU_ABSCHNITTE = [
+    ("Deckblatt – Rollen/Unterschriften", [
+        "Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ",
+    ]),
+    ("Deckblatt – Identifikation", [
+        "MLCSID", "UeberlagerteMLCS", "Erkannte_Version",
+        "Dok. -Nr.", "Version", "AS/BDIS-Name", "Anlage",
+        "API", "Betrieb", "Gebaeude", "BE", "Raum", "PLSTA",
+        "DokNummerVorQualiPSO", "Lieferantennummer", "Schnittstelle",
+    ]),
+    ("Deckblatt – Beschreibung/Hersteller", [
+        "Kurzbeschreibung", "SW-Version / Typ:", "SW-Name:",
+        "SW-Hersteller", "Hersteller", "Phenix", "SAP",
+    ]),
+    ("Kapitel 1 – Systembewertung", [
+        "Neuerstellung/Änderung",
+        "Systemtyp (Zugangsbeschränkung)",
+        "Klassifizierung",
+        "GxP-Relevanz",
+        "Business Kritisch",
+    ]),
+    ("Kapitel 2 – Zusammenfassungstabelle", [
+        "GxP-Kritikalität",
+        "CS-Typ", "Systemtyp_CE",
+        "ERES-Typ",
+        "GAMP5 Software-Kategorie",
+        "DI EE-Anforderungen",
+        "Gerätekategorie",
+        "Periodic Review",
+        "Vereinfachte Qualifizierung",
+        "Validierung/Qualifizierung nach SOP",
+        "KI-Reifegrad",
+        "Testtiefe", "Testtiefe-Matrix",
+    ]),
+    ("Kapitel 2 – Systembeschreibung", [
+        "Steuerung erfolgt über?", "Prozessbeschreibung", "Daten",
+        "Parameter", "Alarme (GxP-relevant)", "Chargenprotokoll",
+        "Audit Trail (AT)", "Benutzer-verwaltung?",
+        "Schnittstellen mit PLS", "Angeschlossenes Equipment",
+    ]),
+    ("Sonstiges", [
+        "Hyperlink", "Sonstiges", "KI Bewertung", "Besonderheiten",
+        "Bemerkung1", "Bemerkung2", "Bemerkung3", "Bemerkung4",
+    ]),
+    ("Dokumentenhistorie", [
+        "Bearbeiter", "Datum", "Version_Historie", "Historie",
+    ]),
+    ("Intern", [
+        "Python ja/nein",
+    ]),
+]
+
+# Flache Reihenfolge (nur die Feld-/Kategorienamen, ohne Überschriften) -
+# wird u.a. genutzt, um am Ende unbekannte Felder zu erkennen.
+VORSCHAU_REIHENFOLGE = [
+    feld for _, felder in VORSCHAU_ABSCHNITTE for feld in felder
+]
+
 def zeige_datenvorschau(data, kategorien=None):
     """
     Zeigt alle extrahierten Felder in der Konsole an.
@@ -1284,6 +1348,17 @@ def zeige_datenvorschau(data, kategorien=None):
     Alle übrigen Felder (Text, Namen, Daten, nicht gruppierte
     Checkboxen) bleiben wie gewohnt einzeln stehen - deren
     Checkbox-Rohwerte ("r"/"c") werden dabei in "ja"/"nein" übersetzt.
+
+    Die Ausgabe ist in Abschnitte gegliedert (VORSCHAU_ABSCHNITTE), die
+    der Reihenfolge im Template entsprechen: zuerst die Personen vom
+    Deckblatt, dann Deckblatt-Identifikation, Kapitel 1, Kapitel 2 usw.
+    Jeder Abschnitt bekommt eine eigene Überschrift - eine Überschrift
+    erscheint aber nur, wenn der Abschnitt mindestens ein Feld mit
+    tatsächlichem Inhalt enthält (kein leerer Abschnitt in der
+    Ausgabe). Felder/Kategorien, die (noch) keinem Abschnitt
+    zugeordnet sind, landen alphabetisch sortiert in einem
+    abschließenden Abschnitt "Weitere Felder", damit nichts
+    stillschweigend verschwindet.
     """
     kategorien = kategorien or []
     gruppierte_felder = set()
@@ -1312,5 +1387,13 @@ def zeige_datenvorschau(data, kategorien=None):
                 else str(value)
             )
 
-    for col in sorted(zeilen):
-        print(f"  {col:<35} = {zeilen[col]}")
+    unbekannt = sorted(col for col in zeilen if col not in VORSCHAU_REIHENFOLGE)
+    abschnitte = VORSCHAU_ABSCHNITTE + [("Weitere Felder", unbekannt)]
+
+    for titel, felder in abschnitte:
+        vorhandene = [f for f in felder if f in zeilen]
+        if not vorhandene:
+            continue
+        print(f"\n--- {titel} ---")
+        for col in vorhandene:
+            print(f"  {col:<35} = {zeilen[col]}")
