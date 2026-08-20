@@ -348,6 +348,14 @@ def fill_kapitel1(doc, data):
     hersteller = data.get("Hersteller", "")
     if data.get("SW-Hersteller") and data["SW-Hersteller"] != hersteller:
         hersteller = f"{hersteller} / {data['SW-Hersteller']}" if hersteller else data["SW-Hersteller"]
+    # Lieferantennummer (QualiPSO-/QTP-Customer-ID) hat keine eigene
+    # Zelle im Template - gehoert inhaltlich zum Hersteller-Feld und
+    # wird deshalb dort angehaengt (wie beim Lesen echter Dokumente,
+    # wo dieselbe Angabe umgekehrt aus genau diesem Text herausgelesen
+    # wird, siehe parse_hersteller() in word_parser_v8/10/11.py).
+    if data.get("Lieferantennummer"):
+        zusatz = f"QualiPSO-ID: {data['Lieferantennummer']}"
+        hersteller = f"{hersteller} / {zusatz}" if hersteller else zusatz
     if hersteller:
         set_cell_text(table.rows[7].cells[1], hersteller)
 

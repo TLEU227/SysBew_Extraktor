@@ -28,14 +28,14 @@
         {% if item.art == 'kategorie' %}
           <div class="feldgruppe voll">
             <label class="feldgruppe-titel">{{ item.name }}</label>
-            {% if item.hinweis %}<small class="feld-hinweis">{{ item.hinweis }}</small>{% endif %}
+            {% if item.hinweis %}<small class="kategorie-hinweis">{{ item.hinweis }}</small>{% endif %}
             <div class="optionen">
               {% for feld, label in item.optionen %}
-                <label class="option">
+                <label class="option" {% if optionen_hinweise.get(feld) %}title="{{ optionen_hinweise[feld] }}"{% endif %}>
                   <input type="{{ 'checkbox' if item.mehrfachauswahl else 'radio' }}"
                          name="kat__{{ item.name }}" value="{{ feld }}"
                          {% if feld in item.ausgewaehlt %}checked{% endif %}>
-                  {{ label }}
+                  {{ label }}{% if optionen_hinweise.get(feld) %} ⓘ{% endif %}
                 </label>
               {% endfor %}
               {% if not item.mehrfachauswahl and not item.hat_na %}
@@ -51,20 +51,20 @@
             <label class="feldgruppe-titel" for="f_{{ item.name }}">{{ item.label or item.name }}</label>
             {% if item.hinweis %}<small class="feld-hinweis">{{ item.hinweis }}</small>{% endif %}
             {% if item.typ == 'textarea' %}
-              <textarea id="f_{{ item.name }}" name="feld__{{ item.name }}" rows="3">{{ item.wert }}</textarea>
+              <textarea id="f_{{ item.name }}" name="feld__{{ item.name }}" rows="{{ item.rows or 3 }}">{{ item.wert }}</textarea>
             {% else %}
               <input type="text" id="f_{{ item.name }}" name="feld__{{ item.name }}" value="{{ item.wert }}">
             {% endif %}
             {% if item.name == 'Historie' %}
               <div class="textbausteine">
                 {% for vorlage in historie_vorlagen %}
-                  <button type="button" class="knopf klein sekundaer" onclick="baustein('f_Historie', {{ vorlage.text|tojson }})">{{ vorlage.label }}</button>
+                  <button type="button" class="knopf klein sekundaer textbaustein-knopf" data-ziel="f_Historie" data-text="{{ vorlage.text }}">{{ vorlage.label }}</button>
                 {% endfor %}
               </div>
             {% elif item.name == 'Besonderheiten' %}
               <div class="textbausteine">
                 {% for vorlage in besonderheiten_vorlagen %}
-                  <button type="button" class="knopf klein sekundaer" onclick="baustein('f_Besonderheiten', {{ vorlage.text|tojson }})">{{ vorlage.label }}</button>
+                  <button type="button" class="knopf klein sekundaer textbaustein-knopf" data-ziel="f_Besonderheiten" data-text="{{ vorlage.text }}">{{ vorlage.label }}</button>
                 {% endfor %}
               </div>
             {% endif %}
@@ -99,6 +99,16 @@
     var feld = document.getElementById(feldId);
     feld.value = feld.value.trim() ? feld.value.trim() + "\n\n" + text : text;
   }
+
+  // Ueber data-Attribute statt Inline-onclick mit eingebettetem JSON -
+  // sonst wuerden die doppelten Anfuehrungszeichen des JSON-Strings das
+  // "onclick"-HTML-Attribut (selbst in doppelten Anfuehrungszeichen)
+  // vorzeitig abschneiden und der Klick haette keine Wirkung (Bugfix).
+  document.querySelectorAll(".textbaustein-knopf").forEach(function (knopf) {
+    knopf.addEventListener("click", function () {
+      baustein(knopf.dataset.ziel, knopf.dataset.text);
+    });
+  });
 
   // Sperre alle 60s erneuern, solange der Editor offen ist - laeuft
   // die Sperre ohne Heartbeat ab, gibt draft_store sie automatisch
