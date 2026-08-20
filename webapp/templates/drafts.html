@@ -5,11 +5,12 @@
   <h1>Bearbeitungsstände (Drafts)</h1>
   <p>Alle Drafts sind für jede:n sichtbar und öffenbar - unabhängig davon, wer sie
      angelegt hat oder an welchem PC gerade gearbeitet wird.</p>
+  <div class="tabellen-scroll">
   <table>
     <thead>
       <tr>
         <th>Titel</th><th>Status</th><th>Angelegt von</th><th>Zuletzt geändert</th>
-        <th>Sperre</th><th></th>
+        <th>Sperre</th><th class="aktionen"></th>
       </tr>
     </thead>
     <tbody>
@@ -46,5 +47,6 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endblock %}

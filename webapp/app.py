@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.2
+# Systembewertung-Editor - Web-Oberflaeche - 1.3
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -53,7 +53,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.2"
+APP_VERSION = "1.3"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -134,9 +134,10 @@ BEMERKUNG_LABELS = {
 
 # Hinweistexte, die im Editor unter dem jeweiligen Feld/der jeweiligen
 # Kategorie angezeigt werden - wo moeglich woertlich aus dem Template
-# uebernommen. Fuer PLSTA und "SW-Version / Typ:" (Bedeutung von "VV")
-# gibt es aktuell KEINE gesicherte Definition in Template oder Skripten
-# - das wird hier bewusst ehrlich ausgewiesen statt geraten.
+# uebernommen. PLSTA, "SW-Version / Typ:" und "DokNummerVorQualiPSO"
+# stehen bewusst NICHT hier: alle drei sind reine Master-Excel-Spalten
+# ohne Zelle im Template (siehe SKIP_FELDER oben) und werden im
+# Formular gar nicht mehr angezeigt.
 FELD_HINWEISE = {
     "Dok. -Nr.": (
         "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des "
@@ -149,15 +150,12 @@ FELD_HINWEISE = {
     "UeberlagerteMLCS": "Übergeordnetes System: Systemname, MLCS-ID und ggf. Doc-ID der zugehörigen Systembewertung.",
     "Schnittstelle": "Schnittstelle zu anderen/übergeordneten Systemen: Systemname, MLCS-ID und ggf. Doc-ID der Systembewertung.",
     "Anlage": "Anlagen-IDs/Equipment-Nr./QC-ID.",
-    "PLSTA": "⚠️ Bedeutung nicht dokumentiert (in keinem der Vorgänger-Skripte befüllt worden) - bitte klären oder leer lassen.",
     "AS/BDIS-Name": "Bei Equipment z. B. Laborwaage; bei System: Software-/Systemname.",
     "Kurzbeschreibung": "Wozu wird das System/Equipment/die Anlage eingesetzt?",
     "Betrieb": "Einsatzort: Site/Organisationseinheit.",
     "Gebaeude": "Gebäude-Kürzel, falls vorhanden.",
     "Hersteller": "Name Hersteller/Lieferant. Bei zugelassenen Lieferanten die QualiPSO-ID im Feld „Lieferantennummer“ ergänzen.",
     "SW-Hersteller": "Hersteller/Lieferant der Software (falls abweichend vom Equipment-Hersteller).",
-    "SW-Version / Typ:": "⚠️ Bedeutung von „VV“ und den weiteren dort üblichen Optionen ist uns nicht dokumentiert - bitte bei Bedarf klären. Frei ausfüllen.",
-    "DokNummerVorQualiPSO": "Dokumentennummer des Vorgänger-Dokuments vor Überführung nach QualiPSO, falls vorhanden.",
     "Lieferantennummer": "QualiPSO-/QTP-Customer-ID des Lieferanten, falls vorhanden.",
     "Historie": "Grund der Erstellung/Änderung - siehe Textbaustein-Vorschläge unten.",
     "Besonderheiten": "Bei Gerätekategorien A, B und C bitte die Subkategorisierung (z. B. B1, C2) nach QU-SOP-0021736 begründen - siehe Textbaustein-Vorschläge unten.",
