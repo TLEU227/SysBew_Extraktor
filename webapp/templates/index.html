@@ -7,9 +7,14 @@
     <strong>Weg 1:</strong> Zeile aus der Datenbank suchen und mit "Direkt erzeugen"
     sofort eine neue Systembewertung (docx) herunterladen.<br>
     <strong>Weg 2:</strong> Mit "Bearbeiten" die Daten zuerst im Editor überarbeiten,
-    bevor das Dokument erzeugt wird (Zwischenspeichern möglich).
+    bevor das Dokument erzeugt wird (Zwischenspeichern möglich).<br>
+    <strong>Weiterarbeiten:</strong> Ein bereits zwischengespeicherter Entwurf lässt sich
+    jederzeit über "Drafts" fortsetzen (auch von einer anderen Person/einem anderen PC).
   </p>
-  <a class="knopf" href="{{ url_for('editor_neu') }}">+ Neue leere Systembewertung (ohne Datenbank)</a>
+  <div class="aktionsleiste">
+    <a class="knopf" href="{{ url_for('editor_neu') }}">+ Neue leere Systembewertung (ohne Datenbank)</a>
+    <a class="knopf sekundaer" href="{{ url_for('drafts_uebersicht') }}">📋 Drafts / Zwischenstände</a>
+  </div>
 </div>
 
 <div class="karte">
