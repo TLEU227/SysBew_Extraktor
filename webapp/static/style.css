@@ -135,7 +135,15 @@ legend {
 .aktionsleiste { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
 fieldset > .aktionsleiste { margin-top: 8px; justify-content: flex-end; }
 
-.fusszeile { max-width: 1100px; margin: 24px auto 16px; padding: 0 16px; color: #9a9a9a; font-size: .8em; }
+.fusszeile {
+  max-width: 1100px; margin: 24px auto 16px; padding: 0 16px;
+  color: #9a9a9a; font-size: .8em;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+}
+/* Logo dezent in der Ecke - klein und leicht transparent, damit es
+   nicht mit dem eigentlichen Editor-Branding (blaue Kopfzeile)
+   konkurriert. */
+.marken-logo { height: 20px; width: auto; opacity: .55; flex-shrink: 0; }
 
 .start-optionen {
   display: grid;

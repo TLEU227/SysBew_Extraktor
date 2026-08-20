@@ -31,8 +31,11 @@
   </main>
 
   <footer class="fusszeile">
-    Systembewertung-Editor v{{ app_version }}
-    <span class="hinweis">- nach "git pull" bitte den Server (schwarzes Fenster) neu starten, sonst laeuft weiter der alte Stand.</span>
+    <span>
+      Systembewertung-Editor v{{ app_version }}
+      <span class="hinweis">- nach "git pull" bitte den Server (schwarzes Fenster) neu starten, sonst laeuft weiter der alte Stand.</span>
+    </span>
+    <img class="marken-logo" src="{{ url_for('static', filename='logo.png') }}" alt="CSV specialists">
   </footer>
 </body>
 </html>
