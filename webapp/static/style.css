@@ -117,20 +117,34 @@ legend {
   gap: 4px 20px;
   align-items: start;
 }
-.feldgruppe { margin-bottom: 12px; }
+.feldgruppe { margin-bottom: 12px; position: relative; }
 .feldgruppe.voll { grid-column: 1 / -1; }
 .feldgruppe-titel { display: block; font-weight: 600; margin-bottom: 2px; }
 /* Hinweistext ist standardmaessig ausgeblendet und erscheint erst,
    waehrend man das zugehoerige Feld tatsaechlich bearbeitet (Fokus auf
    einem Eingabeelement innerhalb derselben Feldgruppe) - dauerhaft
-   sichtbare Hinweise bei jedem Feld waeren zu viel auf einmal. */
-.feld-hinweis { display: none; color: #616161; font-size: .85em; margin-bottom: 4px; }
+   sichtbare Hinweise bei jedem Feld waeren zu viel auf einmal.
+   "position: absolute" statt display:none/block umzuschalten: der
+   Hinweis liegt dann als schwebendes Post-it UEBER dem Formular,
+   statt beim Ein-/Ausblenden Platz im Grid zu belegen/freizugeben -
+   sonst waeren beim Fokussieren/Verlassen eines Feldes alle Felder
+   darunter staendig nach unten/oben "verrutscht". */
+.feld-hinweis {
+  display: none; position: absolute; left: 0; right: 0; top: 100%;
+  margin-top: 4px; z-index: 5;
+}
 .feldgruppe:focus-within .feld-hinweis { display: block; }
 /* Kategorie-Hinweise (z.B. bei "Klassifizierung": "gilt auch fuer
    Kapitel 3") gehoeren zu keinem einzelnen Eingabefeld, sondern
    erklaeren den ganzen Options-Block - bleiben deshalb immer
-   sichtbar, anders als .feld-hinweis. */
-.kategorie-hinweis { display: block; color: #616161; font-size: .85em; margin-bottom: 4px; }
+   sichtbar (kein Platz-Problem, da sie nie ein-/ausgeblendet werden),
+   bekommen aber dieselbe Post-it-Optik wie .feld-hinweis. */
+.feld-hinweis, .kategorie-hinweis {
+  background: #fff9c4; border: 1px solid #f0e08a; border-radius: 3px;
+  box-shadow: 1px 2px 4px rgba(0,0,0,.15); color: #5c5230;
+  font-size: .85em; padding: 6px 9px; margin-bottom: 4px;
+}
+.kategorie-hinweis { display: block; }
 .feldgruppe input[type=text], .feldgruppe textarea {
   width: 100%; padding: 6px 8px; border: 1px solid #c8c8c8; border-radius: 6px; font-family: inherit;
 }
