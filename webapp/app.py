@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.1
+# Systembewertung-Editor - Web-Oberflaeche - 1.2
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -49,6 +49,16 @@ app = Flask(__name__)
 # Daten in der Session (nur der angezeigte Benutzername).
 app.secret_key = "sysbew-editor-lokal"
 
+# Wird unten in der Fusszeile jeder Seite angezeigt (siehe base.html) -
+# damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
+# der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
+# (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
+APP_VERSION = "1.2"
+
+@app.context_processor
+def _globale_template_variablen():
+    return {"app_version": APP_VERSION, "optionen_hinweise": OPTIONEN_HINWEISE}
+
 PORT = 5151
 
 # Felder, die nicht als Eingabe im Formular auftauchen:
@@ -65,9 +75,31 @@ PORT = 5151
 #   - "Steuerung erfolgt über?": hat keine eigene Frage im Template,
 #     gehoert inhaltlich zur Prozessbeschreibung und wird dort direkt
 #     mit erfasst statt als eigenes Feld abgefragt
+#   - API/BE/Raum/SAP/DokNummerVorQualiPSO/Bearbeiter/PLSTA: reine
+#     Master-Excel-Spalten ohne jede Rolle beim Erzeugen des Dokuments
+#     (per Code-Analyse geprueft: template_filler.py liest sie nie;
+#     API ist zudem nur eine aus "Betrieb" abgeleitete Teilzeichenkette
+#     fuers Filtern in der Excel, "Betrieb" selbst wird geschrieben).
+#   - "Version": ist beim LESEN eines bestehenden Dokuments die dort
+#     bereits vorhandene, hoechste Version - fuer ein NEUES Dokument
+#     irrelevant (das startet immer bei "Version_Historie" = 1.0).
+#   - "SW-Version / Typ:"/"SW-Name:": beim Lesen per Regex aus dem
+#     Besonderheiten-Text abgeleitet, haben aber keine eigene Zelle im
+#     Template - bei Bedarf einfach direkt im Feld "Besonderheiten"
+#     mit angeben.
+#   - "BemerkungX": inhaltlich redundant, da Prozessbeschreibung/Daten/
+#     Audit Trail/Parameter bereits weiter oben unter ihrem eigenen
+#     Namen abgefragt werden. Der Transfer dieser Werte in die
+#     "BemerkungX"-Spalten der Master-Excel passiert automatisch beim
+#     Einlesen des fertigen Dokuments (word_parser_v8/10/11.py machen
+#     das schon seit jeher so) - hier also keine doppelte Abfrage.
 SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
                "Testtiefe", "Testtiefe-Matrix", "Phenix",
-               "DI EE-Anforderungen", "Steuerung erfolgt über?"}
+               "DI EE-Anforderungen", "Steuerung erfolgt über?",
+               "API", "BE", "Raum", "SAP", "DokNummerVorQualiPSO",
+               "Bearbeiter", "PLSTA", "Version",
+               "SW-Version / Typ:", "SW-Name:",
+               "Bemerkung1", "Bemerkung2", "Bemerkung3", "Bemerkung4"}
 
 _TEXTAREA_FELDER = (
     set(template_filler._BESCHREIBUNG_ZEILEN.values())
@@ -150,6 +182,45 @@ for _rolle in common.ROLLEN_SPALTEN:
     )
 for _abteilung_feld in ABTEILUNG_FELDER.values():
     FELD_HINWEISE[_abteilung_feld] = 'Site/Organisationseinheit dieser Person - ersetzt den Platzhalter "(Site/Unit)" im Dokument.'
+
+# Kurzerklaerung je EINZELNER Auswahl-Option (nicht ganze Kategorie) -
+# wortnah aus den jeweiligen Kapiteln des Templates uebernommen, damit
+# auch ohne Vorwissen erkennbar ist, was z.B. "GAMP 5, Kategorie 3"
+# bedeutet. Erscheint als Tooltip (Maus draufhalten) an der jeweiligen
+# Option. CS-Typ/Geraetekategorie ergeben sich im Template aus einem
+# mehrstufigen Entscheidungsbaum (Kapitel 5) - hier bewusst nur eine
+# verkuerzte Orientierung, keine vollstaendige Wiedergabe der Logik.
+OPTIONEN_HINWEISE = {
+    # GAMP5 Software-Kategorie (Kapitel 7)
+    "KAT1": "Infrastruktur-/unterlagerte Software zur Verwaltung der Betriebsumgebung (z. B. Betriebssysteme, Datenbankmanager, Dienste) - selbst nicht konfigurierbar.",
+    "KAT3": "Nicht konfigurierbare Software: Laufzeitparameter können eingegeben werden, aber keine Anpassung an den Geschäftsprozess (z. B. Firmware-basierte Systeme).",
+    "KAT4": "Konfigurierbare Software, die der Anwender an den Geschäftsprozess anpassen kann, ohne den Quellcode zu ändern (z. B. LIMS, SCADA, ERP, PLS, HMI).",
+    "KAT5": "Kundenspezifisch entwickelte/programmierte Software, passend zum jeweiligen Geschäftsprozess.",
+    # ERES-Typ (Kapitel 6)
+    "ERESTYP1": "Keine elektronischen Aufzeichnungen und keine elektronische Signatur (einfaches CS ohne E-Records).",
+    "ERESTYP2": "Keine E-Records/Signatur im System selbst, weil diese über ein übergeordnetes System abgedeckt werden oder GxP-relevante Aufzeichnungen auf Papier erfolgen.",
+    "ERESTYP3": "Elektronische Aufzeichnungen vorhanden, aber ohne elektronische Signatur.",
+    "ERESTYP4": "Elektronische Aufzeichnungen MIT elektronischer Signatur zur Unterschrift von GxP-relevanten Aufzeichnungen.",
+    # KI-Reifegrad (Kapitel 9)
+    "KI1": "KI läuft parallel zum Produktionsprozess, ohne Einfluss auf einen GxP-relevanten Prozess.",
+    "KI2": "Konventionelle Anwendung ohne Einsatz von Machine Learning.",
+    "KI3": "Geschlossenes KI-gestütztes System (kein selbständiges Neutraining).",
+    "KI4": "Autonom mit selbst auslösendem Neutraining - mit menschlicher Kontrolle der Updates.",
+    "KI5": "Autonom mit selbst auslösendem Neutraining - ohne menschlichen Eingriff (nur Stichproben nach dem Betrieb).",
+    "KI6": "Vollständig autonom, optimiert sich selbst anhand eines Ziels bzw. einer Rückkopplungsschleife.",
+    # CS-Typ (Kapitel 5, verkürzt)
+    "Systemtyp_CIS": "Computerized Information System: reine Software ohne steuerbare Elemente (z. B. SAP, EDS, PRODIS, MES).",
+    "Subtyp_LCE": "Laboratory Computerized Equipment: System steuert ein/mehrere Analysegeräte.",
+    "Subtyp_PCS": "Process Control System: Prozesskontrolle automatisierter Anlagen bzw. Prozesslenkung/-analyse.",
+    "Subtyp_EE": "Electronic Equipment: eigenständiges Gerät mit Mess-/Kontrollfunktion bzw. Firmware/Software (kein CIS/PCS/LCE/S).",
+    "VNAP_S0": "Spreadsheet/kleine Applikation, nur einfache Formeln - Verifizierung bei jedem Einsatz.",
+    "VNAP_S1": "Spreadsheet/Applikation OHNE Datenspeicherung.",
+    "VNAP_S2": "Spreadsheet/Applikation MIT Datenspeicherung.",
+    # Gerätekategorie (Kapitel 5, verkürzt)
+    "GKATA": "Mechanisches Equipment/Testhilfsmittel ohne Firmware/Software, bzw. Equipment ohne Mess-/Kontrollfunktion.",
+    "GKATB": "Firmware-basiertes System, nicht bzw. eingeschränkt parametrierbar (siehe Kapitel 5.8 für B1/B2/B3).",
+    "GKATC": "Software-basiertes, konfigurierbares/programmierbares System (siehe Kapitel 5.6-5.8 für C1/C2/C3).",
+}
 
 KATEGORIE_HINWEISE = {
     "Klassifizierung": "Diese Auswahl wird zusätzlich in Kapitel 3 des Dokuments übernommen (Systemeinstufung Globales CS).",
@@ -293,6 +364,9 @@ def baue_formular(data):
                     "art": "feld", "name": feld,
                     "typ": "textarea" if ist_textarea else "text",
                     "breite": breite,
+                    # Historie/Besonderheiten koennen ueber die Textbaustein-
+                    # Vorschlaege laenger werden - mehr Platz von Anfang an.
+                    "rows": 8 if feld in ("Historie", "Besonderheiten") else 3,
                     "wert": data.get(feld) or "",
                     "label": BEMERKUNG_LABELS.get(feld),
                     "hinweis": FELD_HINWEISE.get(feld),
