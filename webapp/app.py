@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.5
+# Systembewertung-Editor - Web-Oberflaeche - 1.6
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.5"
+APP_VERSION = "1.6"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -154,12 +154,17 @@ def schliessen_signal():
 #     "BemerkungX"-Spalten der Master-Excel passiert automatisch beim
 #     Einlesen des fertigen Dokuments (word_parser_v8/10/11.py machen
 #     das schon seit jeher so) - hier also keine doppelte Abfrage.
+#   - "Version_Historie": wird nicht mehr getrennt abgefragt, sondern
+#     zusammen mit "Dok. -Nr." in einem gemeinsamen Feld erfasst (siehe
+#     DOK_NR_VERSION_FELD/_dok_nr_version_kombinieren/_auftrennen unten)
+#     - beides landet inhaltlich zusammen ("Dok.-ID"), daher ein Feld
+#     statt zwei getrennter.
 SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
                "Testtiefe", "Testtiefe-Matrix", "Phenix",
                "DI EE-Anforderungen", "Steuerung erfolgt über?",
                "API", "BE", "Raum", "SAP", "DokNummerVorQualiPSO",
                "Bearbeiter", "PLSTA", "Version",
-               "SW-Version / Typ:", "SW-Name:",
+               "SW-Version / Typ:", "SW-Name:", "Version_Historie",
                "Bemerkung1", "Bemerkung2", "Bemerkung3", "Bemerkung4"}
 
 _TEXTAREA_FELDER = (
@@ -183,14 +188,22 @@ ABTEILUNG_FELDER = {
     "BQR":       "BQR_Abteilung",
 }
 
-# Freundliche Beschriftung fuer die 4 generischen "BemerkungX"-Spalten
-# der Master-Excel - haben laut Fachbereich eine feste Bedeutung
-# innerhalb des Kapitels "Informationen und Bemerkungen".
-BEMERKUNG_LABELS = {
+# Freundliche Beschriftung fuer Felder, deren interner Name (=
+# Master-Excel-Spaltenname, muss unveraendert bleiben, siehe
+# EXCEL_COLUMNS in sysbew_common.py) nicht 1:1 als Anzeigetext taugt:
+# die 4 generischen "BemerkungX"-Spalten (feste Bedeutung laut
+# Fachbereich innerhalb des Kapitels "Informationen und Bemerkungen")
+# sowie zwei Namen, die noch ae/oe/ue statt ä/ö/ü aus der Excel-Zeit
+# tragen (Excel-Spaltennamen selbst bleiben so - nur die Anzeige im
+# Formular wird ausgeschrieben).
+FELD_LABELS = {
     "Bemerkung1": "Bemerkung 1 (Prozessbeschreibung)",
     "Bemerkung2": "Bemerkung 2 (Daten)",
     "Bemerkung3": "Bemerkung 3 (Audit Trail)",
     "Bemerkung4": "Bemerkung 4 (Parameter)",
+    "Gebaeude": "Gebäude",
+    "UeberlagerteMLCS": "Überlagerte MLCS",
+    "Dok. -Nr.": "Dok.-Nr. / Version",
 }
 
 # Hinweistexte, die im Editor unter dem jeweiligen Feld/der jeweiligen
@@ -201,10 +214,12 @@ BEMERKUNG_LABELS = {
 # Formular gar nicht mehr angezeigt.
 FELD_HINWEISE = {
     "Dok. -Nr.": (
-        "Dokumentennummer der NEUEN Systembewertung (z. B. QU-OPE-XXXXX) - nicht die des "
-        "Vorgänger-Dokuments. ℹ️ Diese Systembewertung wird auf Basis der im System hinterlegten "
-        "Vorlage V11 erstellt (\"Erkannte Version2\" in der Master-Excel) - aktuell die einzige "
-        "hinterlegte Version, wird automatisch gesetzt."
+        "Dokumentennummer UND Version der NEUEN Systembewertung, zusammen in einem Feld - "
+        "z. B. „QU-OPE-XXXXX / Version 1.0“. Nicht die Nummer/Version des Vorgänger-Dokuments. "
+        "Ohne „/ Version ...“ eingegeben, wird automatisch „Version 1.0“ angenommen. "
+        "ℹ️ Diese Systembewertung wird auf Basis der im System hinterlegten Vorlage V11 erstellt "
+        "(\"Erkannte Version2\" in der Master-Excel) - aktuell die einzige hinterlegte Version, "
+        "wird automatisch gesetzt."
     ),
     "Hyperlink": "Link auf das Dokument in QualiPSO (sobald dort abgelegt).",
     "MLCSID": "System-Identifier/CS-Inventarnummer gemäß QU-SOP-0052370. Keine MLCS erforderlich für S0 und Equipment ohne CS.",
@@ -370,6 +385,31 @@ def _kategorien_lookup():
     lookup.update(_KATEGORIEN_ZUSATZ)
     return lookup
 
+def _dok_nr_version_kombinieren(data):
+    """Baut den Anzeigewert des gemeinsamen "Dok. -Nr."-Feldes aus den
+    getrennt gespeicherten Werten "Dok. -Nr." und "Version_Historie",
+    z.B. "QU-OPE-XXXXX / Version 1.0"."""
+    dok_nr = (data.get("Dok. -Nr.") or "").strip()
+    version = (data.get("Version_Historie") or "").strip()
+    if dok_nr and version:
+        return f"{dok_nr} / Version {version}"
+    return dok_nr or (f"Version {version}" if version else "")
+
+def _dok_nr_version_auftrennen(text):
+    """Gegenstueck zu _dok_nr_version_kombinieren(): liest den
+    eingegebenen Text des gemeinsamen Feldes wieder in die getrennten
+    Werte "Dok. -Nr."/"Version_Historie" ein - die Master-Excel-Spalte
+    "Dok. -Nr." erwartet weiterhin nur die reine Nummer, ohne
+    Versionszusatz. Ohne erkennbare "/ Version ..."-Angabe wird
+    "Version_Historie" NICHT angetastet (bleibt beim bisherigen Wert,
+    z.B. "1.0" bei einer neuen Systembewertung), damit ein einfaches
+    Weglassen der Version keine bereits gesetzte Version loescht."""
+    text = (text or "").strip()
+    m = re.match(r"^(.*?)\s*/\s*Version\s*(.+?)\s*$", text, re.IGNORECASE)
+    if m:
+        return {"Dok. -Nr.": m.group(1).strip(), "Version_Historie": m.group(2).strip()}
+    return {"Dok. -Nr.": text}
+
 def baue_formular(data):
     """Baut die Formularstruktur fuer editor.html aus den
     VORSCHAU_ABSCHNITTE (dieselbe Gliederung wie die
@@ -426,8 +466,12 @@ def baue_formular(data):
                     # Historie/Besonderheiten koennen ueber die Textbaustein-
                     # Vorschlaege laenger werden - mehr Platz von Anfang an.
                     "rows": 8 if feld in ("Historie", "Besonderheiten") else 3,
-                    "wert": data.get(feld) or "",
-                    "label": BEMERKUNG_LABELS.get(feld),
+                    # "Dok. -Nr." zeigt/erfasst zusammen mit der Version in
+                    # EINEM Feld (siehe _dok_nr_version_kombinieren) - das
+                    # ist inhaltlich "eine Doc-ID" statt zwei getrennter
+                    # Angaben.
+                    "wert": _dok_nr_version_kombinieren(data) if feld == "Dok. -Nr." else (data.get(feld) or ""),
+                    "label": FELD_LABELS.get(feld),
                     "hinweis": FELD_HINWEISE.get(feld),
                 })
                 abteilung_feld = ABTEILUNG_FELDER.get(feld)
@@ -457,7 +501,15 @@ def formular_auswerten(form, bestehende_daten):
             daten[f] = "r" if f in ausgewaehlt else "c"
     for feld in form:
         if feld.startswith("feld__"):
-            daten[feld[len("feld__"):]] = form.get(feld, "").strip()
+            name = feld[len("feld__"):]
+            wert = form.get(feld, "").strip()
+            if name == "Dok. -Nr.":
+                # Kombiniertes Feld ("QU-OPE-XXXXX / Version 1.0") wieder
+                # in "Dok. -Nr." (reine Nummer, so von der Master-Excel-
+                # Spalte erwartet) und "Version_Historie" auftrennen.
+                daten.update(_dok_nr_version_auftrennen(wert))
+            else:
+                daten[name] = wert
     return daten
 
 def _heute():

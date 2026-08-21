@@ -1320,7 +1320,7 @@ VORSCHAU_ABSCHNITTE = [
     # Spalten der Master-Excel, die laut Fachbereich konkret folgende
     # Bedeutung haben: Bemerkung1=Prozessbeschreibung,
     # Bemerkung2=Daten, Bemerkung3=Audit Trail, Bemerkung4=Parameter
-    # (siehe auch BEMERKUNG_LABELS in webapp/app.py fuer die
+    # (siehe auch FELD_LABELS in webapp/app.py fuer die
     # entsprechend beschrifteten Editor-Felder).
     ("Informationen und Bemerkungen", [
         "Steuerung erfolgt über?", "Prozessbeschreibung", "Daten",

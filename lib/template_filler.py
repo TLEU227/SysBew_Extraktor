@@ -625,7 +625,7 @@ _BESCHREIBUNG_ZEILEN = {
 }
 
 # Die 4 generischen "BemerkungX"-Spalten der Master-Excel haben laut
-# Fachbereich eine feste Bedeutung (siehe auch BEMERKUNG_LABELS in
+# Fachbereich eine feste Bedeutung (siehe auch FELD_LABELS in
 # webapp/app.py) und gehoeren inhaltlich zu den jeweiligen Zeilen
 # dieser Tabelle ("Informationen und Bemerkungen") - werden also, falls
 # befuellt, dort zusaetzlich eingetragen statt (wie bisher) gar nicht

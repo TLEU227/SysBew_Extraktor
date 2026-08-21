@@ -187,6 +187,13 @@ Ruhezustand geht/die Verbindung länger abreißt), greift das
 Zeitlimit. Bei einem echten Tab-Schluss reagiert das Beenden
 innerhalb weniger Sekunden.
 
+**Dok.-Nr. und Version in einem Feld:** Das Feld "Dok.-Nr. / Version"
+erfasst beides zusammen (z. B. "QU-OPE-XXXXX / Version 1.0") - intern
+weiterhin zwei getrennte Werte (Master-Excel-Spalte "Dok. -Nr." erhält
+nur die reine Nummer), aber im Editor nur eine Eingabe statt zwei. Ohne
+"/ Version ..." eingegeben, bleibt die Version unverändert (Standard
+bei neuen Systembewertungen: "1.0").
+
 Optional kann beim Fertigstellen die Checkbox "Auch in Master-Excel
 eintragen" gesetzt bleiben - dann wird zusätzlich zum docx-Download
 per COM-Automatisierung eine neue Zeile in die Master-Excel
