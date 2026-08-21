@@ -12,6 +12,37 @@ Angabe, von wem.
 > Feldnamen und Ausdrücke sind exakt benannt, damit nichts frei interpretiert
 > werden muss.
 
+## Fertige Import-Datei (Best-Effort)
+
+Im Ordner liegt zusätzlich `Qualifizierung_Aenderungsmail_Legacy.zip` – ein
+von Hand nachgebautes **"Package (Legacy)"** (genau das Format, das im
+Screenshot oben als *"Import Package (Legacy)"* zu sehen ist), das exakt
+den in dieser Anleitung beschriebenen Flow enthält.
+
+**Import:** https://make.powerautomate.com → **Meine Flows** → **Import**
+→ **Package (Legacy)** → Datei hochladen → bei den beiden Verbindungen
+(SharePoint, Office 365 Outlook) jeweils eine bestehende Verbindung
+auswählen oder neu anmelden → **Import**.
+
+> ⚠️ **Ehrlicher Hinweis:** Das "Package (Legacy)"-Format ist von
+> Microsoft nicht öffentlich dokumentiert – normalerweise erzeugt es nur
+> Power Automate selbst beim Export eines bestehenden Flows. Diese Datei
+> wurde nach bestem Wissen von Hand nachgebaut und konnte **nicht** gegen
+> einen echten Tenant getestet werden. Zwei Ausgänge sind möglich:
+> 1. **Import gelingt komplett** – dann direkt die beiden Verbindungen
+>    zuordnen, Flow einmal testen (siehe Schritt 10 unten) und
+>    einschalten.
+> 2. **Import schlägt fehl oder die beiden Connector-Aktionen ("Dateien
+>    abrufen", "E-Mail senden") kommen als Fehler/Platzhalter an** – in
+>    dem Fall bitte die Schritt-für-Schritt-Anleitung unten verwenden
+>    (dauert ca. 10–15 Minuten und funktioniert garantiert, da direkt im
+>    Designer mit den echten Feldern gebaut wird). Trigger, Variablen,
+>    Filter, Bedingung und HTML-Tabellen sind allgemeine, öffentlich
+>    dokumentierte Bausteine und sollten in jedem Fall korrekt ankommen –
+>    am unsichersten sind die beiden SharePoint-/Outlook-spezifischen
+>    Aktionen, weil deren interne Parameterschlüssel je Connector-Version
+>    leicht variieren können.
+
 ## Betroffene SharePoint-Struktur
 
 - **Site:** `https://sanofi.sharepoint.com/sites/ICFLantusBB`
