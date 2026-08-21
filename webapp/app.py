@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.6
+# Systembewertung-Editor - Web-Oberflaeche - 1.7
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.6"
+APP_VERSION = "1.7"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -136,11 +136,15 @@ def schliessen_signal():
 #   - "Steuerung erfolgt über?": hat keine eigene Frage im Template,
 #     gehoert inhaltlich zur Prozessbeschreibung und wird dort direkt
 #     mit erfasst statt als eigenes Feld abgefragt
-#   - API/BE/Raum/SAP/DokNummerVorQualiPSO/Bearbeiter/PLSTA: reine
-#     Master-Excel-Spalten ohne jede Rolle beim Erzeugen des Dokuments
-#     (per Code-Analyse geprueft: template_filler.py liest sie nie;
-#     API ist zudem nur eine aus "Betrieb" abgeleitete Teilzeichenkette
-#     fuers Filtern in der Excel, "Betrieb" selbst wird geschrieben).
+#   - API/BE/Raum/SAP/Bearbeiter/PLSTA: reine Master-Excel-Spalten ohne
+#     jede Rolle beim Erzeugen des Dokuments (per Code-Analyse
+#     geprueft: template_filler.py liest sie nie; API ist zudem nur
+#     eine aus "Betrieb" abgeleitete Teilzeichenkette fuers Filtern in
+#     der Excel, "Betrieb" selbst wird geschrieben).
+#     "DokNummerVorQualiPSO" ist NICHT mehr in dieser Liste - wird seit
+#     1.7 im Formular als "Vorherige Doc-ID" angezeigt und beim Start
+#     aus einem Datenbank-Eintrag automatisch mit der alten Dok.-Nr./
+#     Version befuellt (siehe _neues_dokument_aus_db_zeile).
 #   - "Version": ist beim LESEN eines bestehenden Dokuments die dort
 #     bereits vorhandene, hoechste Version - fuer ein NEUES Dokument
 #     irrelevant (das startet immer bei "Version_Historie" = 1.0).
@@ -162,7 +166,7 @@ def schliessen_signal():
 SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
                "Testtiefe", "Testtiefe-Matrix", "Phenix",
                "DI EE-Anforderungen", "Steuerung erfolgt über?",
-               "API", "BE", "Raum", "SAP", "DokNummerVorQualiPSO",
+               "API", "BE", "Raum", "SAP",
                "Bearbeiter", "PLSTA", "Version",
                "SW-Version / Typ:", "SW-Name:", "Version_Historie",
                "Bemerkung1", "Bemerkung2", "Bemerkung3", "Bemerkung4"}
@@ -204,22 +208,29 @@ FELD_LABELS = {
     "Gebaeude": "Gebäude",
     "UeberlagerteMLCS": "Überlagerte MLCS",
     "Dok. -Nr.": "Dok.-Nr. / Version",
+    "DokNummerVorQualiPSO": "Vorherige Doc-ID",
 }
 
 # Hinweistexte, die im Editor unter dem jeweiligen Feld/der jeweiligen
 # Kategorie angezeigt werden - wo moeglich woertlich aus dem Template
-# uebernommen. PLSTA, "SW-Version / Typ:" und "DokNummerVorQualiPSO"
-# stehen bewusst NICHT hier: alle drei sind reine Master-Excel-Spalten
-# ohne Zelle im Template (siehe SKIP_FELDER oben) und werden im
-# Formular gar nicht mehr angezeigt.
+# uebernommen. PLSTA und "SW-Version / Typ:" stehen bewusst NICHT hier:
+# beide sind reine Master-Excel-Spalten ohne Zelle im Template (siehe
+# SKIP_FELDER oben) und werden im Formular gar nicht mehr angezeigt.
 FELD_HINWEISE = {
     "Dok. -Nr.": (
         "Dokumentennummer UND Version der NEUEN Systembewertung, zusammen in einem Feld - "
-        "z. B. „QU-OPE-XXXXX / Version 1.0“. Nicht die Nummer/Version des Vorgänger-Dokuments. "
+        "z. B. „QU-OPE-XXXXX / Version 1.0“. Nicht die Nummer/Version des Vorgänger-Dokuments "
+        "(siehe dafür „Vorherige Doc-ID“) - bei einer aus der Datenbank gestarteten Systembewertung "
+        "deshalb bewusst leer vorbelegt, nicht die alte Nummer. "
         "Ohne „/ Version ...“ eingegeben, wird automatisch „Version 1.0“ angenommen. "
         "ℹ️ Diese Systembewertung wird auf Basis der im System hinterlegten Vorlage V11 erstellt "
         "(\"Erkannte Version2\" in der Master-Excel) - aktuell die einzige hinterlegte Version, "
         "wird automatisch gesetzt."
+    ),
+    "DokNummerVorQualiPSO": (
+        "Dok.-Nr./Version des VORGÄNGER-Dokuments (z. B. „QU-OPE-XXXXX / Version 1.0“), auf dessen "
+        "Bewertung diese neue Systembewertung inhaltlich aufbaut. Bei Start aus der Datenbank "
+        "automatisch mit der bisherigen Dok.-Nr./Version befüllt, sofern hier noch nichts stand."
     ),
     "Hyperlink": "Link auf das Dokument in QualiPSO (sobald dort abgelegt).",
     "MLCSID": "System-Identifier/CS-Inventarnummer gemäß QU-SOP-0052370. Keine MLCS erforderlich für S0 und Equipment ohne CS.",
@@ -410,6 +421,31 @@ def _dok_nr_version_auftrennen(text):
         return {"Dok. -Nr.": m.group(1).strip(), "Version_Historie": m.group(2).strip()}
     return {"Dok. -Nr.": text}
 
+def _neues_dokument_aus_db_zeile(row):
+    """Baut das Start-Dict fuer eine NEUE Systembewertung aus einer
+    Datenbank-Zeile (fuer Weg 1 "Direkt erzeugen" UND Weg 2
+    "Bearbeiten"): uebernimmt alle Werte der Zeile (Equipment, Rollen,
+    GxP-Bewertung usw. bleiben ja unveraendert gueltig), setzt aber die
+    Identitaet des NEUEN Dokuments selbst zurueck - Dok.-Nr./Version/
+    Datum/Historie-Text gehoeren zum VORGAENGER-Dokument, nicht zum
+    neuen. Ohne dieses Zuruecksetzen wuerde sonst versehentlich die
+    alte Dok.-Nr. unveraendert weiterlaufen bzw. die alte Version in
+    die Historie-Tabelle des neuen Dokuments geschrieben (siehe
+    template_filler.fill_historie).
+
+    Die alte Dok.-Nr./Version geht dabei nicht verloren: sie wandert
+    automatisch in "DokNummerVorQualiPSO" ("Vorherige Doc-ID"), sofern
+    dort noch nichts anderes steht."""
+    data = {k: v for k, v in row.items() if k != "_zeile"}
+    alte_dok_id = _dok_nr_version_kombinieren(data)
+    if alte_dok_id and not data.get("DokNummerVorQualiPSO"):
+        data["DokNummerVorQualiPSO"] = alte_dok_id
+    data["Dok. -Nr."] = ""
+    data["Version_Historie"] = "1.0"
+    data["Datum"] = _heute()
+    data["Historie"] = ""
+    return data
+
 def baue_formular(data):
     """Baut die Formularstruktur fuer editor.html aus den
     VORSCHAU_ABSCHNITTE (dieselbe Gliederung wie die
@@ -465,7 +501,15 @@ def baue_formular(data):
                     "breite": breite,
                     # Historie/Besonderheiten koennen ueber die Textbaustein-
                     # Vorschlaege laenger werden - mehr Platz von Anfang an.
-                    "rows": 8 if feld in ("Historie", "Besonderheiten") else 3,
+                    # Rollen-Namen bleiben trotz Textarea (fuer Mehrfach-
+                    # nennung mit "\n" getrennt, siehe extract_deckblatt_
+                    # rollen) einzeilig wie die Abteilungsfelder - wer
+                    # wirklich zwei Namen braucht, kann per Ziehgriff
+                    # vergroessern.
+                    "rows": (
+                        8 if feld in ("Historie", "Besonderheiten") else
+                        1 if feld in common.ROLLEN_SPALTEN else 3
+                    ),
                     # "Dok. -Nr." zeigt/erfasst zusammen mit der Version in
                     # EINEM Feld (siehe _dok_nr_version_kombinieren) - das
                     # ist inhaltlich "eine Doc-ID" statt zwei getrennter
@@ -600,7 +644,7 @@ def db_uebernehmen(zeile):
     if not row:
         flash("Zeile nicht gefunden.")
         return redirect(url_for("index"))
-    data = {k: v for k, v in row.items() if k != "_zeile"}
+    data = _neues_dokument_aus_db_zeile(row)
     return _dokument_erzeugen_und_senden(data)
 
 @app.route("/db/<int:zeile>/bearbeiten")
@@ -612,7 +656,7 @@ def db_bearbeiten(zeile):
     if not row:
         flash("Zeile nicht gefunden.")
         return redirect(url_for("index"))
-    data = {k: v for k, v in row.items() if k != "_zeile"}
+    data = _neues_dokument_aus_db_zeile(row)
     draft_id = draft_store.create_draft(
         data, session["user"], titel=_draft_titel(data), quelle_zeile=zeile,
     )
