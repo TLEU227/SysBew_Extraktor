@@ -177,6 +177,16 @@ an unterschiedlichen Drafts arbeiten. Damit sich niemand gegenseitig
 - Über "Sperre freigeben" im Editor kann man einen Draft auch bewusst
   vorzeitig wieder freigeben.
 
+**Auto-Beenden:** Sobald kein Browser-Tab dieser App mehr offen ist,
+beendet sich der lokale Server (und damit das schwarze Konsolenfenster)
+automatisch - kein manuelles Schließen nötig, und kein unbemerkt
+weiterlaufender Prozess im Hintergrund. Ein einzelner Seitenwechsel
+innerhalb der App (z. B. Datenbank -> Editor) beendet dabei nichts;
+erst wenn wirklich kein Tab mehr offen ist (oder der PC in den
+Ruhezustand geht/die Verbindung länger abreißt), greift das
+Zeitlimit. Bei einem echten Tab-Schluss reagiert das Beenden
+innerhalb weniger Sekunden.
+
 Optional kann beim Fertigstellen die Checkbox "Auch in Master-Excel
 eintragen" gesetzt bleiben - dann wird zusätzlich zum docx-Download
 per COM-Automatisierung eine neue Zeile in die Master-Excel
