@@ -55,16 +55,11 @@
             {% else %}
               <input type="text" id="f_{{ item.name }}" name="feld__{{ item.name }}" value="{{ item.wert }}">
             {% endif %}
-            {% if item.name == 'Historie' %}
+            {% set vorlagen = textbaustein_vorlagen.get(item.name) %}
+            {% if vorlagen %}
               <div class="textbausteine">
-                {% for vorlage in historie_vorlagen %}
-                  <button type="button" class="knopf klein sekundaer textbaustein-knopf" data-ziel="f_Historie" data-text="{{ vorlage.text }}">{{ vorlage.label }}</button>
-                {% endfor %}
-              </div>
-            {% elif item.name == 'Besonderheiten' %}
-              <div class="textbausteine">
-                {% for vorlage in besonderheiten_vorlagen %}
-                  <button type="button" class="knopf klein sekundaer textbaustein-knopf" data-ziel="f_Besonderheiten" data-text="{{ vorlage.text }}">{{ vorlage.label }}</button>
+                {% for vorlage in vorlagen %}
+                  <button type="button" class="knopf klein sekundaer textbaustein-knopf" data-ziel="f_{{ item.name }}" data-text="{{ vorlage.text }}">{{ vorlage.label }}</button>
                 {% endfor %}
               </div>
             {% endif %}

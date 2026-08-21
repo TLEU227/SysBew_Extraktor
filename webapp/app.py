@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.8
+# Systembewertung-Editor - Web-Oberflaeche - 1.9
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.8"
+APP_VERSION = "1.9"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -237,6 +237,11 @@ FELD_HINWEISE = {
     "UeberlagerteMLCS": "Übergeordnetes System: Systemname, MLCS-ID und ggf. Doc-ID der zugehörigen Systembewertung.",
     "Schnittstelle": "Schnittstelle zu anderen/übergeordneten Systemen: Systemname, MLCS-ID und ggf. Doc-ID der Systembewertung.",
     "Anlage": "Anlagen-IDs/Equipment-Nr./QC-ID.",
+    "Schnittstellen mit PLS": (
+        "Beschreibung der Datenschnittstelle(n) zu überlagerten Systemen (z. B. Schnittstellen-Typ + "
+        "PNK-Nummer). Wurde diese Beschreibung bereits vollständig per Serienbrief befüllt, kann der "
+        "Rest des Textes hier gelöscht werden."
+    ),
     "AS/BDIS-Name": "Bei Equipment z. B. Laborwaage; bei System: Software-/Systemname.",
     "Kurzbeschreibung": "Wozu wird das System/Equipment/die Anlage eingesetzt?",
     "Betrieb": "Einsatzort: Site/Organisationseinheit.",
@@ -380,6 +385,119 @@ BESONDERHEITEN_VORLAGEN = [
         "text": "Das System wird vereinfacht qualifiziert, da es sich gemäß QU-SOP-0021736 um Gerätekategorie C1 handelt (parametrierbares, jedoch nicht konfigurierbares Software-basiertes System).",
     },
 ]
+
+# Vorschlags-Textbausteine fuer die Felder aus Kapitel 2
+# "Informationen und Bemerkungen" - je Feld mehrere typische
+# Formulierungen (v.a. fuer PLS-Systeme), die per Knopf im Editor an
+# das Feld angehaengt werden (siehe editor.html), danach frei
+# anpassbar. Beispielhafte Namen/IDs (z.B. "BDIS Lantus (MLCS-ID:
+# 1194)") sind wie vorgegeben uebernommen und muessen beim Verwenden
+# durch die tatsaechlichen Werte des jeweiligen Systems ersetzt werden.
+PROZESSBESCHREIBUNG_VORLAGEN = [
+    {"label": "PLS (Yokogawa/ABB, MIB)", "text": "Das Prozessleitsystem vom Typ Yokogawa Centum VP / ABB 800xA / ABB Freelance dient der Bedienung und Beobachtung der rezeptorientierten verfahrenstechnischen Herstellprozesse im Multi Insulin Betrieb (MIB) im Gebäude G650."},
+    {"label": "PLS (frei, Yokogawa)", "text": "Der / Die Prozessleitsystem (PLS Lantus) der Fa. Yokogawa dient xxxxxx."},
+    {"label": "Filtertestgerät", "text": "Das Filtertestgerät xxxx dient der Prüfung der Integrität diverser Flüssigkeits- und Gasfilter aus dem GxP-relevanten Umfeld der Wirkstoffproduktion. Hierbei handelt es sich um ein im Fermentationslabor fest installiertes Gerät / Hierbei handelt es sich um ein mobiles Gerät inkl. WIT-Trolley."},
+    {"label": "SPS (Siemens S7)", "text": "Die Prozess-Automatisierung erfolgt über eine Speicherprogrammierbare Steuerung (SPS) vom Typ S7-300 / S7-400 / S7-1200 / S7-1500 der Firma Siemens, wobei die Bedienung über ein integriertes Touchpanel (HMI) durchgeführt wird."},
+    {"label": "Durchreiche-Maschine", "text": "Die Bedienung der Durchreiche-Maschine erfolgt über zwei baugleiche Bedienpanels (Beladeseite / Entladeseite)."},
+    {"label": "BDIS Lantus", "text": "Die Prozess-Automatisierung erfolgt über das BDIS Lantus (MLCS-ID: 1194). In den Grundlagendokumenten wird die Anlage als Teilanlage N/A verwaltet."},
+    {"label": "Firmware-System (Sartorius/Pall)", "text": "Die automatisierte Durchführung der Filtertests erfolgt über ein Firmware-basiertes System des Herstellers Sartorius / Pall inkl. Bedienpanel."},
+    {"label": "Autarkes System (keine Schnittstelle)", "text": "Bezogen auf die Automatisierungstechnik handelt es sich um ein autarkes System ohne Datenschnittstellen zu überlagerten Systemen (z.B. PLS)."},
+    {"label": "Rein mechanisch (kein CS)", "text": "Beim / Bei der Prozessleitsystem (PLS Lantus) handelt es sich um rein mechanisches Equipment ohne Computergestütztes System."},
+    {"label": "Bedien-SOP (Verweis)", "text": "Die organisatorischen Prozesse inkl. Bedienung des / der Prozessleitsystem (PLS Lantus) werden über die N/A „N/A“ (Bedien-SOP) spezifiziert."},
+]
+DATEN_VORLAGEN = [
+    {"label": "Verweis auf Dokument", "text": "Der Umgang mit den GxP-relevanten Daten des / der Prozessleitsystem (PLS Lantus) ist im Dokument xxxx spezifiziert."},
+    {"label": "Keine dauerhafte Speicherung (→ BDIS)", "text": "Es werden keinerlei GxP-relevante Bewegungsdaten (Transactional Data) dauerhaft auf dem System gespeichert. Die Bewegungsdaten (z.B. Trendkurven) werden direkt an das überlagerte BDIS Lantus (MLCS-ID: 1194) übertragen und dort weiter verarbeitet."},
+    {"label": "Ringspeicher (10 Tage)", "text": "Das System besitzt einen Ringspeicher, mit dem die Bewegungsdaten (Transactional Data) für 10 Tage lokal gespeichert werden. Dadurch können im Falle einer Störung am / an der Prozessleitsystem (PLS Lantus) über einen Ersatzprozess die Bewegungsdaten nachträglich übertragen werden."},
+    {"label": "Transfer über USB-Medium", "text": "Da keine Datenschnittstellen vorhanden sind / genutzt werden, erfolgt der Datentransfer über ein freigegebenes USB-Medium gemäß QU-SOP-4711 / betrieblicher Anweisung xxxx."},
+    {"label": "Keine GxP-relevanten Daten", "text": "Das System erzeugt keine GxP-relevanten Daten."},
+    {"label": "Archivierung gemäß SOP", "text": "Die Archivierung / Dearchivierung von Bewegungsdaten (Transactional Data) erfolgt über den etablierten Prozess gemäß QU-SOP-0051759 „Planung und Durchführung der Archivierung / Rückübertragung bei Automatisierungs- und Betriebsdatenerfassungssystemen“."},
+    {"label": "Backup/Restore gemäß SOP", "text": "Die Konfigurationsdaten (Master Data) des Steuerungssystems können übergangsweise über den etablierten Backup / Restore-Prozess gemäß alter QU-SOP-0017807 „Planung und Durchführung des Backup / Restore von Automatisierungs- und Betriebsdaten-informationssystemen“ wieder hergestellt werden. Im Rahmen der zyklischen Requalifizierung soll das Backup/Restore-Konzept an die neue SOP QU-SOP-0077934 „Campus Frankfurt Backup & Restore“ angepasst werden."},
+]
+PARAMETER_VORLAGEN = [
+    {"label": "Nur erhöhte Benutzerrechte (TM-Prozess)", "text": "Die Parametrierung der Produktionsprozesse ist ausschließlich für Personen mit erhöhten Benutzerrechten möglich (siehe dazu unter „Benutzerverwaltung“). Änderungen werden über den etablierten TM-Prozess gemäß QU-SOP-0041022 „Maßnahmen an technischen Einrichtungen (TM)“ abgebildet."},
+    {"label": "Vorqualifizierte Schrittketten", "text": "Die Prozessierung der Anlagenprozesse erfolgt über vorqualifizierte Schrittketten / Methoden. Diese Schrittketten / Methoden sind fest parametriert und können nur mit administrativen Rechten angepasst werden, was über den etablierten TM-Prozess / CC-Prozess abgebildet wird."},
+    {"label": "Gemäß Funktionsspezifikation PLS", "text": "Die Parametrierung der verschiedenen Softwareobjekte und -Funktionen erfolgt gemäß den Funktionsspezifikationen der PLS-Teilanlagen."},
+    {"label": "Fest hinterlegt, nicht parametrierbar", "text": "Die Anlagenprozesse sind im System fest hinterlegt und können nicht parametriert werden."},
+    {"label": "Spezifikation über Bedien-SOP", "text": "Die Spezifikation der Prozessparameter erfolgt über die Bedien-SOP N/A „N/A“ / die Funktionsspezifikation mit der Dok.-Nr. QU-OPE-xxxx."},
+    {"label": "Backup/Restore gemäß SOP", "text": "Im Falle einer schwerwiegenden Anlagenstörung, können die Parameter übergangsweise über den etablierten Backup / Restore-Prozess gemäß alter QU-SOP-0017807 „Planung und Durchführung des Backup / Restore von Automatisierungs- und Betriebsdaten-informationssystemen“ wieder hergestellt werden. Im Rahmen der zyklischen Requalifizierung soll das Backup/Restore-Konzept an die neue SOP QU-SOP-0077934 „Campus Frankfurt Backup & Restore“ angepasst werden."},
+]
+ALARME_VORLAGEN = [
+    {"label": "Meldung über HMI/Statusampel", "text": "Die GxP-relevanten Alarme werden vom Automatisierungssystem (SPS / HMI) erzeugt und über das lokale Bedienpanel (HMI) gemeldet / Meldeleuchten signalisiert / die in Anlagennähe montierte Statusampel angezeigt."},
+    {"label": "Bildung aus BDIS-Messwerten", "text": "Die GxP-relevanten Alarme werden anhand der an das BDIS Lantus (MLCS-ID: 1194) übertragenen Messwerte / Signale gebildet. Die Verwaltung und Speicherung der Alarmarchive erfolgt exklusiv über das PLS."},
+    {"label": "Übertragung an BDIS (Profibus/Modbus)", "text": "Die GxP-relevanten Alarme werden vom System selbst erzeugt und über Profibus DP / Modbus an das BDIS Lantus (MLCS-ID: 1194) übertragen."},
+    {"label": "Dokumentation im Chargenprotokoll", "text": "Die GxP-relevanten Alarme werden bei jedem Lauf direkt auf dem papierbasierten Chargenprotokoll dokumentiert."},
+    {"label": "Spezifiziert in Bedien-SOP", "text": "Der Umgang mit den Alarmierungen wird in der Bedien-SOP N/A „N/A“ der Anlage spezifiziert."},
+    {"label": "Betriebsspezifisch gemäß SOP", "text": "Der Umgang mit den Alarmierungen wird betriebsspezifisch über die QU-SOP-0015470 „Handling von Alarmen und Meldungen“ festgelegt (Dok.-Nr. xxxxxx)."},
+]
+CHARGENPROTOKOLL_VORLAGEN = [
+    {"label": "Papierbasiert (HAW)", "text": "Es werden keine elektronischen Chargenprotokolle mit dem System erzeugt. Es ist ein papierbasierter Prozess über Herstellanweisungen (HAW) etabliert."},
+    {"label": "PDR über überlagertes BDIS", "text": "Das PLS MIB / PLS Lantus / PLS TEC-Nord 1 / PLS Insultec / PLS FAI stellt Chargendaten dem überlagerten BDIS MIB (MLCS-ID: 815) / BDIS Lantus (MLCS-ID: 1194) / BDIS TEC (MLCS-ID: 1621) zur Verfügung, welches chargenbezogene Prozessdatenreports (PDR) erzeugt."},
+]
+AUDIT_TRAIL_VORLAGEN = [
+    {"label": "Verweis auf Einstufungsdokumente", "text": "Die Festlegungen zum Audit Trail / Audit Trail Review sind für das System in den Dokumenten xxxx „Einstufung von computergestützten Systemen zu E-Record, systemgenerierter Audit Trail und Audit Trail Review“ und xxxx „Festlegungen der Rahmenbedingungen zum Audit Trail Review“ und xxxx „Festlegungen zum Audit-Trail-Review von Bewegungsdaten im xxxx“ spezifiziert."},
+    {"label": "Systemgenerierter AT (Robocopy-Auslagerung)", "text": "Das System besitzt am Bedienpanel (HMI) einen systemgenerierten Audit Trail, der nicht deaktiviert werden kann. Die dabei anfallenden Audit Trail Dateien werden über eine automatisierte Routine (Robocopy-Befehl) zyklisch auf den Fileserver FRASDAT4711 ausgelagert."},
+    {"label": "Kein AT (Review über Filtrationsprotokoll)", "text": "Das System besitzt keinen Audit Trail. Der Audit Trail Review erfolgt anhand des Filtrationsprotokolls, welches zu jeder Herstellanweisung (HAW) in Papierform dazu geheftet wird."},
+    {"label": "Gemäß SOP QU-SOP-0038830", "text": "Die Audit Trail / Audit Trail Review Prozesse werden gemäß QU-SOP-0038830 „Vorgehensweise zur Definition prozess- und systemspezifischer Audit Trail Review Konzepte“ durchgeführt."},
+]
+BENUTZERVERWALTUNG_VORLAGEN = [
+    {"label": "Personenbezogen gemäß SOP", "text": "Es wird eine personenbezogene Benutzerverwaltung gemäß QU-SOP-0020358 „GxP-Anforderungen an die Zugriffsverwaltung computergestützter Systeme“ implementiert."},
+    {"label": "Verweis auf Benutzeranforderungen", "text": "Die Anforderungen zu Benutzerverwaltung, Systemsicherheit, Virenschutz und Patch-Management können detailliert den Benutzeranforderungen des Systems entnommen werden (Dok.-Nr. xxxx)."},
+    {"label": "Verknüpft mit Pharma-Domäne (I-/DE-Nummer)", "text": "Die lokale Benutzerverwaltung des Systems wird mit einem Anmeldeserver in der Pharma-Domäne von Sanofi verknüpft. Dadurch ist es möglich, sich mit dem Office-Account über die I-Nummer / DE-Nummer am System anzumelden."},
+    {"label": "Lokale Notfallaccounts", "text": "Für den Fall, dass der Anmeldeserver nicht verfügbar ist, werden lokale Notfallaccounts installiert, so dass die Anlage jederzeit bedienbar bleibt."},
+    {"label": "Gruppenpasswörter", "text": "Es wird eine auf Gruppenpasswörtern basierende Benutzerverwaltung implementiert."},
+    {"label": "Technisch nicht möglich", "text": "Die Implementierung einer Benutzerverwaltung ist aus technischen Gründen nicht möglich."},
+]
+SCHNITTSTELLEN_PLS_VORLAGEN = [
+    {"label": "N/A-Schnittstelle (Serienbrief unvollständig)", "text": "Das System ist über eine N/A Schnittstelle an der Prozessnahen Komponente N/A mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
+    {"label": "Profibus DP", "text": "Das System ist über eine Profibus DP Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
+    {"label": "Modbus TCP", "text": "Das System ist über eine Modbus TCP-Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
+    {"label": "OPC UA", "text": "Das System ist über eine OPC UA-Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
+    {"label": "Remote I/O", "text": "Das System ist über eine Remote I/O-Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
+    {"label": "Verweis auf Funktionsspezifikation", "text": "Die vollständige und detaillierte Darstellung aller Datenschnittstellen kann der Funktionsspezifikation des Systems entnommen werden (Dok.-Nr. xxxx)."},
+    {"label": "Keine dauerhafte Nutzung", "text": "Es werden keine Datenschnittstellen des Systems für dauerhaften Datenaustausch genutzt."},
+    {"label": "Keine Datenschnittstellen", "text": "Das System besitzt keine Datenschnittstellen."},
+]
+ANGESCHLOSSENES_EQUIPMENT_VORLAGEN = [
+    {"label": "Barcode-Scanner (Honeywell)", "text": "Zur Erfassung der Filter-ID ist das Filtertestgerät mit einem Barcode-Scanner der Fa. Honeywell verbunden."},
+    {"label": "Plattformwaage (Sartorius, Profibus DP)", "text": "Zur Erfassung des Gewichts der verarbeiteten Kleingebinde ist das System über Profibus DP mit einer Plattformwaage der Fa. Sartorius verbunden."},
+    {"label": "Clamp-On-Durchflussmessung (Sartorius)", "text": "Die Clamp-On-Durchflussmessung ist über eine codierte Steckverbindung mit der dazugehörigen Auswerte-Einheit der Fa. Sartorius verbunden."},
+]
+SONSTIGES_VORLAGEN = [
+    {
+        "label": "Vorgängerdokument wird ungültig",
+        "text": (
+            "Mit Freigabe der vorliegenden Systembewertung wird die Systemeinstufung "
+            "(Dok.-Nr.: FRA-BERI-G-011453 / Version 2) ungültig. Die Bewertung des "
+            "Equipments erfolgt neu gemäß den Vorgaben von QU-SOP-0021736 "
+            "(Qualifizierung von Gebäuden, Einrichtungen und Ausrüstung) und "
+            "QU-SOP-0049866 (Validierung computergestützter Systeme)."
+        ),
+    },
+    {"label": "N/A (kein Vorgängerdokument)", "text": "N/A"},
+]
+KI_BEWERTUNG_VORLAGEN = [
+    {"label": "Keine KI-Fähigkeiten", "text": "Das System besitzt gemäß Bewertung in Kapitel 9 keine KI-Fähigkeiten."},
+]
+
+# Vereinheitlichte Zuordnung Feldname -> Vorlagenliste, damit editor.html
+# die Textbaustein-Knopfleiste generisch (ein Codepfad fuer alle Felder)
+# statt mit einem eigenen if/elif-Zweig je Feld rendern kann.
+TEXTBAUSTEIN_VORLAGEN = {
+    "Historie": HISTORIE_VORLAGEN,
+    "Besonderheiten": BESONDERHEITEN_VORLAGEN,
+    "Prozessbeschreibung": PROZESSBESCHREIBUNG_VORLAGEN,
+    "Daten": DATEN_VORLAGEN,
+    "Parameter": PARAMETER_VORLAGEN,
+    "Alarme (GxP-relevant)": ALARME_VORLAGEN,
+    "Chargenprotokoll": CHARGENPROTOKOLL_VORLAGEN,
+    "Audit Trail (AT)": AUDIT_TRAIL_VORLAGEN,
+    "Benutzer-verwaltung?": BENUTZERVERWALTUNG_VORLAGEN,
+    "Schnittstellen mit PLS": SCHNITTSTELLEN_PLS_VORLAGEN,
+    "Angeschlossenes Equipment": ANGESCHLOSSENES_EQUIPMENT_VORLAGEN,
+    "Sonstiges": SONSTIGES_VORLAGEN,
+    "KI Bewertung": KI_BEWERTUNG_VORLAGEN,
+}
 
 def _kategorien_lookup():
     lookup = {}
@@ -688,8 +806,7 @@ def editor(draft_id):
     formular = baue_formular(draft["daten"])
     return render_template(
         "editor.html", draft=draft, formular=formular,
-        historie_vorlagen=HISTORIE_VORLAGEN,
-        besonderheiten_vorlagen=BESONDERHEITEN_VORLAGEN,
+        textbaustein_vorlagen=TEXTBAUSTEIN_VORLAGEN,
     )
 
 @app.route("/editor/<draft_id>/speichern", methods=["POST"])
