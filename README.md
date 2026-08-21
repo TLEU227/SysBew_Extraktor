@@ -323,8 +323,13 @@ pip install -r webapp/requirements.txt
   nicht verlässlich ableiten).
 - Layout: Felder stehen platzsparend im Raster nebeneinander statt
   untereinander, jedes Feld/jede Kategorie hat einen Hinweistext, jeder
-  Themenbereich hat einen eigenen "Zwischenspeichern"-Knopf, Textbaustein-
-  Vorschläge für "Historie" (Grund der Erstellung) und "Besonderheiten".
+  Themenbereich hat einen eigenen "Zwischenspeichern"-Knopf,
+  Textbaustein-Vorschläge (v. a. für PLS-Systeme) für alle Felder aus
+  Kapitel 2 "Informationen und Bemerkungen" (Prozessbeschreibung,
+  Daten, Parameter, Alarme, Chargenprotokoll, Audit Trail,
+  Benutzerverwaltung, Schnittstellen mit PLS, Angeschlossenes
+  Equipment, Sonstiges, KI Bewertung) sowie für "Historie" (Grund der
+  Erstellung) und "Besonderheiten".
 - Draft-Titel: MLCS-ID wird dem Systemnamen vorangestellt (z. B.
   "MLCS-1193 - PLS Lantus"), sofern vorhanden.
 - **Offene Fragen** (siehe "Bekannte Einschränkungen"): Bedeutung von
