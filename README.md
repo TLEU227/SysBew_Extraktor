@@ -194,6 +194,13 @@ nur die reine Nummer), aber im Editor nur eine Eingabe statt zwei. Ohne
 "/ Version ..." eingegeben, bleibt die Version unverändert (Standard
 bei neuen Systembewertungen: "1.0").
 
+Startet man eine neue Systembewertung aus einem Datenbank-Eintrag
+(Weg 1 oder 2), wird "Dok.-Nr. / Version" bewusst **immer leer**
+vorbelegt (Version auf "1.0", Datum auf heute, Historie-Text
+geleert) - das ist ja ein neues Dokument mit eigener Identität, nicht
+das alte unter neuem Datum. Die alte Dok.-Nr./Version geht dabei nicht
+verloren, sondern wandert automatisch in das Feld "Vorherige Doc-ID".
+
 Optional kann beim Fertigstellen die Checkbox "Auch in Master-Excel
 eintragen" gesetzt bleiben - dann wird zusätzlich zum docx-Download
 per COM-Automatisierung eine neue Zeile in die Master-Excel
