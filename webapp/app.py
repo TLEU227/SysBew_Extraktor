@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.7
+# Systembewertung-Editor - Web-Oberflaeche - 1.8
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.7"
+APP_VERSION = "1.8"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -392,7 +392,12 @@ def _kategorien_lookup():
     for name, optionen in common.ANZEIGE_ZUSATZ_KATEGORIEN:
         if name == "Testtiefe":
             continue
-        lookup[name] = {"optionen": optionen, "mehrfachauswahl": False}
+        # "Validierung/Qualifizierung nach SOP": QUAL und VAL sind kein
+        # entweder/oder - laut Fachbereich koennen beide SOPs
+        # gleichzeitig zutreffen, deshalb Mehrfachauswahl (Checkboxen)
+        # statt Radiobuttons.
+        mehrfachauswahl = name == "Validierung/Qualifizierung nach SOP"
+        lookup[name] = {"optionen": optionen, "mehrfachauswahl": mehrfachauswahl}
     lookup.update(_KATEGORIEN_ZUSATZ)
     return lookup
 
