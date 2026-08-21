@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.4
+# Systembewertung-Editor - Web-Oberflaeche - 1.5
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -29,9 +29,10 @@ import os
 import re
 import sys
 import tempfile
+import time
 import webbrowser
 from datetime import date
-from threading import Timer
+from threading import Thread, Timer
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 
@@ -53,13 +54,73 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.4"
+APP_VERSION = "1.5"
 
 @app.context_processor
 def _globale_template_variablen():
     return {"app_version": APP_VERSION, "optionen_hinweise": OPTIONEN_HINWEISE}
 
 PORT = 5151
+
+# ============================================================
+# Auto-Beenden: sobald niemand mehr die Webseite offen hat, beendet
+# sich dieser Prozess selbst - das Terminal-Fenster schliesst sich
+# dann automatisch (siehe Systembewertung_Editor_starten.bat, die bei
+# sauberem Exit-Code das "Druecke eine Taste"-Pause ueberspringt).
+#
+# Funktionsweise: base.html schickt per JS alle paar Sekunden ein
+# "Lebenszeichen" an /lebenszeichen, solange irgendeine Seite dieser
+# App in einem Browser-Tab offen ist. ueberschreitet die Zeit seit dem
+# letzten Lebenszeichen ein Zeitlimit, geht dieser Hintergrund-Thread
+# davon aus, dass kein Tab mehr offen ist, und beendet den Prozess
+# (os._exit - sofort, ohne Cleanup-Verzoegerung; unproblematisch, da
+# nichts Ungespeichertes hier haengt: Drafts werden explizit per
+# Speichern-Button persistiert, nicht automatisch beim Beenden).
+#
+# WICHTIG: reagiert NICHT auf einzelne Seitenwechsel innerhalb der App
+# (z.B. von der Datenbank-Suche zum Editor) - die neu geladene Seite
+# schickt sofort wieder ein Lebenszeichen, lange bevor das normale
+# Zeitlimit ablaufen wuerde. Beim tatsaechlichen Schliessen eines Tabs
+# (oder Browser-Fensters) schickt base.html zusaetzlich per
+# navigator.sendBeacon() ein explizites "wird jetzt geschlossen"-
+# Signal an /schliessen-signal, das die Wartezeit stark verkuerzt -
+# dadurch reagiert das Beenden bei einem echten Tab-Schluss schnell
+# (SCHLIESSEN_SIGNAL_TIMEOUT_SEK), waehrend ein laengeres, normales
+# Zeitlimit (LEBENSZEICHEN_TIMEOUT_SEK) als Sicherheitsnetz dient -
+# etwa wenn der PC in den Ruhezustand geht, die Verbindung abreisst,
+# oder der Browser abstuerzt, ohne dass ein Schliessen-Signal ankam.
+# Ein Tab, der nur in den Hintergrund/minimiert ist, schickt weiterhin
+# regelmaessig Lebenszeichen (Browser drosseln Hintergrund-Timer zwar,
+# aber nicht so stark, dass 20s ueberschritten wuerden) und beendet
+# den Server dadurch NICHT versehentlich.
+LEBENSZEICHEN_TIMEOUT_SEK = 20
+SCHLIESSEN_SIGNAL_TIMEOUT_SEK = 3
+
+_letztes_lebenszeichen = time.time()
+_naechste_faelligkeit = None  # per /schliessen-signal gesetzte verkuerzte Frist
+
+def _auto_beenden_watchdog():
+    while True:
+        time.sleep(1)
+        frist = _naechste_faelligkeit or (_letztes_lebenszeichen + LEBENSZEICHEN_TIMEOUT_SEK)
+        if time.time() > frist:
+            print("\n  Keine offene Browser-Seite mehr erkannt - beende automatisch.")
+            os._exit(0)
+
+Thread(target=_auto_beenden_watchdog, daemon=True).start()
+
+@app.route("/lebenszeichen", methods=["POST"])
+def lebenszeichen():
+    global _letztes_lebenszeichen, _naechste_faelligkeit
+    _letztes_lebenszeichen = time.time()
+    _naechste_faelligkeit = None
+    return {"ok": True}
+
+@app.route("/schliessen-signal", methods=["POST"])
+def schliessen_signal():
+    global _naechste_faelligkeit
+    _naechste_faelligkeit = time.time() + SCHLIESSEN_SIGNAL_TIMEOUT_SEK
+    return {"ok": True}
 
 # Felder, die nicht als Eingabe im Formular auftauchen:
 #   - automatisch berechnet: Systemtyp_CE, Erkannte_Version (siehe
@@ -436,7 +497,7 @@ def _dokument_erzeugen_und_senden(data):
 # ============================================================
 @app.before_request
 def _benutzer_pruefen():
-    if request.endpoint in ("name_setzen", "static"):
+    if request.endpoint in ("name_setzen", "static", "lebenszeichen", "schliessen_signal"):
         return None
     if not session.get("user"):
         return redirect(url_for("name_setzen", weiter=request.path))

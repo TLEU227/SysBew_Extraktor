@@ -37,5 +37,22 @@
     </span>
     <img class="marken-logo" src="{{ url_for('static', filename='logo.png') }}" alt="CSV specialists">
   </footer>
+
+  <script>
+    // Auto-Beenden (siehe app.py, Abschnitt "Auto-Beenden"): solange
+    // diese Seite (oder eine andere Seite dieser App) in irgendeinem
+    // Tab offen ist, schickt der Browser regelmaessig ein
+    // "Lebenszeichen" - bleibt das laenger aus, beendet sich der
+    // Server-Prozess selbst. Beim tatsaechlichen Schliessen des Tabs/
+    // Fensters wird zusaetzlich sofort ein Signal geschickt, das die
+    // Wartezeit stark verkuerzt.
+    fetch("/lebenszeichen", {method: "POST"});
+    setInterval(function () {
+      fetch("/lebenszeichen", {method: "POST"});
+    }, 5000);
+    window.addEventListener("pagehide", function () {
+      navigator.sendBeacon("/schliessen-signal");
+    });
+  </script>
 </body>
 </html>
