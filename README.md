@@ -330,6 +330,16 @@ pip install -r webapp/requirements.txt
   Benutzerverwaltung, Schnittstellen mit PLS, Angeschlossenes
   Equipment, Sonstiges, KI Bewertung) sowie für "Historie" (Grund der
   Erstellung) und "Besonderheiten".
+- Zwei weitere, bisher fehlende Felder ergänzt (beide mit
+  Textbaustein-Vorschlägen):
+  - **"Schnittstelle"** (Zusammenfassungstabelle Kapitel 2) bekommt
+    dieselben Schnittstellen-Typ-Vorlagen wie "Schnittstellen mit
+    PLS" - beide Felder beschreiben denselben Sachverhalt (kurz vs.
+    ausführlich).
+  - **"Datenfluss / Abbildung"** (Zeile 8 der Beschreibungstabelle,
+    bisher nie abgefragt, da sie im Template primär eine Grafik
+    erwartet) direkt hinter "Schnittstellen mit PLS" ergänzt - Grafiken
+    können hier nicht erzeugt werden, dafür aber ein Verweistext.
 - Draft-Titel: MLCS-ID wird dem Systemnamen vorangestellt (z. B.
   "MLCS-1193 - PLS Lantus"), sofern vorhanden.
 - **Offene Fragen** (siehe "Bekannte Einschränkungen"): Bedeutung von

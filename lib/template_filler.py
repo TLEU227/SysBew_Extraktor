@@ -619,6 +619,11 @@ _BESCHREIBUNG_ZEILEN = {
     5: "Audit Trail (AT)",
     6: "Benutzer-verwaltung?",
     7: "Schnittstellen mit PLS",
+    # Zeile 8 ("Datenfluss / Abbildung:") - webapp-only Feld
+    # "DatenflussAbbildung" (nicht Teil von EXCEL_COLUMNS, siehe
+    # webapp/app.py), da diese Zeile im Template primaer eine Grafik
+    # erwartet und in der Master-Excel nie eine eigene Spalte hatte.
+    8: "DatenflussAbbildung",
     9: "Angeschlossenes Equipment",
     10: "Sonstiges",
     11: "KI Bewertung",

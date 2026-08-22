@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.9
+# Systembewertung-Editor - Web-Oberflaeche - 1.10
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.9"
+APP_VERSION = "1.10"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -174,7 +174,7 @@ SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
 _TEXTAREA_FELDER = (
     set(template_filler._BESCHREIBUNG_ZEILEN.values())
     | {"Besonderheiten", "GxP_Produktqualitaet", "GxP_Patientensicherheit",
-       "GxP_Datenintegritaet", "Kurzbeschreibung", "Historie"}
+       "GxP_Datenintegritaet", "Kurzbeschreibung", "Historie", "Schnittstelle"}
     | set(common.ROLLEN_SPALTEN)
 )
 
@@ -235,7 +235,15 @@ FELD_HINWEISE = {
     "Hyperlink": "Link auf das Dokument in QualiPSO (sobald dort abgelegt).",
     "MLCSID": "System-Identifier/CS-Inventarnummer gemäß QU-SOP-0052370. Keine MLCS erforderlich für S0 und Equipment ohne CS.",
     "UeberlagerteMLCS": "Übergeordnetes System: Systemname, MLCS-ID und ggf. Doc-ID der zugehörigen Systembewertung.",
-    "Schnittstelle": "Schnittstelle zu anderen/übergeordneten Systemen: Systemname, MLCS-ID und ggf. Doc-ID der Systembewertung.",
+    "Schnittstelle": (
+        "Schnittstelle zu anderen/übergeordneten Systemen: Systemname, MLCS-ID und ggf. Doc-ID der "
+        "Systembewertung - z. B. „Profibus DP zum überlagerten BDIS Lantus (MLCS-ID: 1194)“. Für den "
+        "Schnittstellen-Typ unten dieselben Vorlagen wie bei „Schnittstellen mit PLS“ verfügbar."
+    ),
+    "DatenflussAbbildung": (
+        "Einfache Darstellung der Datenflüsse - als Grafik direkt im erzeugten Word-Dokument ergänzen "
+        "(diese App kann keine Grafiken einfügen), oder per Verweis auf das Feld „Schnittstellen mit PLS“."
+    ),
     "Anlage": "Anlagen-IDs/Equipment-Nr./QC-ID.",
     "Schnittstellen mit PLS": (
         "Beschreibung der Datenschnittstelle(n) zu überlagerten Systemen (z. B. Schnittstellen-Typ + "
@@ -479,6 +487,9 @@ SONSTIGES_VORLAGEN = [
 KI_BEWERTUNG_VORLAGEN = [
     {"label": "Keine KI-Fähigkeiten", "text": "Das System besitzt gemäß Bewertung in Kapitel 9 keine KI-Fähigkeiten."},
 ]
+DATENFLUSS_ABBILDUNG_VORLAGEN = [
+    {"label": "Siehe Schnittstellen / Grafik einfügen", "text": "siehe unter „Schnittstellen“ (oder Grafik einfügen)"},
+]
 
 # Vereinheitlichte Zuordnung Feldname -> Vorlagenliste, damit editor.html
 # die Textbaustein-Knopfleiste generisch (ein Codepfad fuer alle Felder)
@@ -494,9 +505,15 @@ TEXTBAUSTEIN_VORLAGEN = {
     "Audit Trail (AT)": AUDIT_TRAIL_VORLAGEN,
     "Benutzer-verwaltung?": BENUTZERVERWALTUNG_VORLAGEN,
     "Schnittstellen mit PLS": SCHNITTSTELLEN_PLS_VORLAGEN,
+    # "Schnittstelle" (Zusammenfassungstabelle Kapitel 2) - dieselben
+    # Schnittstellen-Typ-Vorlagen wie "Schnittstellen mit PLS", da
+    # beide Felder inhaltlich denselben Sachverhalt beschreiben (kurz
+    # vs. ausfuehrlich) und dieselben Formulierungen passen.
+    "Schnittstelle": SCHNITTSTELLEN_PLS_VORLAGEN,
     "Angeschlossenes Equipment": ANGESCHLOSSENES_EQUIPMENT_VORLAGEN,
     "Sonstiges": SONSTIGES_VORLAGEN,
     "KI Bewertung": KI_BEWERTUNG_VORLAGEN,
+    "DatenflussAbbildung": DATENFLUSS_ABBILDUNG_VORLAGEN,
 }
 
 def _kategorien_lookup():
@@ -648,6 +665,21 @@ def baue_formular(data):
                         "wert": data.get(abteilung_feld) or "",
                         "label": f"{feld} - Abteilung",
                         "hinweis": FELD_HINWEISE.get(abteilung_feld),
+                    })
+                if feld == "Schnittstellen mit PLS":
+                    # Template-Zeile 8 der Beschreibungstabelle
+                    # ("Datenfluss / Abbildung:") - webapp-only, nicht
+                    # Teil von EXCEL_COLUMNS, da diese Zeile primaer
+                    # eine Grafik erwartet und in der Master-Excel bisher
+                    # nie eine eigene Spalte hatte. Direkt hinter
+                    # "Schnittstellen mit PLS" platziert, da beide
+                    # inhaltlich zusammengehoeren (siehe Vorlage unten).
+                    items.append({
+                        "art": "feld", "name": "DatenflussAbbildung", "typ": "textarea",
+                        "breite": "voll", "rows": 3,
+                        "wert": data.get("DatenflussAbbildung") or "",
+                        "label": "Datenfluss / Abbildung",
+                        "hinweis": FELD_HINWEISE.get("DatenflussAbbildung"),
                     })
         if items:
             abschnitte.append((titel, items))
