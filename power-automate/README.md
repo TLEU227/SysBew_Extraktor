@@ -22,29 +22,42 @@ Im Ordner liegt `Qualifizierung_Aenderungsmail.zip` – ein **"Package
 Verbindungen (SharePoint, Office 365 Outlook) jeweils eine bestehende
 Verbindung auswählen oder neu anmelden → **Import**.
 
-> **Hinweis zur Entstehung:** Das Zip-Format ist von Microsoft nicht
-> öffentlich dokumentiert. Diese Version basiert nicht mehr auf reinem
-> Raten, sondern auf einem **echten, aus demselben Tenant exportierten
-> Flow-Paket** (inkl. der tatsächlichen Bibliotheks-ID der SharePoint-Site
-> `ICFLantusBB` sowie der realen `SendEmailV2`-Parametersyntax) – die
-> Grundstruktur und die Connector-Aufrufe sind dadurch deutlich
-> zuverlässiger als der erste Versuch. Trotzdem gilt: zwei Aktionen sind
-> reine Best-Effort-Annahmen und nicht 1:1 aus einem echten Export
-> bestätigt:
-> - **"Dateien abrufen (nur Eigenschaften)"** – der Parameter für die
->   Ordner-Einschränkung (`id`) ist eine Annahme. Als Absicherung filtert
->   der Flow zusätzlich per "Array filtern" auf `{Path}` enthält
->   `/P-2024-05_Engineo/Qualifizierung` – falls die Ordner-Einschränkung
->   in der Connector-Aktion nicht greift und stattdessen die *gesamte*
->   Bibliothek zurückkommt, filtert dieser Schritt trotzdem korrekt auf
->   den richtigen Ordner nach.
-> - **`nestingLimit`/`$top`** – ebenfalls Annahmen zu den erweiterten
->   Parametern für Unterordner-Rekursion bzw. Ergebnisobergrenze.
+> **Versionsverlauf (Stand: erfolgreich importiert):**
+> - **v1 (verworfen):** komplett von Hand geraten → Import schlug fehl
+>   ("Something went wrong").
+> - **v2 (verworfen):** anhand eines echten Tenant-Exports (anderer, real
+>   funktionierender Flow) nachgebaut, inkl. `authentication`-Parameter
+>   und echter Bibliotheks-ID → Import lief so weit, dass ein Entwurf
+>   angelegt wurde, aber die SharePoint-/Outlook-**Connections** wurden
+>   nicht korrekt zugeordnet.
+> - **v3 (aktuell):** Ursache gefunden, indem der tatsächlich importierte
+>   und danach wieder exportierte Flow analysiert wurde. Der Fix: der
+>   logische Verbindungsname braucht ein **`_1`-Suffix**
+>   (`shared_sharepointonline_1` / `shared_office365_1` statt nur
+>   `shared_sharepointonline` / `shared_office365`) – das war der Grund,
+>   warum die Connection-Zuordnung nicht griff. Zusätzlich wurden die
+>   Parameter `id`/`nestingLimit` bei "Dateien abrufen" entfernt (waren
+>   ungültig und wurden beim Import ohnehin verworfen); die Ordner-Eingrenzung
+>   läuft stattdessen komplett über den nachgeschalteten "Array
+>   filtern"-Schritt auf `{Path}`. Die Connection- und API-Ressourcen-IDs
+>   in dieser Datei sind außerdem die **echten, im Tenant bestätigten
+>   GUIDs** (aus zwei realen Exports übernommen), keine Zufallswerte mehr.
 >
-> Schlägt der Import trotzdem fehl oder eine dieser beiden Aktionen kommt
-> fehlerhaft an: kurz Bescheid geben (am besten mit der genauen
-> Fehlermeldung bzw. einem Screenshot der betroffenen Aktion in "Code
-> view") – dann lässt sich das gezielt nachbessern. Alternativ bleibt die
+> Die Aktion "Dateien abrufen (nur Eigenschaften)" liest dadurch aktuell
+> die **gesamte Bibliothek** "Shared Documents" auf der Site
+> `ICFLantusBB` (nicht nur den Unterordner) und filtert erst im zweiten
+> Schritt auf `/P-2024-05_Engineo/Qualifizierung`. Funktioniert, ist bei
+> sehr großen Bibliotheken aber weniger effizient als eine direkte
+> Ordner-Einschränkung (SharePoint-Connector unterstützt das für diese
+> Aktion offenbar nicht über die hier verfügbaren Parameter).
+>
+> Der Flow enthält außerdem eine ausführliche **Beschreibung** (Flow-Details
+> in Power Automate → Reiter "Details"/"About"), die Trigger, alle Schritte
+> und die Wartungshinweise zusammenfasst.
+>
+> Sollte der Import trotzdem noch nicht ganz durchlaufen: bitte die genaue
+> Fehlermeldung bzw. einen Screenshot der betroffenen Aktion in "Code view"
+> schicken – dann lässt sich gezielt nachbessern. Alternativ bleibt die
 > Schritt-für-Schritt-Anleitung unten als garantiert funktionierender Weg.
 
 ## Betroffene SharePoint-Struktur
