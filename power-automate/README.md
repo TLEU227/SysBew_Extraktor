@@ -51,9 +51,16 @@ Verbindung auswählen oder neu anmelden → **Import**.
 > Ordner-Einschränkung (SharePoint-Connector unterstützt das für diese
 > Aktion offenbar nicht über die hier verfügbaren Parameter).
 >
-> Der Flow enthält außerdem eine ausführliche **Beschreibung** (Flow-Details
-> in Power Automate → Reiter "Details"/"About"), die Trigger, alle Schritte
-> und die Wartungshinweise zusammenfasst.
+> Der Flow enthält außerdem eine **Beschreibung** (Flow-Details in Power
+> Automate → Reiter "Details"/"About") mit Kurzfassung von Zweck und
+> Ablauf. Hinweis: Power Automate begrenzt dieses Feld auf **1024
+> Zeichen** (`WorkflowDescriptionTooLong`, falls überschritten) – die
+> Beschreibung ist entsprechend kurz gehalten, Details stehen weiterhin
+> hier im README.
+>
+> - **v4 (aktuell):** v3 scheiterte beim Speichern mit
+>   `WorkflowDescriptionTooLong` (1260 statt max. 1024 Zeichen) – die
+>   Beschreibung wurde auf ca. 590 Zeichen gekürzt.
 >
 > Sollte der Import trotzdem noch nicht ganz durchlaufen: bitte die genaue
 > Fehlermeldung bzw. einen Screenshot der betroffenen Aktion in "Code view"
