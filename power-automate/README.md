@@ -37,10 +37,27 @@ Ersteller-Name).
     Falls das Feld in der Mail leer bleibt: internen Feldnamen im
     Bibliotheks-Spaltenmanagement prüfen (kann von der Anzeigebezeichnung
     abweichen) und in beiden "HTML-Tabelle"-Aktionen anpassen.
-- **v7 (aktuell):** `QualiPSO` ist **kein Ja/Nein-Feld**, sondern ein
-  Auswahlfeld mit mehreren Stufen (z. B. "Review 1", "Review 2",
-  "Freigegeben"). Die Formel zeigt daher jetzt einfach den Rohwert direkt
-  an (`@item()?['QualiPSO']`) statt ihn auf Ja/Nein zu erzwingen.
+- **v7:** `QualiPSO` ist **kein Ja/Nein-Feld**, sondern ein Auswahlfeld
+  mit mehreren Stufen (z. B. "Review 1", "Review 2", "Freigegeben"). Die
+  Formel zeigt daher jetzt einfach den Rohwert direkt an
+  (`@item()?['QualiPSO']`) statt ihn auf Ja/Nein zu erzwingen.
+- **v8 (aktuell):**
+  - **Link-Spalte reparlert:** "Create HTML table" kodiert Zellinhalte
+    HTML-sicher (`<` → `&lt;` usw.), wodurch der eingebettete
+    `<a href="...">`-Tag nicht als Link gerendert wurde, sondern als
+    kompletter Text sichtbar war. Die Mailtext-Zusammensetzung dekodiert
+    jetzt `&lt;` `&gt;` `&quot;` `&amp;` in beiden Tabellen wieder zurück,
+    nachdem die Styling-Ersetzung gelaufen ist – dadurch wird nur der
+    absichtlich eingefügte `<a>`-Tag zu einem echten, kurzen Text-Link
+    ("Datei öffnen").
+  - **Umlaute korrigiert:** Description und Mailtext verwendeten teils
+    ASCII-Ersatzschreibweisen (`ae`/`oe`/`ue` statt `ä`/`ö`/`ü`, z. B.
+    "Aenderungen", "taeglich") – jetzt durchgängig echte Umlaute.
+  - **Offen:** `QualiPSO`-Spalte kam in der Testmail leer zurück – der
+    interne Feldname ist vermutlich nicht exakt `QualiPSO`. Prüfen über
+    den Rohausgabe-Export ("Dateien abrufen"-Aktion im abgeschlossenen
+    Testlauf → "Rohausgaben anzeigen" → nach "Quali" suchen) und den
+    gefundenen Schlüssel in beiden "HTML-Tabelle"-Aktionen eintragen.
 
 ## Fertige Import-Datei
 
