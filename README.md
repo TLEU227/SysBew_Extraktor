@@ -9,6 +9,11 @@ Diese Datei ist die einzige Dokumentation des Projekts – sie liegt im
 Repo **und** wird unverändert mit in den produktiven Ordner kopiert
 (siehe [Dateien zum Publizieren](#dateien-zum-publizieren--ordnerstruktur)).
 
+Für eine detaillierte **Feld-für-Feld-Übersicht** (welche Felder gibt
+es, kommen sie aus der Master-Excel oder nur aus dem Web-Editor, und
+wo genau landen sie im erzeugten Word-Dokument) siehe
+[FELDUEBERSICHT.md](FELDUEBERSICHT.md).
+
 ## Benutzung
 
 Word-Datei auf **`word_parser_main.py`** ziehen (Drag & Drop) oder:
