@@ -19,13 +19,24 @@ erfolgreich im Ziel-Tenant durchgeführt und mit einem echten Testlauf
 bestätigt (Datei wurde korrekt als "neu erstellt" erkannt, inkl.
 Ersteller-Name).
 
-- **v5 (aktuell):** Die von "Create HTML table" erzeugten Tabellen hatten
-  keine Rahmen/Zellenabstände (Text wirkte "zusammengequetscht"). Die
-  beiden Tabellen bekommen jetzt per `replace(...)` nachträglich
-  Inline-CSS (Rahmen, Padding, `word-wrap`) verpasst, bevor sie in die
-  Mail eingebaut werden – bewusst **Inline-Styles statt `<style>`-Block**,
-  da Outlook (insbesondere die Desktop-App mit Word-Rendering) `<style>`-
+- **v5:** Die von "Create HTML table" erzeugten Tabellen hatten keine
+  Rahmen/Zellenabstände (Text wirkte "zusammengequetscht"). Die beiden
+  Tabellen bekommen jetzt per `replace(...)` nachträglich Inline-CSS
+  (Rahmen, Padding, `word-wrap`) verpasst, bevor sie in die Mail
+  eingebaut werden – bewusst **Inline-Styles statt `<style>`-Block**, da
+  Outlook (insbesondere die Desktop-App mit Word-Rendering) `<style>`-
   Blöcke in HTML-Mails häufig ignoriert.
+- **v6 (aktuell):** Zwei neue Spalten in beiden Tabellen:
+  - **"Link"** – Text-Link `"Datei öffnen"`, der direkt auf `{Link}` (die
+    von SharePoint gelieferte Öffnen-URL der Datei) verweist.
+  - **"QualiPSO"** – zeigt den **aktuellen** Wert des SharePoint-Metadatenfelds
+    `QualiPSO` als "Ja"/"Nein" (bewusst kein Alt/Neu-Vergleich – das würde
+    eine zusätzliche Versionsverlauf-Abfrage pro Datei erfordern; siehe
+    Rücksprache mit dem Nutzer). **Annahme:** interner Feldname ist exakt
+    `QualiPSO` (= Anzeigename, da keine Sonderzeichen/Leerzeichen enthalten).
+    Falls das Feld in der Mail leer bleibt: internen Feldnamen im
+    Bibliotheks-Spaltenmanagement prüfen (kann von der Anzeigebezeichnung
+    abweichen) und in beiden "HTML-Tabelle"-Aktionen anpassen.
 
 ## Fertige Import-Datei
 
