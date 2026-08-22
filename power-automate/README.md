@@ -53,11 +53,12 @@ Ersteller-Name).
   - **Umlaute korrigiert:** Description und Mailtext verwendeten teils
     ASCII-Ersatzschreibweisen (`ae`/`oe`/`ue` statt `ä`/`ö`/`ü`, z. B.
     "Aenderungen", "taeglich") – jetzt durchgängig echte Umlaute.
-  - **Offen:** `QualiPSO`-Spalte kam in der Testmail leer zurück – der
-    interne Feldname ist vermutlich nicht exakt `QualiPSO`. Prüfen über
-    den Rohausgabe-Export ("Dateien abrufen"-Aktion im abgeschlossenen
-    Testlauf → "Rohausgaben anzeigen" → nach "Quali" suchen) und den
-    gefundenen Schlüssel in beiden "HTML-Tabelle"-Aktionen eintragen.
+- **v9 (aktuell):** Anhand der echten Rohausgabe identifiziert – das Feld
+  heißt intern **nicht** `QualiPSO`, sondern
+  `OData__x00dc_betragennachQualiPSO` (SharePoint kodiert das "Ü" aus
+  "Übertragen nach QualiPSO" als `_x00dc_`), und ist zusätzlich ein
+  **Lookup-Feld** (Objekt mit `Id`/`Value`, kein einfacher Text). Formel
+  korrigiert auf `@item()?['OData__x00dc_betragennachQualiPSO']?['Value']`.
 
 ## Fertige Import-Datei
 
