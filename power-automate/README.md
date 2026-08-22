@@ -26,17 +26,21 @@ Ersteller-Name).
   eingebaut werden – bewusst **Inline-Styles statt `<style>`-Block**, da
   Outlook (insbesondere die Desktop-App mit Word-Rendering) `<style>`-
   Blöcke in HTML-Mails häufig ignoriert.
-- **v6 (aktuell):** Zwei neue Spalten in beiden Tabellen:
+- **v6:** Zwei neue Spalten in beiden Tabellen:
   - **"Link"** – Text-Link `"Datei öffnen"`, der direkt auf `{Link}` (die
     von SharePoint gelieferte Öffnen-URL der Datei) verweist.
   - **"QualiPSO"** – zeigt den **aktuellen** Wert des SharePoint-Metadatenfelds
-    `QualiPSO` als "Ja"/"Nein" (bewusst kein Alt/Neu-Vergleich – das würde
-    eine zusätzliche Versionsverlauf-Abfrage pro Datei erfordern; siehe
+    `QualiPSO` (bewusst kein Alt/Neu-Vergleich – das würde eine
+    zusätzliche Versionsverlauf-Abfrage pro Datei erfordern; siehe
     Rücksprache mit dem Nutzer). **Annahme:** interner Feldname ist exakt
     `QualiPSO` (= Anzeigename, da keine Sonderzeichen/Leerzeichen enthalten).
     Falls das Feld in der Mail leer bleibt: internen Feldnamen im
     Bibliotheks-Spaltenmanagement prüfen (kann von der Anzeigebezeichnung
     abweichen) und in beiden "HTML-Tabelle"-Aktionen anpassen.
+- **v7 (aktuell):** `QualiPSO` ist **kein Ja/Nein-Feld**, sondern ein
+  Auswahlfeld mit mehreren Stufen (z. B. "Review 1", "Review 2",
+  "Freigegeben"). Die Formel zeigt daher jetzt einfach den Rohwert direkt
+  an (`@item()?['QualiPSO']`) statt ihn auf Ja/Nein zu erzwingen.
 
 ## Fertige Import-Datei
 
