@@ -12,6 +12,14 @@ Angabe, von wem.
 > Feldnamen und Ausdrücke sind exakt benannt, damit nichts frei interpretiert
 > werden muss.
 
+## Status: erfolgreich importiert ✅
+
+Der Import von `Qualifizierung_Aenderungsmail.zip` (v4) wurde am
+22.08.2026 erfolgreich im Ziel-Tenant durchgeführt ("All package
+resources were successfully imported"). Als nächstes: Flow im Designer
+öffnen, per **Test → Manuell** einmal testen und die Trigger-Uhrzeit/
+Zeitzone final prüfen, bevor er eingeschaltet wird.
+
 ## Fertige Import-Datei
 
 Im Ordner liegt `Qualifizierung_Aenderungsmail.zip` – ein **"Package
