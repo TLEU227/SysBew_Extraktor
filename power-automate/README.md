@@ -12,13 +12,20 @@ Angabe, von wem.
 > Feldnamen und Ausdrücke sind exakt benannt, damit nichts frei interpretiert
 > werden muss.
 
-## Status: erfolgreich importiert ✅
+## Status: erfolgreich importiert ✅ (mit einer Testmail bestätigt)
 
-Der Import von `Qualifizierung_Aenderungsmail.zip` (v4) wurde am
-22.08.2026 erfolgreich im Ziel-Tenant durchgeführt ("All package
-resources were successfully imported"). Als nächstes: Flow im Designer
-öffnen, per **Test → Manuell** einmal testen und die Trigger-Uhrzeit/
-Zeitzone final prüfen, bevor er eingeschaltet wird.
+Der Import von `Qualifizierung_Aenderungsmail.zip` wurde am 22.08.2026
+erfolgreich im Ziel-Tenant durchgeführt und mit einem echten Testlauf
+bestätigt (Datei wurde korrekt als "neu erstellt" erkannt, inkl.
+Ersteller-Name).
+
+- **v5 (aktuell):** Die von "Create HTML table" erzeugten Tabellen hatten
+  keine Rahmen/Zellenabstände (Text wirkte "zusammengequetscht"). Die
+  beiden Tabellen bekommen jetzt per `replace(...)` nachträglich
+  Inline-CSS (Rahmen, Padding, `word-wrap`) verpasst, bevor sie in die
+  Mail eingebaut werden – bewusst **Inline-Styles statt `<style>`-Block**,
+  da Outlook (insbesondere die Desktop-App mit Word-Rendering) `<style>`-
+  Blöcke in HTML-Mails häufig ignoriert.
 
 ## Fertige Import-Datei
 
