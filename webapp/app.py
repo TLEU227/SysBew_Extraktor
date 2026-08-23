@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.10
+# Systembewertung-Editor - Web-Oberflaeche - 1.11
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.10"
+APP_VERSION = "1.11"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -179,9 +179,12 @@ _TEXTAREA_FELDER = (
 )
 
 # Abteilungs-Felder (webapp-only, nicht Teil von EXCEL_COLUMNS): jede
-# Rollenzeile im Deckblatt hat einen "(Site/Unit)"-Platzhalter (ausser
-# CSQ - dort ist die Abteilung im Template fest vorgegeben). Werden im
-# Formular direkt neben dem jeweiligen Namensfeld angezeigt (siehe
+# Rollenzeile im Deckblatt hat einen Abteilungs-Platzhalter im Label -
+# bei Ersteller/SI-PL/TSO/BSO/BQR "(Site/Unit)", bei CSQ das im
+# Template fest eingetragene "(FBC Quality Q&V CSV)" (wird nur
+# ersetzt, wenn tatsaechlich ein CSQ_Abteilung-Wert angegeben wird -
+# ohne Eingabe bleibt der Standardtext stehen). Werden im Formular
+# direkt neben dem jeweiligen Namensfeld angezeigt (siehe
 # baue_formular()) und von template_filler.fill_deckblatt_rollen() in
 # das Label der jeweiligen Zeile eingesetzt.
 ABTEILUNG_FELDER = {
@@ -190,6 +193,7 @@ ABTEILUNG_FELDER = {
     "TSO":       "TSO_Abteilung",
     "BSO":       "BSO_Abteilung",
     "BQR":       "BQR_Abteilung",
+    "CSQ":       "CSQ_Abteilung",
 }
 
 # Freundliche Beschriftung fuer Felder, deren interner Name (=
@@ -217,6 +221,16 @@ FELD_LABELS = {
 # beide sind reine Master-Excel-Spalten ohne Zelle im Template (siehe
 # SKIP_FELDER oben) und werden im Formular gar nicht mehr angezeigt.
 FELD_HINWEISE = {
+    "SystemtypZugang_Begruendung": (
+        "Begründung zur oben gewählten Zugangsbeschränkung - im Template selbst nur bei "
+        "„N/A“ mit einem festen Beispieltext („mechanische Ausrüstung“) hinterlegt, wird hier "
+        "aber für jede Auswahl angeboten. Wird als zusätzliche Zeile unter die Checkboxen "
+        "angehängt."
+    ),
+    "CSQ_Abteilung": (
+        "Nur ausfüllen, falls abweichend von der im Template standardmäßig eingetragenen "
+        "„FBC Quality Q&V CSV“ - ohne Eingabe bleibt der Standardtext unverändert."
+    ),
     "Dok. -Nr.": (
         "Dokumentennummer UND Version der NEUEN Systembewertung, zusammen in einem Feld - "
         "z. B. „QU-OPE-XXXXX / Version 1.0“. Nicht die Nummer/Version des Vorgänger-Dokuments "
@@ -618,6 +632,13 @@ def baue_formular(data):
                         "wert": data.get("PR_Andere_Text") or "",
                         "label": "Freie Angabe - Details",
                         "hinweis": 'Nur ausfüllen, wenn oben „andere/freie Angabe“ ausgewählt wurde.',
+                    })
+                if feld == "Systemtyp (Zugangsbeschränkung)":
+                    items.append({
+                        "art": "feld", "name": "SystemtypZugang_Begruendung", "typ": "text", "breite": "voll",
+                        "wert": data.get("SystemtypZugang_Begruendung") or "",
+                        "label": "Begründung (optional)",
+                        "hinweis": FELD_HINWEISE.get("SystemtypZugang_Begruendung"),
                     })
                 if feld == "ERES-Typ":
                     zusatz = _KATEGORIEN_ZUSATZ["ERES-Typ 4 – Art der Signatur"]

@@ -8,7 +8,7 @@ automatisch erzeugten Word-Dokument (und wo genau)?
 Datenbank - die Master-Excel (`Systembewertungen_GESAMT.xlsx`,
 Sheet `SysBew`). Ihre komplette Spaltenliste steht in
 `lib/sysbew_common.py` als `EXCEL_COLUMNS` (143 Spalten). Zusätzlich
-kennt **nur der Web-Editor** (`webapp/app.py`) 10 weitere Felder, die
+kennt **nur der Web-Editor** (`webapp/app.py`) 12 weitere Felder, die
 es in der Master-Excel nicht gibt (siehe Abschnitt "Web-Editor-only"
 unten) - kein zweites Datenbank-Schema, nur ein paar zusätzliche
 Formularfelder für Angaben, die im Template gebraucht werden, aber in
@@ -18,6 +18,22 @@ Diese Übersicht wurde automatisch gegen den aktuellen Code geprüft
 (nicht nur gegen Kommentare/Erinnerung geschrieben) - siehe
 "Wie diese Übersicht erstellt wurde" ganz unten, falls sie mal wieder
 aktualisiert werden muss.
+
+## Feldname = Excel-Spaltenname?
+
+**Ja, mit genau einer Ausnahme.** Der interne Feldname (Python-Dict-
+Schlüssel, wie in dieser Übersicht verwendet) ist für **alle**
+Master-Excel-Felder identisch mit dem tatsächlichen Spaltenkopf in
+`Systembewertungen_GESAMT.xlsx` - Groß-/Kleinschreibung und
+Sonderzeichen (Leerzeichen, Bindestrich vs. Unterstrich) inklusive.
+Einzige Ausnahme (`MASTER_SPALTEN_MAPPING` in `lib/sysbew_common.py`):
+
+| Interner Feldname | Master-Excel-Spaltenkopf |
+|---|---|
+| `Erkannte_Version` | `Erkannte Version2` |
+
+Die Web-Editor-only-Felder (siehe Abschnitt unten) haben dagegen
+**keine** Master-Excel-Spalte - für sie stellt sich die Frage nicht.
 
 ## Spaltenerklärung
 
@@ -47,7 +63,8 @@ aktualisiert werden muss.
 | `BSO_Abteilung` *(Web-Editor-only)* | ✅ | ✅ | Deckblatt – ersetzt "(Site/Unit)" im Label |
 | `BQR` | ✅ | ✅ | Deckblatt – Unterschriftentabelle |
 | `BQR_Abteilung` *(Web-Editor-only)* | ✅ | ✅ | Deckblatt – ersetzt "(Site/Unit)" im Label |
-| `CSQ` | ✅ | ✅ | Deckblatt – Unterschriftentabelle (kein Abteilungsfeld, Label ist im Template fest) |
+| `CSQ` | ✅ | ✅ | Deckblatt – Unterschriftentabelle |
+| `CSQ_Abteilung` *(Web-Editor-only)* | ✅ | ✅ *(nur falls ausgefüllt)* | Deckblatt – ersetzt das im Label standardmäßig fest eingetragene "(FBC Quality Q&V CSV)"; ohne Eingabe bleibt der Standardtext stehen |
 
 ## Deckblatt – Identifikation / Beschreibung / Hersteller
 
@@ -90,6 +107,7 @@ aktualisiert werden muss.
 | `Offen` | ✅ (Kategorie "Systemtyp (Zugangsbeschränkung)") | ✅ | Kapitel 1 |
 | `Geschlossen` | ✅ | ✅ | Kapitel 1 |
 | `NA` | ✅ | ✅ | Kapitel 1 |
+| `SystemtypZugang_Begruendung` *(Web-Editor-only)* | ✅ (Begründung, optional) | ✅ *(nur falls ausgefüllt)* | Kapitel 1 - als zusätzliche Zeile unter Offen/Geschlossen/N/A angehängt |
 | `GxP_Relevan_JA` | ✅ (Kategorie "GxP-Relevanz") | ✅ | nur Kapitel 1 (im Gegensatz zu Business Kritisch hat GxP-Relevanz KEINE eigene Checkbox in der Kapitel-2-Zusammenfassungstabelle) |
 | `GxP_Relevan_NEIN` | ✅ | ✅ | nur Kapitel 1 |
 | `BCkritisch` | ✅ (Kategorie "Business Kritisch") | ✅ | Kapitel 1 + Kapitel 2 (Checkbox) |
@@ -179,15 +197,15 @@ Identifikation".
 
 ## Web-Editor-only (nicht Teil der Master-Excel)
 
-Diese 10 Felder gibt es **nur** im Web-Editor - kein eigenes
+Diese 12 Felder gibt es **nur** im Web-Editor - kein eigenes
 "zweites DB-Schema", sondern zusätzliche Formularfelder, deren Werte
 zwar ins erzeugte Word-Dokument geschrieben werden, aber (wie
 gewollt) nie eine eigene Master-Excel-Spalte hatten:
 
 `Ersteller_Abteilung`, `SI_PL_Abteilung`, `TSO_Abteilung`,
-`BSO_Abteilung`, `BQR_Abteilung`, `PR_Andere_Text`,
+`BSO_Abteilung`, `BQR_Abteilung`, `CSQ_Abteilung`, `PR_Andere_Text`,
 `ERES4_SIG_ID_PW`, `ERES4_SIG_BIOMETRISCH`, `ERES4_SIG_TOKEN_PW`,
-`DatenflussAbbildung`.
+`DatenflussAbbildung`, `SystemtypZugang_Begruendung`.
 
 ## Nicht automatisch befüllbare Kapitel (bewusste Lücke)
 
@@ -206,8 +224,8 @@ KI-Reifegrad abgeleitet.
 
 Nicht aus Erinnerung/Kommentaren zusammengeschrieben, sondern gegen
 den tatsächlichen Code geprüft: ein Testlauf hat `lib/template_filler.py`
-mit allen 153 bekannten Feldern (143 Master-Excel-Spalten +
-10 Web-Editor-only) gefüttert und pro `fill_*`-Funktion protokolliert,
+mit allen bekannten Feldern (143 Master-Excel-Spalten +
+12 Web-Editor-only) gefüttert und pro `fill_*`-Funktion protokolliert,
 welche Felder tatsächlich gelesen werden. Bei einer künftigen
 Template-Änderung (z. B. V12) lohnt es sich, diese Übersicht auf
 demselben Weg neu zu erzeugen, statt sie händisch nachzupflegen -
