@@ -1,6 +1,6 @@
 # ============================================================
 # template_filler.py
-# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.2
+# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.3
 #
 # Gegenstueck zu den extract_*-Funktionen in sysbew_common.py: dort
 # werden Werte AUS einem ausgefuellten Dokument GELESEN, hier werden
@@ -145,6 +145,19 @@ def set_checkbox_state_in_sdt(sdt, checked):
             if t is not None:
                 t.text = glyph
     return True
+
+def set_checkbox_in_paragraph(paragraph, checked):
+    """Wie set_checkboxes_in_cell(), aber fuer eine Checkbox, die in
+    einem eigenstaendigen Absatz steht statt in einer Tabellenzelle
+    (z.B. das "N/A - Weiter mit Kap. X"-Muster, das mehrfach im
+    Template vorkommt, ausserhalb jeder Tabelle). Setzt nur die ERSTE
+    Checkbox im Absatz - fuer die bekannten Faelle reicht das, da dort
+    jeweils genau eine steht."""
+    for sdt in paragraph._p.findall(".//w:sdt", _NS):
+        if sdt.find(".//w14:checkbox", _NS) is not None:
+            set_checkbox_state_in_sdt(sdt, checked)
+            return True
+    return False
 
 def set_checkboxes_in_cell(cell, states):
     """`states`: dict {checkbox_index: bool}. Checkbox-Indizes, die
@@ -461,6 +474,19 @@ def fill_kapitel3(doc, data):
     })
     set_checkboxes_in_cell(table.rows[1].cells[2], {0: data.get("KLASS_Global_2") == "r"})
     set_checkboxes_in_cell(table.rows[1].cells[3], {0: data.get("KLASS_Global_3") == "r"})
+
+    # "N/A - Weiter mit Kap. 4": eigener Absatz VOR der obigen Tabelle
+    # (kein Tabellen-Feld, siehe set_checkbox_in_paragraph) - Kapitel 3
+    # fragt nur die Detailfrage INNERHALB von "Globales CS" ab (welche
+    # Klasse 1a/1b/2/3), ist also nicht relevant, wenn das System gar
+    # nicht als "Globales CS" klassifiziert ist (Kapitel 1 -
+    # Klassifizierung: Lokales CS/Multi-Site-CS/Equipment ohne CS statt
+    # Globales CS). Absatz-Index 19 (doc.paragraphs) per direkter
+    # Inspektion des Templates ermittelt - der Absatz-Text lautet
+    # ausschliesslich "N/A", direkt gefolgt vom Absatz "Weiter mit
+    # Kap. 4".
+    if data.get("KLASS_Global") != "r":
+        set_checkbox_in_paragraph(doc.paragraphs[19], True)
 
 # ============================================================
 # GxP-Risikoklassifizierung im Detail (Tabelle 8) - Duplikat der
