@@ -223,6 +223,14 @@ jetzt fertigstellen?") - ein bereits heruntergeladenes/weitergegebenes
 Dokument lässt sich danach nicht zurückholen, auch wenn der Draft
 selbst technisch weiter geöffnet/erneut fertiggestellt werden kann.
 
+**Vorschau statt gleich fertigstellen:** Der Knopf "👁️ Vorschau
+erzeugen" erzeugt dasselbe Dokument zum Ansehen, **ohne** den Draft
+abzuschließen - der Status bleibt "in Bearbeitung", die
+30-Tage-Aufbewahrungsfrist startet also nicht. Damit ein
+Vorschau-Dokument nicht mit dem finalen verwechselt wird: Dateiname
+bekommt den Zusatz "_VORSCHAU", und das Dokument selbst hat ganz oben
+einen deutlich sichtbaren roten Hinweis "VORSCHAU - NICHT FINAL".
+
 **Mehrbenutzerfähigkeit ohne zentralen Server:** Es gibt keine feste
 Anzahl an "Plätzen" - es werden so viele Draft-Dateien angelegt, wie
 gerade gebraucht werden, beliebig viele Personen können gleichzeitig
