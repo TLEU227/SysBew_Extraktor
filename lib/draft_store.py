@@ -1,6 +1,6 @@
 # ============================================================
 # draft_store.py
-# Zwischenspeicherung von Bearbeitungsstaenden (Drafts) - 1.0
+# Zwischenspeicherung von Bearbeitungsstaenden (Drafts) - 1.1
 #
 # Drafts liegen als einzelne JSON-Dateien in einem gemeinsamen Ordner
 # neben der Master-Excel (also im selben, bereits per OneDrive/
@@ -38,6 +38,16 @@ from sysbew_common import MASTER_EXCEL_PFAD
 DRAFTS_ORDNER = os.path.join(os.path.dirname(MASTER_EXCEL_PFAD), "Drafts")
 
 LOCK_TIMEOUT_SEKUNDEN = 15 * 60  # 15 Minuten ohne Heartbeat -> Lock verfaellt
+
+# Ein "fertig" gestellter Draft wird noch AUFBEWAHRUNG_FERTIG_TAGE lang
+# aufbewahrt (z.B. um das Dokument ueber "Erneut herunterladen" noch
+# einmal zu bekommen), danach automatisch geloescht - die eigentlichen
+# Daten leben ab dem Fertigstellen ohnehin im erzeugten SB-Dokument,
+# der Draft ist ab da nur noch eine Sicherheitskopie fuer den
+# Uebergang, keine dauerhafte Ablage. Betrifft NUR Drafts mit Status
+# "fertig" - Drafts "in_bearbeitung" werden nie automatisch geloescht,
+# egal wie alt (koennten ja noch aktiv bearbeitet werden).
+AUFBEWAHRUNG_FERTIG_TAGE = 30
 
 def _sicherstellen_ordner():
     os.makedirs(DRAFTS_ORDNER, exist_ok=True)
@@ -115,6 +125,11 @@ def save_draft(draft_id, daten, user, titel=None, status=None):
         inhalt["titel"] = titel
     if status:
         inhalt["status"] = status
+        if status == "fertig":
+            # Startet/erneuert die Aufbewahrungsfrist (siehe
+            # AUFBEWAHRUNG_FERTIG_TAGE) - wird bei jedem (erneuten)
+            # Fertigstellen aktualisiert, nicht nur beim ersten Mal.
+            inhalt["fertiggestellt_am"] = _jetzt()
     _atomar_schreiben(_draft_pfad(draft_id), inhalt)
     return inhalt
 
@@ -123,10 +138,44 @@ def delete_draft(draft_id):
         if os.path.exists(pfad):
             os.remove(pfad)
 
+def _alte_fertige_drafts_aufraeumen():
+    """Loescht Drafts, die seit mehr als AUFBEWAHRUNG_FERTIG_TAGE Tagen
+    den Status "fertig" haben. Wird bei jedem list_drafts()-Aufruf
+    (also bei jedem Besuch der Draft-Uebersicht/Startseite) beilaeufig
+    ausgefuehrt - kein separater Hintergrund-Prozess/Scheduler noetig,
+    da die App ohnehin nur laeuft, waehrend jemand sie im Browser
+    offen hat (siehe Auto-Beenden in webapp/app.py)."""
+    grenze = datetime.now() - timedelta(days=AUFBEWAHRUNG_FERTIG_TAGE)
+    for pfad in glob.glob(os.path.join(DRAFTS_ORDNER, "*.json")):
+        draft_id = os.path.splitext(os.path.basename(pfad))[0]
+        try:
+            with open(pfad, encoding="utf-8") as f:
+                inhalt = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if inhalt.get("status") != "fertig":
+            continue
+        fertig_am = inhalt.get("fertiggestellt_am")
+        if not fertig_am:
+            # Aeltere, bereits vor diesem Feature fertiggestellte
+            # Drafts haben noch keinen Zeitstempel - werden nicht
+            # geloescht, sondern beim naechsten (erneuten)
+            # Fertigstellen erstmals einen bekommen. Kein rueckwirkendes
+            # Raten des Zeitpunkts.
+            continue
+        try:
+            zeitpunkt = datetime.fromisoformat(fertig_am)
+        except ValueError:
+            continue
+        if zeitpunkt < grenze:
+            delete_draft(draft_id)
+
 def list_drafts():
     """Alle Drafts mit aktuellem Sperrstatus, neueste Aenderung
-    zuerst."""
+    zuerst. Raeumt beilaeufig lange fertige Drafts auf (siehe
+    _alte_fertige_drafts_aufraeumen)."""
     _sicherstellen_ordner()
+    _alte_fertige_drafts_aufraeumen()
     ergebnis = []
     for pfad in glob.glob(os.path.join(DRAFTS_ORDNER, "*.json")):
         draft_id = os.path.splitext(os.path.basename(pfad))[0]
