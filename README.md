@@ -205,6 +205,19 @@ Nutzer:in**, kein zentraler Server nötig.
    die Draft-Übersicht (`/drafts`) von **jeder Person, an jedem PC**,
    am nächsten Tag weiter bearbeitet werden.
 
+**Wie ein Draft "fertig" wird:** Klickt man im Editor auf
+"Fertigstellen" (statt "Zwischenspeichern"), wird 1) das .docx erzeugt
+und zum Download angeboten, 2) der Draft-Status auf "fertig" (✅)
+gesetzt - der Draft **verschwindet dabei nicht sofort** aus der
+Draft-Übersicht, sondern bleibt dort sichtbar (jetzt mit dem Knopf
+"Erneut herunterladen" statt "Öffnen zum Bearbeiten"), damit man das
+Dokument bei Bedarf noch einmal ziehen kann. **30 Tage** nach dem
+(letzten) Fertigstellen wird ein "fertig"-Draft automatisch gelöscht -
+die eigentlichen Daten leben ab dem Fertigstellen ja bereits im
+erzeugten Dokument, der Draft ist danach nur noch eine befristete
+Sicherheitskopie. Drafts "in Bearbeitung" werden dagegen **nie**
+automatisch gelöscht, egal wie alt.
+
 **Mehrbenutzerfähigkeit ohne zentralen Server:** Es gibt keine feste
 Anzahl an "Plätzen" - es werden so viele Draft-Dateien angelegt, wie
 gerade gebraucht werden, beliebig viele Personen können gleichzeitig
