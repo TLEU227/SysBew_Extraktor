@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.13
+# Systembewertung-Editor - Web-Oberflaeche - 1.14
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.13"
+APP_VERSION = "1.14"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -770,20 +770,46 @@ def _draft_titel(daten):
         return f"{mlcs} - {name}"
     return name or mlcs or "(ohne Titel)"
 
-def _dateiname_vorschlag(data):
+def _dateiname_vorschlag(data, vorschau=False):
     basis = data.get("Dok. -Nr.") or data.get("MLCSID") or data.get("AS/BDIS-Name") or "Systembewertung"
     basis = re.sub(r"[^A-Za-z0-9_\-]+", "_", basis).strip("_") or "Systembewertung"
-    return f"{basis}_Systembewertung.docx"
+    suffix = "_VORSCHAU" if vorschau else ""
+    return f"{basis}_Systembewertung{suffix}.docx"
 
-def _dokument_erzeugen_und_senden(data):
+def _vorschau_hinweis_einfuegen(doc):
+    """Fuegt ganz oben im Dokument einen deutlich sichtbaren Hinweis
+    ein, dass es sich um eine Vorschau handelt - unmissverstaendlich
+    von einem finalen (per "Fertigstellen" erzeugten) Dokument zu
+    unterscheiden, selbst wenn Dateiname/Suffix beim Weiterleiten mal
+    verloren geht."""
+    from docx.shared import Pt, RGBColor
+    hinweis = doc.paragraphs[0].insert_paragraph_before(
+        "⚠️ VORSCHAU - NICHT FINAL - nicht als Abschlussdokument verwenden"
+    )
+    lauf = hinweis.runs[0]
+    lauf.bold = True
+    lauf.font.size = Pt(14)
+    lauf.font.color.rgb = RGBColor(0xC0, 0x00, 0x00)
+
+def _dokument_erzeugen_und_senden(data, vorschau=False):
     """Erzeugt das .docx und schickt es zum Download - schreibt NICHT
-    in die Master-Excel (siehe Modul-Kommentar oben, Abschnitt 1.1)."""
+    in die Master-Excel (siehe Modul-Kommentar oben, Abschnitt 1.1).
+
+    `vorschau=True` (siehe Route .../vorschau): erzeugt dasselbe
+    Dokument, aber mit "_VORSCHAU" im Dateinamen UND einem deutlich
+    sichtbaren Hinweis am Dokumentanfang - zum Pruefen des Ergebnisses,
+    OHNE dass sich am Draft-Status etwas aendert (bleibt
+    "in_bearbeitung", startet also NICHT die 30-Tage-Aufbewahrungsfrist
+    fuer "fertig"-Drafts)."""
     data = dict(data)
     data.setdefault("Erkannte_Version", "V11")
     tmp_dir = tempfile.mkdtemp(prefix="sysbew_")
-    dateiname = _dateiname_vorschlag(data)
+    dateiname = _dateiname_vorschlag(data, vorschau=vorschau)
     ausgabe_pfad = os.path.join(tmp_dir, dateiname)
-    template_filler.fill_template(data, output_path=ausgabe_pfad)
+    doc = template_filler.fill_template(data)
+    if vorschau:
+        _vorschau_hinweis_einfuegen(doc)
+    doc.save(ausgabe_pfad)
     return send_file(ausgabe_pfad, as_attachment=True, download_name=dateiname)
 
 # ============================================================
@@ -897,6 +923,22 @@ def editor_speichern(draft_id):
     draft_store.acquire_lock(draft_id, session["user"])
     flash("Zwischengespeichert.")
     return redirect(url_for("editor", draft_id=draft_id))
+
+@app.route("/editor/<draft_id>/vorschau", methods=["POST"])
+def editor_vorschau(draft_id):
+    """Erzeugt ein Vorschau-Dokument (siehe _dokument_erzeugen_und_senden)
+    aus dem aktuellen Formularstand - speichert den Draft dabei wie
+    "Zwischenspeichern" ab (nichts geht verloren), aendert aber NICHT
+    den Status auf "fertig": der Draft bleibt "in_bearbeitung", die
+    30-Tage-Aufbewahrungsfrist fuer "fertig"-Drafts startet also nicht."""
+    draft = draft_store.load_draft(draft_id)
+    if not draft:
+        flash("Draft nicht gefunden.")
+        return redirect(url_for("drafts_uebersicht"))
+    daten = formular_auswerten(request.form, draft["daten"])
+    draft_store.save_draft(draft_id, daten, session["user"], titel=_draft_titel(daten))
+    draft_store.acquire_lock(draft_id, session["user"])
+    return _dokument_erzeugen_und_senden(daten, vorschau=True)
 
 @app.route("/editor/<draft_id>/heartbeat", methods=["POST"])
 def editor_heartbeat(draft_id):
