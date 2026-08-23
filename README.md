@@ -14,6 +14,45 @@ es, kommen sie aus der Master-Excel oder nur aus dem Web-Editor, und
 wo genau landen sie im erzeugten Word-Dokument) siehe
 [FELDUEBERSICHT.md](FELDUEBERSICHT.md).
 
+## Workflows (Übersicht)
+
+Zwei unabhängige, gegenläufige Werkzeuge im selben Repo:
+
+```mermaid
+flowchart LR
+    A["Ausgefüllte Systembewertung<br/>(.docx)"] -->|"Drag & Drop"| B["word_parser_main.py"]
+    B --> C{"Template-Version<br/>erkennen"}
+    C -->|V8| D["word_parser_v8.py"]
+    C -->|V10| E["word_parser_v10.py"]
+    C -->|V11| F["word_parser_v11.py"]
+    D --> G["extrahierte Felder"]
+    E --> G
+    F --> G
+    G --> DB[("Master-Excel<br/>Systembewertungen_GESAMT.xlsx")]
+```
+*Workflow 1 - Extraktion:* aus einer fertig ausgefüllten Systembewertung
+wird eine Zeile in der Master-Excel.
+
+```mermaid
+flowchart LR
+    DB[("Master-Excel")] -->|"durchsuchen/filtern"| S["Startseite:<br/>Datenbank-Suche"]
+    S -->|"Direkt erzeugen"| G1["neues .docx"]
+    S -->|"Bearbeiten"| ED["Editor:<br/>alle Felder"]
+    NEU["+ Neue leere<br/>Systembewertung"] --> ED
+    ED -->|"Zwischenspeichern"| DR[("Draft-Datei<br/>.json")]
+    DR -->|"später weiter<br/>bearbeiten"| ED
+    ED -->|"Fertigstellen"| G2["neues .docx"]
+    G2 -.->|"optional, nach Fertigstellung/<br/>Unterschrift: zurück auf<br/>word_parser_main.py ziehen"| B2["word_parser_main.py"]
+    B2 -.-> DB
+```
+*Workflow 2 - Erzeugung (Web-Editor, `webapp/`):* aus der Master-Excel
+(oder komplett neu) wird eine NEUE Systembewertung erzeugt. Der
+Rückweg in die Master-Excel läuft bewusst **nicht** direkt aus dem
+Web-Editor, sondern über denselben geprüften Weg wie Workflow 1 -
+erst das fertige, unterschriebene Dokument wird auf
+`word_parser_main.py` gezogen (siehe Web-Editor-Abschnitt unten,
+"WICHTIG (1.1)").
+
 ## Benutzung
 
 Word-Datei auf **`word_parser_main.py`** ziehen (Drag & Drop) oder:
@@ -345,6 +384,15 @@ pip install -r webapp/requirements.txt
     bisher nie abgefragt, da sie im Template primär eine Grafik
     erwartet) direkt hinter "Schnittstellen mit PLS" ergänzt - Grafiken
     können hier nicht erzeugt werden, dafür aber ein Verweistext.
+- Zwei weitere Web-Editor-only-Felder ergänzt:
+  - **"CSQ - Abteilung"**: ersetzt das im Template standardmäßig fest
+    eingetragene "(FBC Quality Q&V CSV)" im CSQ-Label, falls
+    ausgefüllt - ohne Eingabe bleibt der Standardtext unverändert.
+  - **"Begründung (optional)"** direkt unter "Systemtyp
+    (Zugangsbeschränkung)": das Template selbst hat dafür nur bei
+    "N/A" einen festen Beispieltext ("mechanische Ausrüstung"), hier
+    wird eine Begründung für jede Auswahl angeboten und als
+    zusätzliche Zeile angehängt.
 - Draft-Titel: MLCS-ID wird dem Systemnamen vorangestellt (z. B.
   "MLCS-1193 - PLS Lantus"), sofern vorhanden.
 - **Offene Fragen** (siehe "Bekannte Einschränkungen"): Bedeutung von

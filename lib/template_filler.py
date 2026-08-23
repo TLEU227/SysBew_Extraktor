@@ -1,6 +1,6 @@
 # ============================================================
 # template_filler.py
-# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.1
+# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.2
 #
 # Gegenstueck zu den extract_*-Funktionen in sysbew_common.py: dort
 # werden Werte AUS einem ausgefuellten Dokument GELESEN, hier werden
@@ -235,19 +235,33 @@ def fill_checkboxes_formularfelder(doc, checkbox_mapping, data):
 
 # Abteilungs-Felder (webapp-only, nicht Teil von EXCEL_COLUMNS - siehe
 # webapp/app.py, ABTEILUNG_FELDER): jede Rollenzeile im Template enthaelt
-# im Label (Zelle 0) den Platzhalter "(Site/Unit)", der die Site/
-# Organisationseinheit der jeweiligen Person benennen soll (z.B.
-# "TSO (Technical System Owner)  (Site/Unit)"). CSQ hat dafuer KEINEN
-# Platzhalter (Label ist fest "... (FBC Quality Q&V CSV)") und braucht
-# daher kein Abteilungsfeld. SME hat keine eigene Zeile (siehe unten).
+# im Label (Zelle 0) einen festen Abteilungs-Platzhalter, der bei
+# Bedarf ersetzt wird - bei Ersteller/SI-PL/TSO/BSO/BQR "(Site/Unit)",
+# bei CSQ das im Label fest eingetragene "(FBC Quality Q&V CSV)" (der
+# Wert wird nur ersetzt, wenn tatsaechlich ein CSQ_Abteilung-Wert
+# angegeben wird - Standardfall bleibt unangetastet). SME hat keine
+# eigene Zeile (siehe unten).
 _ABTEILUNG_FELD_JE_ROLLE = {
     "Ersteller": "Ersteller_Abteilung",
     "SI/PL":     "SI_PL_Abteilung",
     "TSO":       "TSO_Abteilung",
     "BSO":       "BSO_Abteilung",
     "BQR":       "BQR_Abteilung",
+    # CSQ hat KEINEN "(Site/Unit)"-Platzhalter wie die anderen Rollen,
+    # sondern ein im Label fest eingetragenes "(FBC Quality Q&V CSV)" -
+    # dieser Text wird bei Bedarf ersetzt (siehe
+    # _ABTEILUNG_PLATZHALTER_JE_ROLLE unten), bleibt aber unangetastet,
+    # wenn kein CSQ_Abteilung-Wert angegeben ist (Standardfall).
+    "CSQ":       "CSQ_Abteilung",
 }
-_PLATZHALTER_SITE_UNIT = "(Site/Unit)"
+_ABTEILUNG_PLATZHALTER_JE_ROLLE = {
+    "Ersteller": "(Site/Unit)",
+    "SI/PL":     "(Site/Unit)",
+    "TSO":       "(Site/Unit)",
+    "BSO":       "(Site/Unit)",
+    "BQR":       "(Site/Unit)",
+    "CSQ":       "(FBC Quality Q&V CSV)",
+}
 
 def fill_deckblatt_rollen(doc, data):
     """Tabelle 0 (Unterschriftentabelle): Zeile 0/2/4/6/8/10, Spalte 1
@@ -265,9 +279,10 @@ def fill_deckblatt_rollen(doc, data):
         if abteilung_feld:
             abteilung = data.get(abteilung_feld, "")
             if abteilung:
+                platzhalter = _ABTEILUNG_PLATZHALTER_JE_ROLLE[spalte]
                 replace_in_cell_paragraphs(
                     table.rows[row_idx].cells[0],
-                    _PLATZHALTER_SITE_UNIT, f"({abteilung})",
+                    platzhalter, f"({abteilung})",
                 )
     # SME: nur befuellen, wenn nicht ohnehin schon mit SI/PL identisch
     # (kombinierte Rolle "Projektleiter/SME" - Name steht dann bereits
@@ -338,6 +353,19 @@ def fill_kapitel1(doc, data):
         1: data.get("Geschlossen") == "r",
         2: data.get("NA") == "r",
     })
+    # Begruendung zum Systemtyp (webapp-only, nicht Teil von
+    # EXCEL_COLUMNS - siehe webapp/app.py): das Template hat dafuer
+    # keinen eigenen Platzhalter (nur bei "N/A" steht der feste
+    # Beispieltext "Begründung: mechanische Ausrüstung" dabei). Wird
+    # als NEUER Absatz angehaengt statt per set_cell_text() die Zelle
+    # zu ueberschreiben - die Zelle enthaelt 3 Absaetze mit je einer
+    # eigenen Checkbox (SDT) + Label, set_cell_text() wuerde deren
+    # Labeltexte zerstoeren (nur die Checkbox-SDTs selbst blieben
+    # erhalten, siehe set_cell_text()-Dokumentation).
+    if data.get("SystemtypZugang_Begruendung"):
+        table.rows[5].cells[1].add_paragraph(
+            f"Begründung: {data['SystemtypZugang_Begruendung']}"
+        )
 
     einsatzbereich = data.get("Betrieb", "")
     if data.get("Gebaeude"):
