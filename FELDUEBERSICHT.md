@@ -156,12 +156,12 @@ werden deshalb zusätzlich mitbefüllt).
 
 | Feld | Im Editor? | Wo im Dokument |
 |---|---|---|
-| `Prozessbeschreibung` | ✅ (Textbausteine) | Kapitel 2, Beschreibungstabelle - inkl. `Steuerung erfolgt über?` (falls vorhanden) und `Bemerkung1` vorangestellt/angehängt |
-| `Daten` | ✅ (Textbausteine) | Beschreibungstabelle - inkl. `Bemerkung2` |
-| `Parameter` | ✅ (Textbausteine) | Beschreibungstabelle - inkl. `Bemerkung4` |
+| `Prozessbeschreibung` | ✅ (Textbausteine) | Kapitel 2, Beschreibungstabelle - inkl. `Steuerung erfolgt über?` (falls vorhanden) |
+| `Daten` | ✅ (Textbausteine) | Beschreibungstabelle |
+| `Parameter` | ✅ (Textbausteine) | Beschreibungstabelle |
 | `Alarme (GxP-relevant)` | ✅ (Textbausteine) | Beschreibungstabelle |
 | `Chargenprotokoll` | ✅ (Textbausteine) | Beschreibungstabelle |
-| `Audit Trail (AT)` | ✅ (Textbausteine) | Beschreibungstabelle - inkl. `Bemerkung3` |
+| `Audit Trail (AT)` | ✅ (Textbausteine) | Beschreibungstabelle |
 | `Benutzer-verwaltung?` | ✅ (Textbausteine) | Beschreibungstabelle |
 | `Schnittstellen mit PLS` | ✅ (Textbausteine) | Beschreibungstabelle |
 | `DatenflussAbbildung` *(Web-Editor-only)* | ✅ (Textbaustein) | Beschreibungstabelle, Zeile "Datenfluss / Abbildung:" - Grafiken kann die App nicht einfügen, nur Verweistext |
@@ -170,11 +170,22 @@ werden deshalb zusätzlich mitbefüllt).
 | `KI Bewertung` | ✅ (Textbausteine) | Beschreibungstabelle |
 | `Besonderheiten` | ✅ (Textbausteine) | Kapitel 2 – Zusammenfassungstabelle (ergänzt den Hinweistext zur GxP-Subkategorisierung) |
 | `Steuerung erfolgt über?` | — (nicht mehr separat abgefragt) | wird der Prozessbeschreibung vorangestellt, **falls** im Draft-Dict vorhanden (z. B. aus einem alten Master-Excel-Datensatz) |
-| `Bemerkung1` | — (nicht im Editor) | an `Prozessbeschreibung` angehängt |
-| `Bemerkung2` | — (nicht im Editor) | an `Daten` angehängt |
-| `Bemerkung3` | — (nicht im Editor) | an `Audit Trail (AT)` angehängt |
-| `Bemerkung4` | — (nicht im Editor) | an `Parameter` angehängt |
+| `Bemerkung1` | — (nicht im Editor, siehe unten) | wird beim Start aus einem Datenbank-Eintrag SOFORT in `Prozessbeschreibung` gemergt (nicht erst beim Erzeugen) |
+| `Bemerkung2` | — (nicht im Editor, siehe unten) | wird beim Start aus einem Datenbank-Eintrag SOFORT in `Daten` gemergt |
+| `Bemerkung3` | — (nicht im Editor, siehe unten) | wird beim Start aus einem Datenbank-Eintrag SOFORT in `Audit Trail (AT)` gemergt |
+| `Bemerkung4` | — (nicht im Editor, siehe unten) | wird beim Start aus einem Datenbank-Eintrag SOFORT in `Parameter` gemergt |
 | `Hyperlink` | — (nicht im Editor) | **nicht im Dokument** - reiner QualiPSO-Verweis für die Excel |
+
+**Zu den 4 "BemerkungX"-Feldern:** Diese vier Master-Excel-Spalten
+sind inhaltlich dasselbe wie `Prozessbeschreibung`/`Daten`/
+`Audit Trail (AT)`/`Parameter` - nur unter einem generischen Namen.
+Startet man eine neue Systembewertung aus einem Datenbank-Eintrag,
+der noch (alte) BemerkungX-Werte enthält, werden diese **sofort beim
+Öffnen des Editors** in das jeweilige Hauptfeld gemergt (nicht erst
+beim Erzeugen des Dokuments) - dadurch gibt es dort nur noch EIN
+sichtbares, bearbeitbares Feld statt zwei getrennter Werte, die sich
+sonst am Ende unbemerkt im Dokument verdoppelt hätten (siehe
+`_neues_dokument_aus_db_zeile()` in `webapp/app.py`).
 
 ## Kapitel 2 (Detail) – GxP-Risikoklassifizierung
 
