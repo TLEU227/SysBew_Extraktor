@@ -75,7 +75,8 @@
 
     <div class="aktionsleiste">
       <button type="submit" formaction="{{ url_for('editor_speichern', draft_id=draft.id) }}">💾 Zwischenspeichern</button>
-      <button type="submit" formaction="{{ url_for('editor_fertigstellen', draft_id=draft.id) }}" class="knopf-primaer">
+      <button type="submit" formaction="{{ url_for('editor_fertigstellen', draft_id=draft.id) }}" class="knopf-primaer"
+              onclick="return confirm('Fertigstellen erzeugt das endgueltige Dokument zum Download. Ein bereits heruntergeladenes/weitergegebenes Dokument laesst sich danach nicht zurueckholen - spaetere Aenderungen am Draft aendern nichts mehr an einer bereits verschickten Datei.\n\nWirklich jetzt fertigstellen?')">
         ✅ Fertigstellen &amp; Dokument erzeugen
       </button>
     </div>
