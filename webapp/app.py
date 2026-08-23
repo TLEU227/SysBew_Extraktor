@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.11
+# Systembewertung-Editor - Web-Oberflaeche - 1.12
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
@@ -54,7 +54,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.11"
+APP_VERSION = "1.12"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -154,10 +154,17 @@ def schliessen_signal():
 #     mit angeben.
 #   - "BemerkungX": inhaltlich redundant, da Prozessbeschreibung/Daten/
 #     Audit Trail/Parameter bereits weiter oben unter ihrem eigenen
-#     Namen abgefragt werden. Der Transfer dieser Werte in die
-#     "BemerkungX"-Spalten der Master-Excel passiert automatisch beim
-#     Einlesen des fertigen Dokuments (word_parser_v8/10/11.py machen
-#     das schon seit jeher so) - hier also keine doppelte Abfrage.
+#     Namen abgefragt werden - deshalb hier keine doppelte Abfrage.
+#     Bei Start aus einem Datenbank-Eintrag wird ein evtl. vorhandener
+#     BemerkungX-Wert in _neues_dokument_aus_db_zeile() bereits VOR dem
+#     Anzeigen des Formulars in das jeweilige Hauptfeld gemergt (nicht
+#     erst beim Erzeugen des Dokuments) - dadurch bleibt es sichtbar/
+#     bearbeitbar statt unbemerkt im Hintergrund an das Hauptfeld
+#     angehaengt zu werden. Der Transfer der Werte zurueck in die
+#     "BemerkungX"-Spalten der Master-Excel passiert weiterhin
+#     automatisch beim Einlesen des fertigen, unterschriebenen
+#     Dokuments (word_parser_v8/10/11.py machen das schon seit jeher
+#     so) - unabhaengig davon.
 #   - "Version_Historie": wird nicht mehr getrennt abgefragt, sondern
 #     zusammen mit "Dok. -Nr." in einem gemeinsamen Feld erfasst (siehe
 #     DOK_NR_VERSION_FELD/_dok_nr_version_kombinieren/_auftrennen unten)
@@ -589,8 +596,25 @@ def _neues_dokument_aus_db_zeile(row):
 
     Die alte Dok.-Nr./Version geht dabei nicht verloren: sie wandert
     automatisch in "DokNummerVorQualiPSO" ("Vorherige Doc-ID"), sofern
-    dort noch nichts anderes steht."""
+    dort noch nichts anderes steht.
+
+    Ausserdem werden die 4 generischen "BemerkungX"-Spalten (falls in
+    der Zeile befuellt) HIER bereits in ihr jeweiliges Hauptfeld
+    (Prozessbeschreibung/Daten/Audit Trail (AT)/Parameter, siehe
+    template_filler._BEMERKUNG_ZUORDNUNG) gemergt und aus `data`
+    entfernt - dadurch gibt es im Editor nur noch EIN bearbeitbares
+    Feld statt zwei getrennter Werte, die am Ende doppelt im
+    generierten Dokument auftauchen wuerden (BemerkungX wird im
+    Formular selbst nie angezeigt/abgefragt, siehe SKIP_FELDER - ohne
+    dieses Mergen waere der Inhalt sonst schlicht verloren bzw. wuerde
+    unbemerkt an das Hauptfeld angehaengt, ohne dass die/der
+    Bearbeitende das im Editor sehen/anpassen koennte)."""
     data = {k: v for k, v in row.items() if k != "_zeile"}
+    for bemerkung_feld, ziel_feld in template_filler._BEMERKUNG_ZUORDNUNG.items():
+        zusatz = data.pop(bemerkung_feld, None)
+        if zusatz:
+            bestehend = data.get(ziel_feld) or ""
+            data[ziel_feld] = f"{bestehend}\n{zusatz}" if bestehend else zusatz
     alte_dok_id = _dok_nr_version_kombinieren(data)
     if alte_dok_id and not data.get("DokNummerVorQualiPSO"):
         data["DokNummerVorQualiPSO"] = alte_dok_id
