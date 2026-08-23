@@ -218,6 +218,11 @@ erzeugten Dokument, der Draft ist danach nur noch eine befristete
 Sicherheitskopie. Drafts "in Bearbeitung" werden dagegen **nie**
 automatisch gelöscht, egal wie alt.
 
+Der Knopf "Fertigstellen" fragt deshalb vorher explizit nach ("Wirklich
+jetzt fertigstellen?") - ein bereits heruntergeladenes/weitergegebenes
+Dokument lässt sich danach nicht zurückholen, auch wenn der Draft
+selbst technisch weiter geöffnet/erneut fertiggestellt werden kann.
+
 **Mehrbenutzerfähigkeit ohne zentralen Server:** Es gibt keine feste
 Anzahl an "Plätzen" - es werden so viele Draft-Dateien angelegt, wie
 gerade gebraucht werden, beliebig viele Personen können gleichzeitig
