@@ -121,7 +121,7 @@ Die Web-Editor-only-Felder (siehe Abschnitt unten) haben dagegen
 | `KLASS_Multisite` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
 | `KLASS_Multisite_NurLokal` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
 | `KLASS_Multisite_LokalGlobal` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
-| `KLASS_Global` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
+| `KLASS_Global` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** steuert die "N/A - Weiter mit Kap. 4"-Checkbox in Kapitel 3 (angekreuzt, wenn NICHT "r" - Kapitel 3 fragt nur die Detailfrage innerhalb von "Globales CS" ab) |
 | `KLASS_Global_1a` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 (Detailfrage) |
 | `KLASS_Global_1b` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 |
 | `KLASS_Global_2` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 |
