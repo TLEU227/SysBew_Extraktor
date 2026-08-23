@@ -304,6 +304,29 @@ ergänzt werden. Alles, was auf dem Deckblatt und in der
 Zusammenfassungstabelle (Kapitel 2) steht, wird dagegen vollständig
 befüllt.
 
+## Dekodierter Export (Prototyp für externe Tools)
+
+`lib/export_dekodiert.py` ist ein **read-only Prototyp** für ein
+Kollaborations-Szenario: andere Teams, die eigene Tools auf Basis der
+Master-Excel bauen, müssten sonst das Wissen "welche Checkbox-Gruppe
+ergibt welchen fachlichen Wert" (z. B. `GxP-C`/`GxP-M`/`GxP-m2`/
+`GxP-NA` → "GxP-Kritikalität: Major") bei sich fest verdrahten - das
+bricht stillschweigend bei jeder Spaltenänderung hier. Dieses Skript
+löst pro Zeile alle bekannten Checkbox-Gruppen (über alle Template-
+Versionen hinweg) zu je einem Klartext-Feld auf und lässt alle
+übrigen (bereits lesbaren) Spalten unverändert.
+
+```
+python lib/export_dekodiert.py ausgabe.json --csv ausgabe.csv
+```
+
+Kein Live-System/keine laufende Schnittstelle - nur ein bei Bedarf neu
+erzeugter, versionierter Datei-Export. Enthält ein Datenqualitäts-
+Signal statt es zu verschleiern: ist bei einer eigentlich
+"genau 1 erwartet"-Kategorie (z. B. GxP-Kritikalität) mehr als ein
+Wert angekreuzt, erscheinen im Export **beide** Werte durch `"; "`
+getrennt, statt dass einer davon stillschweigend verschwindet.
+
 ## Voraussetzungen
 
 - Python ≥ 3.8 (getestet mit 3.12)
