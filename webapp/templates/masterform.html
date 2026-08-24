@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titel %}Fill-a-Masterform-Import{% endblock %}
+{% block inhalt %}
+<div class="karte">
+  <h1>Neue Systembewertung aus Fill-a-Masterform-Import</h1>
+  <p>
+    Lade den von "Fill-a-Masterform" bereitgestellten, dekodierten Excel-Export
+    hoch (Klartext-Spalten statt Checkbox-Flags). Die Datei wird nur für diese
+    Anfrage gelesen und nirgends gespeichert. Anschließend kannst du wie bei
+    der eigenen Datenbank eine Zeile im Editor übernehmen und prüfen - nicht
+    zweifelsfrei zuordenbare Werte (z. B. unbekannte/mehrfach markierte
+    Angaben) werden dabei als Hinweis angezeigt statt stillschweigend
+    übernommen oder verworfen.
+  </p>
+  <form method="post" enctype="multipart/form-data" class="suchleiste">
+    <input type="file" name="datei" accept=".xlsx" required>
+    <input type="text" name="q" value="{{ q }}" placeholder="Suche nach MLCS-ID, Systemname, Dok.-Nr., Betrieb ...">
+    <button type="submit">Hochladen &amp; anzeigen</button>
+  </form>
+
+  {% if fehler %}
+    <p class="fehler">❌ Datei konnte nicht gelesen werden: {{ fehler }}</p>
+  {% elif zeilen is not none %}
+    <p class="hinweis">{{ zeilen|length }} Treffer{% if zeilen|length > 200 %} (zeige die ersten 200){% endif %}</p>
+    <div class="tabellen-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>mlcs_id</th><th>systemname</th><th>bereich</th><th>gebaeude</th>
+          <th>dok_nummer</th><th>gxp_kritikalitaet</th><th>eres_typ</th>
+          <th class="aktionen"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in zeilen[:200] %}
+        <tr>
+          <td>{{ row.get('mlcs_id', '') or '' }}</td>
+          <td>{{ row.get('systemname', '') or '' }}</td>
+          <td>{{ row.get('bereich', '') or '' }}</td>
+          <td>{{ row.get('gebaeude', '') or '' }}</td>
+          <td>{{ row.get('dok_nummer', '') or '' }}</td>
+          <td>{{ row.get('gxp_kritikalitaet', '') or '' }}</td>
+          <td>{{ row.get('eres_typ', '') or '' }}</td>
+          <td class="aktionen">
+            <form method="post" action="{{ url_for('masterform_bearbeiten') }}" class="inline">
+              <input type="hidden" name="zeile_json" value='{{ row|tojson }}'>
+              <button type="submit" class="knopf klein sekundaer">Bearbeiten</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Keine Treffer.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -188,7 +188,7 @@ Daten der Master-Excel (oder von Grund auf) eine NEUE Systembewertung
 Browser auf `http://127.0.0.1:5151`. Läuft **lokal bei jeder/jedem
 Nutzer:in**, kein zentraler Server nötig.
 
-**Drei Arbeitswege:**
+**Vier Arbeitswege:**
 1. **Direkt übernehmen:** Auf der Startseite eine Zeile aus der
    Master-Excel suchen/filtern, "Direkt erzeugen" klicken -> sofort
    fertige Systembewertung als Download, ohne Zwischenschritt.
@@ -198,7 +198,10 @@ Nutzer:in**, kein zentraler Server nötig.
    den Daten der gewählten Zeile. Auch eine komplett leere
    Systembewertung ("+ Neue leere Systembewertung") ist möglich. Nach
    Änderungen "Fertigstellen" klickt das Dokument fertig.
-3. **Zwischenspeichern (Drafts):** Im Editor jederzeit
+3. **Aus Fill-a-Masterform-Import:** Für Systeme, die (noch) nicht in
+   der eigenen Master-Excel stehen - siehe eigener Abschnitt
+   "Fill-a-Masterform-Import" unten.
+4. **Zwischenspeichern (Drafts):** Im Editor jederzeit
    "Zwischenspeichern" statt "Fertigstellen" - der Bearbeitungsstand
    landet als Draft im Ordner `Drafts/` neben der Master-Excel (selbes
    Netzlaufwerk, kein zusätzlicher Speicherort nötig) und kann über
@@ -303,6 +306,59 @@ Kapitel müssen nach dem automatischen Erzeugen manuell in Word
 ergänzt werden. Alles, was auf dem Deckblatt und in der
 Zusammenfassungstabelle (Kapitel 2) steht, wird dagegen vollständig
 befüllt.
+
+## Dekodierter Export (Prototyp für externe Tools)
+
+`lib/export_dekodiert.py` ist ein **read-only Prototyp** für ein
+Kollaborations-Szenario: andere Teams, die eigene Tools auf Basis der
+Master-Excel bauen, müssten sonst das Wissen "welche Checkbox-Gruppe
+ergibt welchen fachlichen Wert" (z. B. `GxP-C`/`GxP-M`/`GxP-m2`/
+`GxP-NA` → "GxP-Kritikalität: Major") bei sich fest verdrahten - das
+bricht stillschweigend bei jeder Spaltenänderung hier. Dieses Skript
+löst pro Zeile alle bekannten Checkbox-Gruppen (über alle Template-
+Versionen hinweg) zu je einem Klartext-Feld auf und lässt alle
+übrigen (bereits lesbaren) Spalten unverändert.
+
+```
+python lib/export_dekodiert.py ausgabe.json --csv ausgabe.csv
+```
+
+Kein Live-System/keine laufende Schnittstelle - nur ein bei Bedarf neu
+erzeugter, versionierter Datei-Export. Enthält ein Datenqualitäts-
+Signal statt es zu verschleiern: ist bei einer eigentlich
+"genau 1 erwartet"-Kategorie (z. B. GxP-Kritikalität) mehr als ein
+Wert angekreuzt, erscheinen im Export **beide** Werte durch `"; "`
+getrennt, statt dass einer davon stillschweigend verschwindet.
+
+## Fill-a-Masterform-Import (Gegenstück zum dekodierten Export)
+
+`lib/masterform_import.py` ist das Gegenstück zu
+`export_dekodiert.py`: dort kodieren **wir** unsere Checkbox-Spalten
+für andere Teams in Klartext, hier dekodieren wir umgekehrt einen von
+"Fill-a-Masterform" bereitgestellten Klartext-Export (Excel, z. B.
+`gxp_kritikalitaet: "Major"` statt Checkbox-Flags) wieder zurück in
+unsere Checkbox-Felder, um daraus im Web-Editor eine **neue
+Systembewertung** vorzubefüllen - dritter Arbeitsweg neben "aus der
+eigenen Datenbank" und "von Grund auf" (siehe oben, `/masterform` im
+Web-Editor).
+
+Bewusst kein fest konfigurierter Netzwerkpfad wie bei der Master-Excel:
+die Datei wird bei Bedarf im Browser hochgeladen, nur für diese eine
+Anfrage gelesen und nirgends gespeichert (rein lesend, kein
+Live-System). Genau wie beim dekodierten Export gilt: nichts wird
+stillschweigend geraten. Werte, die sich nicht zweifelsfrei einer
+Checkbox zuordnen lassen - unbekannte Ausprägungen, als "mehrfach
+markiert" gekennzeichnete Kategorien, oder Felder ohne erkennbaren
+Bezug zu einer unserer Checkboxen (`doku_status`,
+`qualifizierung_erforderlich`, `validierung_erforderlich`) - werden
+**nicht** automatisch ins Dokument übernommen, sondern als Hinweis im
+Editor angezeigt, damit sie geprüft/manuell ergänzt werden können statt
+unbemerkt zu verschwinden oder falsch gesetzt zu werden.
+
+Da beide Seiten unabhängig voneinander weiterentwickelt werden, prüft
+`masterform_import.py` beim Einlesen, ob die erwarteten Spalten noch
+vorhanden sind, und warnt (bricht aber nicht ab), falls sich das
+Schema beim anderen Team geändert hat.
 
 ## Voraussetzungen
 
@@ -423,6 +479,24 @@ pip install -r webapp/requirements.txt
   "MLCS-1193 - PLS Lantus"), sofern vorhanden.
 - **Offene Fragen** (siehe "Bekannte Einschränkungen"): Bedeutung von
   `PLSTA` und von "VV" bei "SW-Version / Typ:" ist nicht dokumentiert.
+
+### webapp/ - Fill-a-Masterform-Import (dritte Startquelle)
+
+- Neues Modul `lib/masterform_import.py`: liest einen von
+  "Fill-a-Masterform" bereitgestellten, dekodierten Excel-Export
+  (Gegenstück zu `export_dekodiert.py`, siehe eigener Abschnitt oben)
+  und übersetzt ihn zurück in unsere Checkbox-Felder, um daraus im
+  Editor eine neue Systembewertung vorzubefüllen.
+- Neue Route `/masterform` (Datei-Upload, nur für die eine Anfrage
+  gelesen, nirgends gespeichert) + `/masterform/bearbeiten` (legt
+  daraus einen Draft an, analog zu "Bearbeiten" bei einer
+  ML-Zeile) - neue Startseiten-Kachel "📥 Aus Fill-a-Masterform-Export
+  starten".
+- Nicht zweifelsfrei einer Checkbox zuordenbare Werte (unbekannte
+  Ausprägungen, als "mehrfach markiert" gekennzeichnete Kategorien,
+  `doku_status`/`qualifizierung_erforderlich`/`validierung_erforderlich`
+  ohne erkennbaren Checkbox-Bezug) werden als Hinweis im Editor
+  angezeigt statt automatisch (und ggf. falsch) übernommen zu werden.
 
 ### Main-Datei + Erweiterungen (aktuelle Architektur)
 
