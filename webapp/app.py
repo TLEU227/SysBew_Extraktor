@@ -1,10 +1,12 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.14
+# Systembewertung-Editor - Web-Oberflaeche - 1.15
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
-# ("Datenbank") oder von Grund auf, mit Zwischenspeicherung als
-# Draft und Mehrbenutzer-faehiger Sperrung ueber draft_store.py.
+# ("Datenbank"), aus einem hochgeladenen Fill-a-Masterform-Export
+# (siehe masterform_import.py, Routen /masterform/...) oder von
+# Grund auf, mit Zwischenspeicherung als Draft und Mehrbenutzer-
+# faehiger Sperrung ueber draft_store.py.
 #
 # WICHTIG: laeuft LOKAL bei jeder/jedem Nutzer:in (kein zentraler
 # Server) - siehe README.md, Abschnitt "Web-Editor". Drafts landen im
@@ -25,6 +27,7 @@
 #   pip install flask
 # ============================================================
 
+import json
 import os
 import re
 import sys
@@ -40,6 +43,7 @@ from flask import Flask, flash, redirect, render_template, request, send_file, s
 
 import db_reader
 import draft_store
+import masterform_import
 import sysbew_common as common
 import template_filler
 from word_parser_v11 import VALIDATION_KATEGORIEN_V11
@@ -54,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.14"
+APP_VERSION = "1.15"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -885,6 +889,61 @@ def db_bearbeiten(zeile):
     data = _neues_dokument_aus_db_zeile(row)
     draft_id = draft_store.create_draft(
         data, session["user"], titel=_draft_titel(data), quelle_zeile=zeile,
+    )
+    return redirect(url_for("editor", draft_id=draft_id))
+
+@app.route("/masterform", methods=["GET", "POST"])
+def masterform():
+    """Dritte Startquelle fuer eine neue Systembewertung: eine von der
+    anderen Seite ("Fill-a-Masterform") als Excel bereitgestellte,
+    bereits dekodierte Zeile importieren (siehe masterform_import.py).
+
+    Bewusst kein dauerhaft konfigurierter Netzwerkpfad wie bei der
+    Master-Excel - die Datei wird bei Bedarf hochgeladen und nur fuer
+    diese eine Anfrage gelesen, nirgends gespeichert. Die Zeilen
+    werden deshalb pro Treffer als verstecktes Formularfeld (JSON) in
+    die Ergebnisliste eingebettet, damit "Bearbeiten" die Datei nicht
+    erneut braucht (siehe masterform_bearbeiten())."""
+    zeilen = None
+    fehler = None
+    suchtext = ""
+    if request.method == "POST":
+        datei = request.files.get("datei")
+        suchtext = request.form.get("q", "")
+        if not datei or not datei.filename:
+            flash("Bitte zuerst eine Datei auswaehlen.")
+        else:
+            try:
+                _, rows = masterform_import.lese_masterform_export(datei)
+                zeilen = masterform_import.filter_rows(rows, suchtext)
+            except Exception as e:
+                fehler = str(e)
+    return render_template(
+        "masterform.html", zeilen=zeilen, fehler=fehler, q=suchtext,
+    )
+
+@app.route("/masterform/bearbeiten", methods=["POST"])
+def masterform_bearbeiten():
+    """Legt aus einer im Formular mitgeschickten Fill-a-Masterform-
+    Zeile (siehe masterform.html, verstecktes Feld "zeile_json") einen
+    neuen Draft an - analog zu db_bearbeiten(), nur mit
+    masterform_import.zeile_zu_sysbew_daten() statt einer echten
+    ML-Zeile als Quelle. Alle nicht zweifelsfrei uebernommenen Werte
+    werden vorher als Hinweis angezeigt (siehe dortiger Modul-
+    Kommentar) - der Draft ist trotzdem sofort im Editor pruefbar."""
+    roh = request.form.get("zeile_json", "")
+    try:
+        row = json.loads(roh)
+    except (json.JSONDecodeError, TypeError):
+        flash("Zeile konnte nicht gelesen werden - bitte Datei erneut hochladen.")
+        return redirect(url_for("masterform"))
+    daten, hinweise = masterform_import.zeile_zu_sysbew_daten(row)
+    for hinweis in hinweise:
+        flash(f"⚠️ {hinweis}")
+    data = _neues_dokument_aus_db_zeile(daten)
+    draft_id = draft_store.create_draft(
+        data, session["user"], titel=_draft_titel(data),
+        quelle_zeile=f"masterform:{row.get('mlcs_id') or row.get('_zeile')}",
     )
     return redirect(url_for("editor", draft_id=draft_id))
 

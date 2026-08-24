@@ -218,6 +218,18 @@ gewollt) nie eine eigene Master-Excel-Spalte hatten:
 `ERES4_SIG_ID_PW`, `ERES4_SIG_BIOMETRISCH`, `ERES4_SIG_TOKEN_PW`,
 `DatenflussAbbildung`, `SystemtypZugang_Begruendung`.
 
+## Externe Datenquelle: Fill-a-Masterform-Import
+
+Der Web-Editor kann eine neue Systembewertung auch aus einem
+Klartext-Export des anderen Teams ("Fill-a-Masterform") vorbefüllen
+(dritte Startquelle, `/masterform`). Dort werden fremde Spaltennamen
+(`gxp_kritikalitaet`, `eres_typ`, `subtyp` usw.) auf genau die oben
+gelisteten internen Felder/Checkboxen abgebildet - siehe
+`lib/masterform_import.py` (Modul-Kommentar + Mapping-Tabellen) und
+README.md, Abschnitt "Fill-a-Masterform-Import" für Details und dafür,
+welche Import-Felder bewusst NICHT automatisch einer Checkbox
+zugeordnet werden.
+
 ## Nicht automatisch befüllbare Kapitel (bewusste Lücke)
 
 **Kapitel 5** (Entscheidungsbaum Gerätekategorie/CS-Typ selbst, inkl.
