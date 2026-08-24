@@ -360,6 +360,14 @@ Da beide Seiten unabhängig voneinander weiterentwickelt werden, prüft
 vorhanden sind, und warnt (bricht aber nicht ab), falls sich das
 Schema beim anderen Team geändert hat.
 
+**Vorlage zum Testen/Abstimmen:**
+`assets/templates_xlsx/fill_a_masterform_vorlage.xlsx` enthält alle
+erwarteten Spalten (Kopfzeile mit Zellkommentaren zu den jeweils
+gültigen Werten, siehe `masterform_import.py`) sowie eine
+Beispielzeile - damit lässt sich der Import (`/masterform`) ohne eine
+echte Datei vom anderen Team testen, und die Datei kann auch als
+Schema-Referenz für die Abstimmung mit "Fill-a-Masterform" dienen.
+
 ## Voraussetzungen
 
 - Python ≥ 3.8 (getestet mit 3.12)

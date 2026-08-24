@@ -28,6 +28,11 @@
 # fehlenden Spalten NICHT ab, sondern warnt nur (Zeilen bekommen fuer
 # fehlende Spalten einfach None, zeile_zu_sysbew_daten() behandelt das
 # wie "keine Angabe").
+#
+# Testdatei/Schema-Referenz: assets/templates_xlsx/
+# fill_a_masterform_vorlage.xlsx (erzeugt von
+# erzeuge_masterform_vorlage.py DIREKT aus den Mapping-Tabellen unten -
+# bei Aenderungen hier also dort einfach neu ausfuehren).
 # ============================================================
 
 import os
