@@ -10,6 +10,7 @@
 # Verknuepfung/Kommentare zwingend - siehe Kommentar dort).
 # ============================================================
 
+import datetime
 import openpyxl
 
 from sysbew_common import (
@@ -18,6 +19,22 @@ from sysbew_common import (
     MASTER_TABELLE_NAME,
     MASTER_SPALTEN_MAPPING,
 )
+
+def _zellwert_zu_text(wert):
+    """Normalisiert einen rohen openpyxl-Zellwert auf str/None - alle
+    Weiterverarbeitung (Web-Editor, template_filler, masterform_import)
+    erwartet Strings bzw. None, Excel liefert bei rein numerisch
+    formatierten Spalten (z.B. MLCSID, SAP-Nummer, Raum) aber int/
+    float zurueck. Ohne diese Normalisierung bricht z.B. python-docx
+    beim Befuellen einer Tabellenzelle mit einem int hart ab (siehe
+    template_filler.set_cell_text -> Run.text erwartet str)."""
+    if wert is None or isinstance(wert, str):
+        return wert
+    if isinstance(wert, float) and wert == int(wert):
+        return str(int(wert))
+    if isinstance(wert, (datetime.date, datetime.datetime)):
+        return wert.strftime("%d.%m.%Y")
+    return str(wert)
 
 # Spalten, die in der Startseiten-Uebersicht/Filterung angezeigt bzw.
 # durchsucht werden. Bewusst eine Teilmenge (nicht alle 140+ Spalten) -
@@ -66,7 +83,7 @@ def read_master_rows():
             for name, zelle in zip(header, zeile):
                 if not name:
                     continue
-                eintrag[name] = zelle.value
+                eintrag[name] = _zellwert_zu_text(zelle.value)
                 if zelle.value not in (None, ""):
                     leer = False
             if leer:

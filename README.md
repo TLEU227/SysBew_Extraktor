@@ -618,6 +618,43 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Textbaustein-Vorschläge anhand der vollständigen Master-Excel überarbeitet
+
+- Die vorherige Überarbeitung (siehe unten) beruhte auf einer
+  Stichprobe von 9 echten Dokumenten, da die Master-Excel in dieser
+  Umgebung zunächst nicht erreichbar war. Nach Bereitstellung der
+  echten `Systembewertungen_GESAMT.xlsx` (737 Zeilen, alle
+  Bemerkungsspalten) wurde die Häufigkeitsanalyse auf Basis des
+  vollständigen Datenbestands wiederholt.
+- Die Stichprobenauswahl wurde dadurch größtenteils bestätigt; zudem
+  kamen mehrere, im Volldatenbestand deutlich häufigere Formulierungen
+  hinzu, generalisiert bzw. mit Platzhaltern versehen, wo Dokumente
+  oder Systeme konkret genannt waren - u. a. "Verweis Ist-Zustand
+  (e-Records)" (mehrfach referenziert: Prozessbeschreibung, Daten,
+  Parameter), "SPS überträgt Signale an PLS (Profibus DP)", "Digitales
+  Maschinenlogbuch", "Audit Trail & Chargendaten (lokal + Server)",
+  "Alarm-Handling über Funktionsspezifikation"/"...über gekoppeltes
+  PLS" (mit Platzhaltern für SOP-Nr./PLS-Name/MLCS-ID), "Zentrale
+  Benutzerverwaltung (Domäne)", "Zugriffsberechtigungen separat
+  spezifiziert", "Keine Schnittstellen (initiale Implementierung)"
+  sowie weitere Ergänzungen bei Prozessbeschreibung, Alarme und
+  Chargenprotokoll.
+- **Bugfix `db_reader.py`**: beim Testen des Round-Trips gegen die
+  echte Master-Excel schlug die Dokumenterzeugung bei 46 der 737
+  Zeilen (6 %) hart fehl ("'int' object is not iterable"). Ursache:
+  rein numerisch formatierte Excel-Spalten (`MLCSID`, `Version`,
+  `Raum`, `SAP`-Nummer, `Lieferantennummer` usw.) liefern über
+  openpyxl int/float statt str - python-docx bricht beim Befüllen
+  einer Tabellenzelle mit einem int hart ab. `read_master_rows()`
+  normalisiert Zellwerte jetzt auf str/None (`_zellwert_zu_text()`,
+  inkl. Datum-Zellen als `TT.MM.JJJJ`), bevor sie ins Zeilen-Dict
+  wandern.
+- Getestet: Round-Trip über alle 737 Zeilen der echten Master-Excel
+  (`db_reader.read_master_rows()` +
+  `webapp.app._neues_dokument_aus_db_zeile()` +
+  `template_filler.fill_template()`, 0 Fehler - vor dem
+  `db_reader`-Bugfix 46 Fehler).
+
 ### Textbaustein-Vorschläge anhand echter Systembewertungen überarbeitet
 
 - Alle system-/dokumentspezifischen Beispielwerte in den Textbaustein-
