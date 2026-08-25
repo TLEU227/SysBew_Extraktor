@@ -12,6 +12,10 @@
     Angaben) werden dabei als Hinweis angezeigt statt stillschweigend
     übernommen oder verworfen.
   </p>
+  <p class="hinweis">
+    <a href="{{ url_for('index') }}">← Zurück zur Datenbank-Suche</a>
+    (falls das System doch schon dort steht).
+  </p>
   <form method="post" enctype="multipart/form-data" class="suchleiste">
     <input type="file" name="datei" accept=".xlsx" required>
     <input type="text" name="q" value="{{ q }}" placeholder="Suche nach MLCS-ID, Systemname, Dok.-Nr., Betrieb ...">
