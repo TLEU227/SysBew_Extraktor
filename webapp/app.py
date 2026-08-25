@@ -424,7 +424,7 @@ HISTORIE_VORLAGEN = [
         "label": "Vorlage 1: Anpassung",
         "text": (
             "Anpassung mit inhaltlicher Überführung der gültigen Systemeinstufung "
-            "AS/BDIS für dieses System (Dok.-Nr.: FRA-BERI-G-011453 / Version 2) in "
+            "AS/BDIS für dieses System (Dok.-Nr.: <Vorgänger-Dok.-Nr. / Version>) in "
             "die Systembewertung gemäß QU-MT-0001344 Version 11. Überführung in das "
             "Dokumenten-Managementsystem QualiPSO.\n\n"
             "Dabei erfolgte keine Änderung der gültigen Bewertungen. Ergänzende "
@@ -434,13 +434,13 @@ HISTORIE_VORLAGEN = [
     {
         "label": "Vorlage 2: Neuerstellung (Papier → QualiPSO)",
         "text": (
-            "Neuerstellung mit inhaltlicher Überführung der gültigen Systemeinstufung "
-            "AS/BDIS für das PLS Lantus (Dok.-Nr.: L_QUA_1143 / Version 4 / "
-            "MLCS-ID: 1193) in die Systembewertung gemäß FRA-FORM-001283 Version 4.0.\n"
+            "Neuerstellung im Rahmen der Überführung der gültigen Systemeinstufung "
+            "AS/BDIS für dieses System (bisher außerhalb von QualiPSO verwaltet, "
+            "Dok.-Nr.: <Vorgänger-Dok.-Nr. / Version>) in die Systembewertung gemäß "
+            "QU-MT-0001344 Version 11 und in das Dokumenten-Managementsystem "
+            "QualiPSO.\n"
             "Dabei erfolgte keine Änderung der gültigen Bewertungen. Ergänzende "
-            "Angaben wurden im Kapitel „Informationen und Bemerkungen“ notiert.\n"
-            "Anpassungen auf Basis der FRA-QU-MT-0001344 (FRA-FORM-001283) Version "
-            "11.0 anlässlich der Qualifizierung für ..."
+            "Angaben wurden im Kapitel „Informationen und Bemerkungen“ notiert."
         ),
     },
 ]
@@ -583,7 +583,7 @@ SONSTIGES_VORLAGEN = [
         "label": "Vorgängerdokument wird ungültig",
         "text": (
             "Mit Freigabe der vorliegenden Systembewertung wird die Systemeinstufung "
-            "(Dok.-Nr.: FRA-BERI-G-011453 / Version 2) ungültig. Die Bewertung des "
+            "(Dok.-Nr.: <Vorgänger-Dok.-Nr. / Version>) ungültig. Die Bewertung des "
             "Equipments erfolgt neu gemäß den Vorgaben von QU-SOP-0021736 "
             "(Qualifizierung von Gebäuden, Einrichtungen und Ausrüstung) und "
             "QU-SOP-0049866 (Validierung computergestützter Systeme)."
