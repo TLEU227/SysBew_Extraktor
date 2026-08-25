@@ -77,7 +77,7 @@ Die Web-Editor-only-Felder (siehe Abschnitt unten) haben dagegen
 | `Version` | — | — | nur beim LESEN eines bestehenden Dokuments relevant (höchste vorhandene Version); für ein neues Dokument irrelevant |
 | `Version_Historie` | ✅ *(Teil von "Dok.-Nr. / Version")* | ✅ | Dokumentenhistorie-Tabelle (Version/Datum) |
 | `Datum` | ✅ *(Teil von "Dok.-Nr. / Version")* | ✅ | Dokumentenhistorie-Tabelle |
-| `Historie` (Grund der Erstellung/Änderung) | ✅ (eigenes Feld + Textbaustein-Vorschläge) | ✅ | Dokumentenhistorie-Tabelle **+** Kapitel 1 ("Grund der Systembewertung" neben Neuerstellung/Änderung) |
+| `Historie` (Grund der Erstellung/Änderung) | ✅ (eigenes Feld + Textbaustein-Vorschläge) | ✅ | NUR Dokumentenhistorie-Tabelle - Kapitel 1 ("Grund der Systembewertung") bekommt seit dem Praxistest-Feedback stattdessen das eigene, kurze Feld `CCNr_Rahmen` (siehe "Web-Editor-only" unten), da dort laut Template nur CC-Nr. + Rahmen der Erstellung erwartet wird, nicht der lange Historie-Text |
 | `Bearbeiter` | — | — | reine Master-Excel-Spalte, keine Zelle im Template |
 | `AS/BDIS-Name` | ✅ | ✅ | Kapitel 1 |
 | `Anlage` | ✅ | ✅ | Kapitel 2 – Zusammenfassungstabelle |
@@ -208,7 +208,7 @@ Identifikation".
 
 ## Web-Editor-only (nicht Teil der Master-Excel)
 
-Diese 15 Felder gibt es **nur** im Web-Editor - kein eigenes
+Diese 16 Felder gibt es **nur** im Web-Editor - kein eigenes
 "zweites DB-Schema", sondern zusätzliche Formularfelder, deren Werte
 zwar ins erzeugte Word-Dokument geschrieben werden, aber (wie
 gewollt) nie eine eigene Master-Excel-Spalte hatten:
@@ -217,7 +217,7 @@ gewollt) nie eine eigene Master-Excel-Spalte hatten:
 `BSO_Abteilung`, `BQR_Abteilung`, `CSQ_Abteilung`, `PR_Andere_Text`,
 `ERES4_SIG_ID_PW`, `ERES4_SIG_BIOMETRISCH`, `ERES4_SIG_TOKEN_PW`,
 `DatenflussAbbildung`, `SystemtypZugang_Begruendung`, `KI_Einsatz_Ja`,
-`KI_Einsatz_Nein`, `KI_Einsatz_Begruendung`.
+`KI_Einsatz_Nein`, `KI_Einsatz_Begruendung`, `CCNr_Rahmen`.
 
 **`KI_Einsatz_Ja`/`KI_Einsatz_Nein`/`KI_Einsatz_Begruendung`** (neu):
 ersetzen `KI-Reifegrad` (`KI1-6`/`KINA`) als Editor-Frage - siehe
@@ -225,6 +225,12 @@ ersetzen `KI-Reifegrad` (`KI1-6`/`KINA`) als Editor-Frage - siehe
 Erzeugen automatisch `KINA` gesetzt und `KI_Einsatz_Begruendung` an
 `KI Bewertung` angehängt; bei "Ja" bleibt `KI1-6`/`KINA` in Kapitel 2
 bewusst leer.
+
+**`CCNr_Rahmen`** (neu): eigenes, kurzes Feld für Kapitel 1 ("Grund
+der Systembewertung") - CC-Nr. + Rahmen der Erstellung (z. B.
+"CC-2024-01234 - Periodic Review"), NICHT der lange Freitext aus
+`Historie` (der landet ausschließlich in der Dokumentenhistorie-
+Tabelle). Direkt im Editor neben "Historie" platziert.
 
 ## Externe Datenquelle: Fill-a-Masterform-Import
 

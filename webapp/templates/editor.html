@@ -38,12 +38,6 @@
                   {{ label }}{% if optionen_hinweise.get(feld) %} ⓘ{% endif %}
                 </label>
               {% endfor %}
-              {% if not item.mehrfachauswahl and not item.hat_na %}
-                <label class="option">
-                  <input type="radio" name="kat__{{ item.name }}" value="" {% if not item.ausgewaehlt %}checked{% endif %}>
-                  — keine Angabe —
-                </label>
-              {% endif %}
             </div>
           </div>
         {% else %}
