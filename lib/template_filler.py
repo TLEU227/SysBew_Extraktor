@@ -1,6 +1,6 @@
 # ============================================================
 # template_filler.py
-# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.3
+# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.4
 #
 # Gegenstueck zu den extract_*-Funktionen in sysbew_common.py: dort
 # werden Werte AUS einem ausgefuellten Dokument GELESEN, hier werden
@@ -180,20 +180,43 @@ def set_cell_text(cell, text):
     (z.B. "<<Vorname Nachname>>") eine andere Schriftart/-groesse als
     der Rest des Dokuments zur Folge. Stattdessen wird der Text in den
     ERSTEN bestehenden Run des ersten Absatzes geschrieben (dessen
-    Formatierung bleibt erhalten), alle weiteren Runs/Absaetze der
-    Zelle werden nur geleert, nicht entfernt."""
+    Formatierung bleibt erhalten); alle weiteren Runs der Zelle werden
+    geleert und zusaetzliche Absaetze anschliessend entfernt (siehe
+    unten).
+
+    Leert dabei bewusst ALLE <w:t>-Textknoten der Zelle direkt per XML
+    (nicht nur ueber Paragraph.runs) - Bugfix: manche Platzhaltertexte
+    enthalten einen <w:hyperlink> (z.B. ein Verweis auf "QU-MT-0001344"
+    in der Dokumentenhistorie-Zeile), dessen Run python-docx's
+    Paragraph.runs NICHT erfasst (nur direkte <w:r>-Kindelemente eines
+    Absatzes, keine ueber <w:hyperlink> verschachtelten). Ohne diesen
+    Direktzugriff bliebe so ein Hyperlink-Textfragment auch nach dem
+    "Leeren" der Zelle stehen.
+
+    Entfernt zusaetzliche Absaetze (2. Zeile und weiter) ANSCHLIESSEND
+    komplett aus der Zelle, statt sie nur zu leeren - Bugfix: mehrere
+    Platzhaltertexte im Leer-Template sind selbst zweizeilig (z.B.
+    "Bezeichnung des Equipments/Systemname:" oder "Hersteller/
+    SW-Ersteller/Lieferant:"), was sonst nach dem Befuellen eine leere
+    Zeile im fertigen Dokument haette stehen lassen. Mehrzeilige WERTE
+    ("\\n" im uebergebenen `text`) sind davon nicht betroffen - die
+    werden ueber Run.text als Zeilenumbruch INNERHALB des ersten Laufs
+    dargestellt, nicht als zusaetzlicher Absatz."""
     text = text or ""
     absaetze = cell.paragraphs
     erster = absaetze[0] if absaetze else None
     if erster is None or not erster.runs:
         cell.text = text  # Fallback: keine Formatierung erkennbar/vorhanden
         return
-    erster.runs[0].text = text
-    for r in erster.runs[1:]:
-        r.text = ""
+    erster_lauf = erster.runs[0]
+    erster_lauf.text = text
+    ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    erster_t = erster_lauf._r.find("w:t", ns)
+    for t in cell._element.findall(".//w:t", ns):
+        if t is not erster_t:
+            t.text = ""
     for p in absaetze[1:]:
-        for r in p.runs:
-            r.text = ""
+        p._p.getparent().remove(p._p)
 
 def replace_in_cell_paragraphs(cell, platzhalter, ersatz):
     """Ersetzt `platzhalter` (Text-Teilstring, z.B. "(Site/Unit)") durch
@@ -286,8 +309,10 @@ def fill_deckblatt_rollen(doc, data):
     }
     for spalte, row_idx in zeilen_je_rolle.items():
         wert = data.get(spalte, "")
-        if wert:
-            set_cell_text(table.rows[row_idx].cells[1], wert)
+        # set_cell_text() bewusst IMMER aufrufen (siehe Bugfix-
+        # Kommentar in fill_kapitel1) - das Leer-Template hat hier den
+        # Platzhalter "<<Vorname Nachname>>" statt einer leeren Zelle.
+        set_cell_text(table.rows[row_idx].cells[1], wert)
         abteilung_feld = _ABTEILUNG_FELD_JE_ROLLE.get(spalte)
         if abteilung_feld:
             abteilung = data.get(abteilung_feld, "")
@@ -352,14 +377,17 @@ def fill_kapitel1(doc, data):
     # Stelle erfassten Grund (Historie/"Grund der Erstellung", siehe
     # auch fill_historie() fuer die Dokumentenhistorie-Tabelle - hier
     # dieselbe Angabe direkt neben Neuerstellung/Änderung).
-    if data.get("Historie"):
-        set_cell_text(table.rows[1].cells[1], data["Historie"])
-
-    if data.get("AS/BDIS-Name"):
-        set_cell_text(table.rows[3].cells[1], data["AS/BDIS-Name"])
-
-    if data.get("Kurzbeschreibung"):
-        set_cell_text(table.rows[4].cells[1], data["Kurzbeschreibung"])
+    # set_cell_text() bewusst IMMER aufrufen, auch bei leerem Feld -
+    # das Leer-Template hat in diesen Zellen keinen Blanko-Platz,
+    # sondern ausgeschriebene Anleitungs-/Beispieltexte ("Bei
+    # Equipment z.B: Laborwaage...", "(Grund: Gemäß CC-Nummer...)"
+    # usw.). Ein "nur schreiben, wenn befuellt" wuerde diese Anleitung
+    # bei fehlender Angabe unbemerkt im fertigen Dokument stehen
+    # lassen, statt die Zelle wie vorgesehen leer zu lassen (Bugfix -
+    # siehe README.md, Versionshistorie).
+    set_cell_text(table.rows[1].cells[1], data.get("Historie") or "")
+    set_cell_text(table.rows[3].cells[1], data.get("AS/BDIS-Name") or "")
+    set_cell_text(table.rows[4].cells[1], data.get("Kurzbeschreibung") or "")
 
     set_checkboxes_in_cell(table.rows[5].cells[1], {
         0: data.get("Offen") == "r",
@@ -383,8 +411,7 @@ def fill_kapitel1(doc, data):
     einsatzbereich = data.get("Betrieb", "")
     if data.get("Gebaeude"):
         einsatzbereich = f"{einsatzbereich}/{data['Gebaeude']}" if einsatzbereich else data["Gebaeude"]
-    if einsatzbereich:
-        set_cell_text(table.rows[6].cells[1], einsatzbereich)
+    set_cell_text(table.rows[6].cells[1], einsatzbereich)
 
     hersteller = data.get("Hersteller", "")
     if data.get("SW-Hersteller") and data["SW-Hersteller"] != hersteller:
@@ -397,8 +424,7 @@ def fill_kapitel1(doc, data):
     if data.get("Lieferantennummer"):
         zusatz = f"QualiPSO-ID: {data['Lieferantennummer']}"
         hersteller = f"{hersteller} / {zusatz}" if hersteller else zusatz
-    if hersteller:
-        set_cell_text(table.rows[7].cells[1], hersteller)
+    set_cell_text(table.rows[7].cells[1], hersteller)
 
 # ============================================================
 # Business Kritikalitaet (Tabelle 4) + GxP-Relevanz (Tabelle 5)
@@ -423,17 +449,17 @@ def fill_gxp_relevanz(doc, data):
 # ============================================================
 def fill_zusammenfassung_text(doc, data):
     table = doc.tables[6]
-    if data.get("MLCSID"):
-        set_cell_text(table.rows[1].cells[3], data["MLCSID"])
-    if data.get("Anlage"):
-        set_cell_text(table.rows[2].cells[3], data["Anlage"])
+    # set_cell_text() bewusst IMMER aufrufen (siehe Bugfix-Kommentar in
+    # fill_kapitel1) - auch diese Zellen haben im Leer-Template
+    # ausgeschriebene Anleitungstexte statt einer leeren Zelle.
+    set_cell_text(table.rows[1].cells[3], data.get("MLCSID") or "")
+    set_cell_text(table.rows[2].cells[3], data.get("Anlage") or "")
 
     schnittstelle = data.get("Schnittstelle") or data.get("UeberlagerteMLCS") or ""
     if data.get("Schnittstelle") and data.get("UeberlagerteMLCS") and \
             data["Schnittstelle"] != data["UeberlagerteMLCS"]:
         schnittstelle = f"{data['Schnittstelle']} / {data['UeberlagerteMLCS']}"
-    if schnittstelle:
-        set_cell_text(table.rows[3].cells[3], schnittstelle)
+    set_cell_text(table.rows[3].cells[3], schnittstelle)
 
     if data.get("Besonderheiten"):
         # Nicht ersetzen, sondern ergaenzen: die Zelle enthaelt im
@@ -511,11 +537,13 @@ def fill_gxp_risikoklassifizierung(doc, data):
         if wert:
             teile.append(f"{label}: {wert}" if not wert.lower().startswith(label.lower()) else wert)
     begruendung = " ".join(teile).strip()
-    if begruendung:
-        set_cell_text(
-            table.rows[2].cells[0],
-            f"Begründung der GxP Risikoklassifizierung: {begruendung}",
-        )
+    # set_cell_text() bewusst IMMER aufrufen (siehe Bugfix-Kommentar in
+    # fill_kapitel1) - das Leer-Template hat hier eine ausfuehrliche
+    # Ausfuell-Anleitung statt einer leeren Zelle.
+    set_cell_text(
+        table.rows[2].cells[0],
+        f"Begründung der GxP Risikoklassifizierung: {begruendung}" if begruendung else "",
+    )
 
 # ============================================================
 # Kapitel 6 (Tabelle 11): ERES-Typ im Detail - dieselbe Auswahl wie
@@ -658,8 +686,12 @@ def fill_historie(doc, data):
     grund = data.get("Historie") or (
         "Neuerstellung" if data.get("Neuerstellung") == "r" else ""
     )
-    if grund:
-        set_cell_text(table.rows[1].cells[1], grund)
+    # set_cell_text() bewusst IMMER aufrufen (siehe Bugfix-Kommentar in
+    # fill_kapitel1) - das Leer-Template hat hier den Beispieltext
+    # "Neuerstellung auf Basis der QU-MT-0001344 Version 11.0, ...",
+    # der ohne Angabe faelschlich stehen bliebe (und bei einer
+    # tatsaechlichen Aenderung/Revision sogar irrefuehrend waere).
+    set_cell_text(table.rows[1].cells[1], grund)
 
 # ============================================================
 # Beschreibungstabelle (Tabelle 16)
@@ -718,9 +750,19 @@ def fill_beschreibungstabelle(doc, data):
         if zusatz:
             werte[excel_col] = f"{werte[excel_col]}\n{zusatz}" if werte[excel_col] else zusatz
 
+    # set_cell_text() bewusst IMMER aufrufen, auch bei leerem Feld -
+    # BUGFIX (siehe README.md, Versionshistorie): das Leer-Template hat
+    # in JEDER dieser 12 Zeilen einen ausgeschriebenen Anleitungs-/
+    # Fragetext in "<...>" (z.B. bei "Audit Trail / Audit Trail
+    # Review:" die komplette, unbeantwortete Frage, bei "Angeschlossene
+    # Equipments:" einen Beispielabsatz mit "<System>"/"<Firmware>").
+    # Ein "nur schreiben, wenn befuellt" liess bislang genau diesen
+    # Anleitungstext unbemerkt im fertigen, offiziellen Dokument stehen,
+    # sobald ein Feld im Editor leer gelassen wurde - keine harmlose
+    # Lücke, sondern falscher/unbeantworteter Inhalt in einer GxP-
+    # Systembewertung.
     for row_idx, excel_col in _BESCHREIBUNG_ZEILEN.items():
-        if werte[excel_col]:
-            set_cell_text(table.rows[row_idx].cells[1], werte[excel_col])
+        set_cell_text(table.rows[row_idx].cells[1], werte[excel_col])
 
 # ============================================================
 # HAUPTFUNKTION
