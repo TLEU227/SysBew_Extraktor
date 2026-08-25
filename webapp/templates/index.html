@@ -13,8 +13,15 @@
   </p>
   <div class="aktionsleiste">
     <a class="knopf" href="{{ url_for('editor_neu') }}">+ Neue leere Systembewertung (ohne Datenbank)</a>
+    <a class="knopf sekundaer" href="{{ url_for('masterform') }}">📥 Stattdessen aus Fill-a-Masterform-Export</a>
     <a class="knopf sekundaer" href="{{ url_for('drafts_uebersicht') }}">📋 Drafts / Zwischenstände</a>
   </div>
+  <p class="hinweis">
+    Steht das System noch nicht in dieser Datenbank? Über "Stattdessen aus
+    Fill-a-Masterform-Export" lässt sich eine Zeile aus einem von dort
+    bereitgestellten Excel-Export als Datenquelle nehmen - der Editor danach
+    ist derselbe wie bei einem Datenbank-Eintrag.
+  </p>
 </div>
 
 <div class="karte">
