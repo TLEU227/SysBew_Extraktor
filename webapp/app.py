@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.16
+# Systembewertung-Editor - Web-Oberflaeche - 1.17
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank"), aus einem hochgeladenen Fill-a-Masterform-Export
@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.16"
+APP_VERSION = "1.17"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -174,9 +174,17 @@ def schliessen_signal():
 #     DOK_NR_VERSION_FELD/_dok_nr_version_kombinieren/_auftrennen unten)
 #     - beides landet inhaltlich zusammen ("Dok.-ID"), daher ein Feld
 #     statt zwei getrennter.
+#   - "KI-Reifegrad" (I-VI/N/A): genau wie "DI EE-Anforderungen" laesst
+#     sich die konkrete Stufe nicht ohne die Detailfragen 9.2-9.5
+#     (Autonomie-/Steuerungsdesign-Stufe) zuverlaessig abfragen. Ersetzt
+#     durch die einfache Frage "Kommt KI zum Einsatz?" (Ja/Nein, siehe
+#     _KATEGORIEN_ZUSATZ) - bei "Ja" bleibt die genaue Stufe wie bei
+#     Kapitel 5 der manuellen Nacharbeit vorbehalten, bei "Nein" wird
+#     automatisch "KINA" gesetzt.
 SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
                "Testtiefe", "Testtiefe-Matrix", "Phenix",
                "DI EE-Anforderungen", "Steuerung erfolgt über?",
+               "KI-Reifegrad",
                "API", "BE", "Raum", "SAP",
                "Bearbeiter", "PLSTA", "Version",
                "SW-Version / Typ:", "SW-Name:", "Version_Historie",
@@ -284,6 +292,24 @@ FELD_HINWEISE = {
     "Lieferantennummer": "QualiPSO-/QTP-Customer-ID des Lieferanten, falls vorhanden.",
     "Historie": "Grund der Erstellung/Änderung - siehe Textbaustein-Vorschläge unten.",
     "Besonderheiten": "Bei Gerätekategorien A, B und C bitte die Subkategorisierung (z. B. B1, C2) nach QU-SOP-0021736 begründen - siehe Textbaustein-Vorschläge unten.",
+    "GxP_Produktqualitaet": (
+        "Begründung der GxP-Risikoklassifizierung (Produktqualität) - Format je nach oben "
+        "gewählter GxP-Kritikalität: „Major, da ...“ / „minor, da ...“ / „N/A, da ...“. "
+        "Bei neuen Systemen ohne GxP-Bezug reicht z. B. „N/A, da nicht GMP-relevant.“ - siehe "
+        "Textbaustein-Vorschlag unten. Wer die Begründung nicht in 3 einzelne Felder aufteilen "
+        "möchte, kann die komplette Begründung hier eintragen und „Patientensicherheit“/"
+        "„Datenintegrität“ leer lassen."
+    ),
+    "GxP_Patientensicherheit": (
+        "Begründung der GxP-Risikoklassifizierung (Patientensicherheit) - gleiches Format wie "
+        "bei „Produktqualität“. Kann leer bleiben, wenn die gesamte Begründung bereits im Feld "
+        "„Produktqualität“ steht."
+    ),
+    "GxP_Datenintegritaet": (
+        "Begründung der GxP-Risikoklassifizierung (Datenintegrität) - gleiches Format wie bei "
+        "„Produktqualität“. Kann leer bleiben, wenn die gesamte Begründung bereits im Feld "
+        "„Produktqualität“ steht."
+    ),
 }
 # Funktion/Rolle je Person (aus den Bestätigungstexten der Deckblatt-
 # Unterschriftentabelle übernommen) - als Hinweis unter dem jeweiligen
@@ -343,6 +369,16 @@ OPTIONEN_HINWEISE = {
     "GKATA": "Mechanisches Equipment/Testhilfsmittel ohne Firmware/Software, bzw. Equipment ohne Mess-/Kontrollfunktion.",
     "GKATB": "Firmware-basiertes System, nicht bzw. eingeschränkt parametrierbar (siehe Kapitel 5.8 für B1/B2/B3).",
     "GKATC": "Software-basiertes, konfigurierbares/programmierbares System (siehe Kapitel 5.6-5.8 für C1/C2/C3).",
+    # Periodic Review (Kapitel 2)
+    "PR_SOP": "QU-SOP-0007359 „Periodic Review für GxP computerisierte Systeme“.",
+    "PR_SOP2": (
+        "QU-SOP-0028559 „Validierung und Lebenszyklus von GxP-Applikationen“ - "
+        "anzuwenden bei Applikationen, also CS-Typ S1 oder S2."
+    ),
+    "PR-Zyklisch": (
+        "QU-SOP-0072260 - regelmäßige Wiederholung der Qualifizierung/Validierung "
+        "in festen Intervallen (kein Kreuz bei CIS und Spreadsheets)."
+    ),
 }
 
 KATEGORIE_HINWEISE = {
@@ -365,6 +401,18 @@ _KATEGORIEN_ZUSATZ = {
             ("ERES4_SIG_TOKEN_PW", "Token und Passwort"),
         ],
         "mehrfachauswahl": True,
+    },
+    # Ersetzt "KI-Reifegrad" (siehe SKIP_FELDER) als einfache Ja/Nein-
+    # Frage (entspricht Kapitel 9.1) - "Nein" setzt beim Erzeugen
+    # automatisch KINA (siehe _dokument_erzeugen_und_senden), "Ja"
+    # laesst die genaue Stufe (Kapitel 2 KI1-6 + Kapitel 9.2-9.5)
+    # bewusst offen fuer die manuelle Nacharbeit.
+    "Kommt KI zum Einsatz?": {
+        "optionen": [
+            ("KI_Einsatz_Ja", "Ja"),
+            ("KI_Einsatz_Nein", "Nein"),
+        ],
+        "mehrfachauswahl": False,
     },
 }
 
@@ -417,6 +465,40 @@ BESONDERHEITEN_VORLAGEN = [
         "label": "Vereinfachte Qualifizierung – C1",
         "text": "Das System wird vereinfacht qualifiziert, da es sich gemäß QU-SOP-0021736 um Gerätekategorie C1 handelt (parametrierbares, jedoch nicht konfigurierbares Software-basiertes System).",
     },
+    # Frueher als fester Anleitungstext im Leer-Template hinterlegt
+    # (mehrere Absaetze, die bei jeder Systembewertung unveraendert
+    # stehen blieben, statt individuell ausgewaehlt werden zu koennen) -
+    # jetzt als eigene Textbaustein-Vorschlaege, analog zu den
+    # uebrigen Vorlagen oben.
+    {
+        "label": "Erstkalibrierung (CE-EE)",
+        "text": "Durch die Einstufung in CE-EE ist eine Erstkalibrierung und Funktionsprüfung des EEs durchzuführen. Dies erfolgt über ein projektspezifisches Formblatt.",
+    },
+    {
+        "label": "Bestandssystem (keine neue Qualifizierung)",
+        "text": "Es handelt sich um ein Bestandssystem, deshalb sind keine neuen Qualifizierungsaktivitäten notwendig.",
+    },
+    {
+        "label": "Begründung - nicht geschäftskritisch",
+        "text": "Begründung angeben, wenn es nicht geschäftskritisch ist.",
+    },
+    {
+        "label": "LCE - Equipment-Anzahl beachten",
+        "text": "LCE mit einem und mit mehreren angeschlossenen Equipments betrachten.",
+    },
+]
+
+# Begruendung der GxP-Risikoklassifizierung (Produktqualitaet/
+# Patientensicherheit/Datenintegritaet) - fuer neue Systeme ohne
+# GxP-Bezug reicht meist diese Standardformulierung je Feld.
+GXP_PRODUKTQUALITAET_VORLAGEN = [
+    {"label": "N/A - nicht GMP-relevant", "text": "N/A, da nicht GMP-relevant."},
+]
+GXP_PATIENTENSICHERHEIT_VORLAGEN = [
+    {"label": "N/A - nicht GMP-relevant", "text": "N/A, da nicht GMP-relevant."},
+]
+GXP_DATENINTEGRITAET_VORLAGEN = [
+    {"label": "N/A - nicht GMP-relevant", "text": "N/A, da nicht GMP-relevant."},
 ]
 
 # Vorschlags-Textbausteine fuer die Felder aus Kapitel 2
@@ -522,6 +604,9 @@ DATENFLUSS_ABBILDUNG_VORLAGEN = [
 TEXTBAUSTEIN_VORLAGEN = {
     "Historie": HISTORIE_VORLAGEN,
     "Besonderheiten": BESONDERHEITEN_VORLAGEN,
+    "GxP_Produktqualitaet": GXP_PRODUKTQUALITAET_VORLAGEN,
+    "GxP_Patientensicherheit": GXP_PATIENTENSICHERHEIT_VORLAGEN,
+    "GxP_Datenintegritaet": GXP_DATENINTEGRITAET_VORLAGEN,
     "Prozessbeschreibung": PROZESSBESCHREIBUNG_VORLAGEN,
     "Daten": DATEN_VORLAGEN,
     "Parameter": PARAMETER_VORLAGEN,
@@ -677,6 +762,32 @@ def baue_formular(data):
                         "ausgewaehlt": [f for f, _ in zusatz["optionen"] if data.get(f) == "r"],
                         "hinweis": "Nur relevant, wenn oben ERES-Typ 4 ausgewählt wurde.",
                     })
+                if feld == "GAMP5 Software-Kategorie":
+                    zusatz = _KATEGORIEN_ZUSATZ["Kommt KI zum Einsatz?"]
+                    items.append({
+                        "art": "kategorie", "name": "Kommt KI zum Einsatz?",
+                        "mehrfachauswahl": zusatz["mehrfachauswahl"],
+                        "optionen": zusatz["optionen"],
+                        "ausgewaehlt": [f for f, _ in zusatz["optionen"] if data.get(f) == "r"],
+                        "hinweis": (
+                            "Ersetzt die Detailfragen 9.2-9.5 (verbotene Praktiken, Autonomie-/"
+                            "Steuerungsdesign-Stufe, Reifegrad) - deren genaue Einstufung lässt "
+                            "sich ohne Entscheidungsbaum nicht zuverlässig abfragen und muss bei "
+                            "„Ja“ nach dem Erzeugen manuell in Kapitel 2 (KI-Reifegrad) und "
+                            "Kapitel 9 ergänzt werden (wie Kapitel 5)."
+                        ),
+                    })
+                    items.append({
+                        "art": "feld", "name": "KI_Einsatz_Begruendung", "typ": "textarea",
+                        "breite": "voll", "rows": 3,
+                        "wert": data.get("KI_Einsatz_Begruendung") or "",
+                        "label": "Begründung (kein KI-Einsatz)",
+                        "hinweis": (
+                            "Nur relevant, wenn oben „Nein“ gewählt wurde - wird beim Erzeugen "
+                            "an das Feld „KI Bewertung“ (Informationen und Bemerkungen) "
+                            "angehängt."
+                        ),
+                    })
             else:
                 # "Breite" der Feldgruppe im CSS-Raster: grosse Freitext-
                 # Felder bekommen die volle Breite, kurze Werte (auch
@@ -807,6 +918,21 @@ def _dokument_erzeugen_und_senden(data, vorschau=False):
     fuer "fertig"-Drafts)."""
     data = dict(data)
     data.setdefault("Erkannte_Version", "V11")
+    # "Kommt KI zum Einsatz?" (siehe _KATEGORIEN_ZUSATZ) -> Kapitel-2-
+    # Checkbox + Begruendung: bei "Nein" wird KINA gesetzt (die genaue
+    # Stufe I-VI wird im Editor nicht mehr abgefragt, siehe SKIP_FELDER)
+    # und eine angegebene Begruendung an "KI Bewertung" angehaengt. Bei
+    # "Ja" bleibt Kapitel 2 (KI1-6) bewusst leer fuer die manuelle
+    # Nacharbeit - fill_kapitel9() erkennt "Ja" trotzdem direkt anhand
+    # von KI_Einsatz_Ja fuer die Kapitel-9.1-Checkbox.
+    if data.get("KI_Einsatz_Nein") == "r":
+        data["KINA"] = "r"
+        for _ki_feld in ("KI1", "KI2", "KI3", "KI4", "KI5", "KI6"):
+            data[_ki_feld] = "c"
+        begruendung = (data.get("KI_Einsatz_Begruendung") or "").strip()
+        if begruendung:
+            bestehend = data.get("KI Bewertung") or ""
+            data["KI Bewertung"] = f"{bestehend}\n{begruendung}" if bestehend else begruendung
     tmp_dir = tempfile.mkdtemp(prefix="sysbew_")
     dateiname = _dateiname_vorschlag(data, vorschau=vorschau)
     ausgabe_pfad = os.path.join(tmp_dir, dateiname)

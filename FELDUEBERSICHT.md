@@ -149,7 +149,7 @@ werden deshalb zusätzlich mitbefüllt).
 | `PR_SOP`, `PR_SOP2`, `PR_Andere`, `PR-Zyklisch` | ✅ (Kategorie "Periodic Review") | nur Kapitel 2; `PR_Andere_Text` (Web-Editor-only) ersetzt den Blanko-Platzhalter hinter `PR_Andere` |
 | `VQ`, `NVQ` | ✅ (Kategorie "Vereinfachte Qualifizierung") | nur Kapitel 2 |
 | `QUAL`, `VAL` | ✅ (Kategorie "Validierung/Qualifizierung nach SOP", Mehrfachauswahl) | nur Kapitel 2 |
-| `KI1-6`, `KINA` | ✅ (Kategorie "KI-Reifegrad") | **+** Kapitel 9.1 (nur die Ja/Nein-Frage "kommt KI zum Einsatz" wird daraus abgeleitet, 9.2-9.5 NICHT) |
+| `KI1-6`, `KINA` | — (nicht mehr direkt im Editor, siehe unten) | **+** Kapitel 9.1 |
 | `TTIEFEHOCH/MITTEL/NIEDRIG`, `Z1S1...Z3S3` | — (nicht im Formular) | **werden automatisch BERECHNET** aus GxP-Kritikalität + GAMP5-Kategorie (`fill_testtiefe`) und in Kapitel 2 + der Z-Felder-Matrix in Kapitel 8 eingetragen - nicht direkt eingelesen |
 
 ## Kapitel 2 – Informationen und Bemerkungen (Beschreibungstabelle)
@@ -208,7 +208,7 @@ Identifikation".
 
 ## Web-Editor-only (nicht Teil der Master-Excel)
 
-Diese 12 Felder gibt es **nur** im Web-Editor - kein eigenes
+Diese 15 Felder gibt es **nur** im Web-Editor - kein eigenes
 "zweites DB-Schema", sondern zusätzliche Formularfelder, deren Werte
 zwar ins erzeugte Word-Dokument geschrieben werden, aber (wie
 gewollt) nie eine eigene Master-Excel-Spalte hatten:
@@ -216,7 +216,15 @@ gewollt) nie eine eigene Master-Excel-Spalte hatten:
 `Ersteller_Abteilung`, `SI_PL_Abteilung`, `TSO_Abteilung`,
 `BSO_Abteilung`, `BQR_Abteilung`, `CSQ_Abteilung`, `PR_Andere_Text`,
 `ERES4_SIG_ID_PW`, `ERES4_SIG_BIOMETRISCH`, `ERES4_SIG_TOKEN_PW`,
-`DatenflussAbbildung`, `SystemtypZugang_Begruendung`.
+`DatenflussAbbildung`, `SystemtypZugang_Begruendung`, `KI_Einsatz_Ja`,
+`KI_Einsatz_Nein`, `KI_Einsatz_Begruendung`.
+
+**`KI_Einsatz_Ja`/`KI_Einsatz_Nein`/`KI_Einsatz_Begruendung`** (neu):
+ersetzen `KI-Reifegrad` (`KI1-6`/`KINA`) als Editor-Frage - siehe
+"Nicht automatisch befüllbare Kapitel" unten. Bei "Nein" wird beim
+Erzeugen automatisch `KINA` gesetzt und `KI_Einsatz_Begruendung` an
+`KI Bewertung` angehängt; bei "Ja" bleibt `KI1-6`/`KINA` in Kapitel 2
+bewusst leer.
 
 ## Externe Datenquelle: Fill-a-Masterform-Import
 
@@ -239,9 +247,18 @@ Endergebnis lässt sich der zugrunde liegende Entscheidungsweg nicht
 eindeutig rekonstruieren (mehrere Antwortpfade können zum selben
 Endergebnis führen - ein Raten wäre in einem GxP-Dokument nicht
 vertretbar). Muss nach dem automatischen Erzeugen manuell in Word
-ergänzt werden. Ebenso die Detailfragen 9.2-9.5 (Kapitel 9, verbotene
-Praktiken/Autonomie-/Steuerungsdesignstufe) - nur 9.1 wird aus dem
-KI-Reifegrad abgeleitet.
+ergänzt werden.
+
+**Kapitel 9** (KI): aus demselben Grund wird im Editor nur die
+einfache Frage "Kommt KI zum Einsatz?" (Ja/Nein, webapp-only
+`KI_Einsatz_Ja`/`KI_Einsatz_Nein`) gestellt statt der konkreten
+`KI-Reifegrad`-Stufe (I-VI) - die lässt sich ohne die Detailfragen
+9.2-9.5 (verbotene Praktiken, Autonomie-/Steuerungsdesignstufe) nicht
+zuverlässig ableiten. "Nein" befüllt automatisch 9.1 + `KINA`
+(Kapitel 2) und hängt eine angegebene Begründung an `KI Bewertung`
+an; "Ja" befüllt nur 9.1 - die genaue Stufe (Kapitel 2 `KI1-6` sowie
+Kapitel 9.2-9.5) bleibt wie Kapitel 5 der manuellen Nacharbeit
+vorbehalten.
 
 ## Wie diese Übersicht erstellt wurde
 
