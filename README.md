@@ -592,6 +592,28 @@ pip install -r webapp/requirements.txt
   (Kapitel 2) und hängt die Begründung an "KI Bewertung" an; "Ja"
   befüllt nur Kapitel 9.1 - die genaue Stufe bleibt wie Kapitel 5 der
   manuellen Nacharbeit vorbehalten.
+- **Fill-a-Masterform-Kachel entfernt**: gab es vorher als eigene,
+  gleichrangige Startseiten-Kachel neben "Neue Systembewertung
+  erstellen" - wirkte redundant, da der Editor danach in beiden
+  Fällen identisch ist. Jetzt nur noch ein Link "Stattdessen aus
+  Fill-a-Masterform-Export" auf der Datenbank-Suche-Seite selbst.
+- **Neues Feld `CCNr_Rahmen`**: Kapitel 1 ("Grund der
+  Systembewertung") bekam bisher fälschlich den langen Freitext aus
+  `Historie` - laut Template ist dort aber nur eine kurze Angabe
+  (CC-Nr. + Rahmen der Erstellung, z. B. "CC-2024-01234 - Periodic
+  Review") vorgesehen. Eigenes Feld direkt neben "Historie" im Editor,
+  `Historie` selbst landet jetzt ausschließlich in der
+  Dokumentenhistorie-Tabelle.
+- **"— keine Angabe —" entfernt**: bei Kategorien ohne eigene
+  N/A-Option (z. B. "GxP-Relevanz", "Business Kritisch",
+  "Neuerstellung/Änderung") bot der Editor bisher zusätzlich eine
+  dritte, im Template so nicht existierende Option "— keine Angabe —"
+  an - ersatzlos gestrichen (ein Draft kann intern weiterhin
+  unbeantwortet bleiben, zeigt dafür aber keine erfundene Option mehr).
+- Neue Textbaustein-Vorschläge: "Critical, da ..."/"Major, da
+  ..."/"minor, da ..." (zusätzlich zum bestehenden "N/A - nicht
+  GMP-relevant") bei allen 3 GxP-Begründungsfeldern; "Kein Equipment
+  angeschlossen" bei "Angeschlossenes Equipment".
 - Getestet: Round-Trip über alle 733 Fill-a-Masterform-Zeilen (0
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).

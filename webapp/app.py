@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.17
+# Systembewertung-Editor - Web-Oberflaeche - 1.18
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank"), aus einem hochgeladenen Fill-a-Masterform-Export
@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.17"
+APP_VERSION = "1.18"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -291,6 +291,12 @@ FELD_HINWEISE = {
     "SW-Hersteller": "Hersteller/Lieferant der Software (falls abweichend vom Equipment-Hersteller).",
     "Lieferantennummer": "QualiPSO-/QTP-Customer-ID des Lieferanten, falls vorhanden.",
     "Historie": "Grund der Erstellung/Änderung - siehe Textbaustein-Vorschläge unten.",
+    "CCNr_Rahmen": (
+        "Kurzangabe für Kapitel 1 (\"Grund der Systembewertung\") - NICHT der lange "
+        "Text aus „Historie“, sondern nur CC-Nr. und der Rahmen der Erstellung, z. B. "
+        "„CC-2024-01234 - Periodic Review“ oder „CC-2024-01234 - Requalifizierung“. "
+        "Siehe Textbaustein-Vorschläge unten."
+    ),
     "Besonderheiten": "Bei Gerätekategorien A, B und C bitte die Subkategorisierung (z. B. B1, C2) nach QU-SOP-0021736 begründen - siehe Textbaustein-Vorschläge unten.",
     "GxP_Produktqualitaet": (
         "Begründung der GxP-Risikoklassifizierung (Produktqualität) - Format je nach oben "
@@ -490,16 +496,19 @@ BESONDERHEITEN_VORLAGEN = [
 
 # Begruendung der GxP-Risikoklassifizierung (Produktqualitaet/
 # Patientensicherheit/Datenintegritaet) - fuer neue Systeme ohne
-# GxP-Bezug reicht meist diese Standardformulierung je Feld.
-GXP_PRODUKTQUALITAET_VORLAGEN = [
+# GxP-Bezug reicht meist diese Standardformulierung je Feld. Bei
+# Critical/Major/minor nur der Formatanfang als Diktier-Starthilfe
+# (siehe FELD_HINWEISE["GxP_Produktqualitaet"]) - der Rest der
+# Begruendung ist fachlich zu individuell fuer eine feste Vorlage.
+_GXP_BEGRUENDUNG_VORLAGEN_BASIS = [
+    {"label": "Critical, da ...", "text": "Critical, da "},
+    {"label": "Major, da ...", "text": "Major, da "},
+    {"label": "minor, da ...", "text": "minor, da "},
     {"label": "N/A - nicht GMP-relevant", "text": "N/A, da nicht GMP-relevant."},
 ]
-GXP_PATIENTENSICHERHEIT_VORLAGEN = [
-    {"label": "N/A - nicht GMP-relevant", "text": "N/A, da nicht GMP-relevant."},
-]
-GXP_DATENINTEGRITAET_VORLAGEN = [
-    {"label": "N/A - nicht GMP-relevant", "text": "N/A, da nicht GMP-relevant."},
-]
+GXP_PRODUKTQUALITAET_VORLAGEN = list(_GXP_BEGRUENDUNG_VORLAGEN_BASIS)
+GXP_PATIENTENSICHERHEIT_VORLAGEN = list(_GXP_BEGRUENDUNG_VORLAGEN_BASIS)
+GXP_DATENINTEGRITAET_VORLAGEN = list(_GXP_BEGRUENDUNG_VORLAGEN_BASIS)
 
 # Vorschlags-Textbausteine fuer die Felder aus Kapitel 2
 # "Informationen und Bemerkungen" - je Feld mehrere typische
@@ -574,6 +583,7 @@ SCHNITTSTELLEN_PLS_VORLAGEN = [
     {"label": "Keine Datenschnittstellen", "text": "Das System besitzt keine Datenschnittstellen."},
 ]
 ANGESCHLOSSENES_EQUIPMENT_VORLAGEN = [
+    {"label": "Kein Equipment angeschlossen", "text": "Kein untergeordnetes Equipment vorhanden/angeschlossen."},
     {"label": "Barcode-Scanner (Honeywell)", "text": "Zur Erfassung der Filter-ID ist das Filtertestgerät mit einem Barcode-Scanner der Fa. Honeywell verbunden."},
     {"label": "Plattformwaage (Sartorius, Profibus DP)", "text": "Zur Erfassung des Gewichts der verarbeiteten Kleingebinde ist das System über Profibus DP mit einer Plattformwaage der Fa. Sartorius verbunden."},
     {"label": "Clamp-On-Durchflussmessung (Sartorius)", "text": "Die Clamp-On-Durchflussmessung ist über eine codierte Steckverbindung mit der dazugehörigen Auswerte-Einheit der Fa. Sartorius verbunden."},
@@ -735,9 +745,6 @@ def baue_formular(data):
                     "mehrfachauswahl": info["mehrfachauswahl"],
                     "optionen": info["optionen"], "ausgewaehlt": ausgewaehlt,
                     "hinweis": KATEGORIE_HINWEISE.get(feld),
-                    # "— keine Angabe —" waere hier redundant, wenn die
-                    # Kategorie ohnehin schon eine eigene N/A-Option hat.
-                    "hat_na": any(label.strip().upper() == "N/A" for _, label in info["optionen"]),
                 })
                 if feld == "Periodic Review":
                     items.append({
@@ -825,6 +832,21 @@ def baue_formular(data):
                         "wert": data.get(abteilung_feld) or "",
                         "label": f"{feld} - Abteilung",
                         "hinweis": FELD_HINWEISE.get(abteilung_feld),
+                    })
+                if feld == "Historie":
+                    # Kapitel 1 "Grund der Systembewertung" erwartet laut
+                    # Template KEINE lange Freitext-Historie, sondern nur
+                    # CC-Nr. + Rahmen der Erstellung (Revalidierung/
+                    # Qualifizierung/Periodic Review usw.) - webapp-only,
+                    # nicht Teil von EXCEL_COLUMNS. Direkt hinter
+                    # "Historie" platziert, da beide denselben Anlass
+                    # beschreiben, nur in unterschiedlicher Ausfuehrlichkeit
+                    # (siehe fill_kapitel1() in template_filler.py).
+                    items.append({
+                        "art": "feld", "name": "CCNr_Rahmen", "typ": "text", "breite": "voll",
+                        "wert": data.get("CCNr_Rahmen") or "",
+                        "label": "CC-Nr. / Rahmen der Erstellung (Kapitel 1)",
+                        "hinweis": FELD_HINWEISE.get("CCNr_Rahmen"),
                     })
                 if feld == "Schnittstellen mit PLS":
                     # Template-Zeile 8 der Beschreibungstabelle

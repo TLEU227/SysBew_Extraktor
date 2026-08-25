@@ -1,6 +1,6 @@
 # ============================================================
 # template_filler.py
-# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.5
+# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.6
 #
 # Gegenstueck zu den extract_*-Funktionen in sysbew_common.py: dort
 # werden Werte AUS einem ausgefuellten Dokument GELESEN, hier werden
@@ -390,10 +390,13 @@ def fill_kapitel1(doc, data):
     })
     # Grund der Systembewertung: ersetzt den Hinweistext "(Grund: Gemäß
     # CC-Nummer und ggf. Text/PR) (CC-Nr. und ggf. Text/PR/Re-
-    # Qualifizierung/Re-Validierung)" durch den bereits an anderer
-    # Stelle erfassten Grund (Historie/"Grund der Erstellung", siehe
-    # auch fill_historie() fuer die Dokumentenhistorie-Tabelle - hier
-    # dieselbe Angabe direkt neben Neuerstellung/Änderung).
+    # Qualifizierung/Re-Validierung)" - erwartet laut Template eine
+    # KURZE Angabe (CC-Nr. + Rahmen der Erstellung, z.B. Revalidierung/
+    # Qualifizierung/Periodic Review), NICHT den langen Freitext aus
+    # "Historie" (der gehoert ausschliesslich in die Dokumentenhistorie-
+    # Tabelle, siehe fill_historie() - wurde hier frueher faelschlich
+    # zusaetzlich eingetragen, siehe README.md Versionshistorie).
+    # Bewusst eigenes webapp-only Feld "CCNr_Rahmen" dafuer.
     # set_cell_text() bewusst IMMER aufrufen, auch bei leerem Feld -
     # das Leer-Template hat in diesen Zellen keinen Blanko-Platz,
     # sondern ausgeschriebene Anleitungs-/Beispieltexte ("Bei
@@ -402,7 +405,7 @@ def fill_kapitel1(doc, data):
     # bei fehlender Angabe unbemerkt im fertigen Dokument stehen
     # lassen, statt die Zelle wie vorgesehen leer zu lassen (Bugfix -
     # siehe README.md, Versionshistorie).
-    set_cell_text(table.rows[1].cells[1], data.get("Historie") or "")
+    set_cell_text(table.rows[1].cells[1], data.get("CCNr_Rahmen") or "")
     set_cell_text(table.rows[3].cells[1], data.get("AS/BDIS-Name") or "")
     set_cell_text(table.rows[4].cells[1], data.get("Kurzbeschreibung") or "")
 
