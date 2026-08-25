@@ -543,6 +543,59 @@ pip install -r webapp/requirements.txt
   Prüfung der betroffenen Zellen mit teils leeren, teils befüllten
   Daten.
 
+### Praxistest-Feedback: weitere Bugfixes + Editor-Verbesserungen
+
+- **Weiterer `set_cell_text()`-Bugfix**: mehrzeilige Platzhalter-
+  Anleitungstexte (z. B. bei "Parameter:", "Daten:",
+  "Benutzerverwaltung:", "KI Bewertung:") haben ihren Zeilenumbruch
+  oft als `<w:br/>` MITTEN in einem späteren Lauf des ersten Absatzes
+  stehen, nicht in einem eigenen Absatz - das bloße Leeren des
+  zugehörigen `<w:t>` ließ den `<w:br/>` selbst stehen und erzeugte
+  dadurch eine leere Zeile bzw. einen überflüssigen Zeilenumbruch am
+  Ende des neuen Werts, selbst bei leerem/einzeiligem Feld. Alle
+  `<w:br/>`/`<w:tab/>`-Elemente außerhalb des ersten (befüllten) Laufs
+  werden jetzt komplett entfernt.
+- **GxP-Begründung jetzt einzeln abfragbar**: `GxP_Produktqualitaet`,
+  `GxP_Patientensicherheit`, `GxP_Datenintegritaet` waren zwar schon
+  immer Master-Excel-Spalten und wurden bei Start aus einem
+  Datenbank-Eintrag automatisch übernommen, tauchten aber nie als
+  eigene Eingabefelder im Editor auf. Jetzt als drei eigene Felder in
+  Kapitel 2 sichtbar (Hinweistext erklärt das erwartete Format
+  „Major, da ...“/„minor, da ...“/„N/A, da ...“ sowie die Möglichkeit,
+  die komplette Begründung stattdessen nur in „Produktqualität“
+  einzutragen).
+- **Periodic Review**: Options-Hinweise (ⓘ) für `PR_SOP`
+  (QU-SOP-0007359 „Periodic Review für GxP computerisierte Systeme“),
+  `PR_SOP2` (QU-SOP-0028559 „Validierung und Lebenszyklus von
+  GxP-Applikationen“ - anzuwenden bei Applikationen, also CS-Typ S1/S2)
+  und `PR-Zyklisch` (QU-SOP-0072260) ergänzt - bisher gab es nur einen
+  Hinweis auf Kategorie-Ebene, nicht je Option.
+- **"Besonderheiten"-Anleitungstext war zu lang**: das Leer-Template
+  hatte hier mehrere Absätze fester Beispielformulierungen (Erst-
+  kalibrierung CE-EE, Bestandssystem, Begründung Geschäftskritikalität,
+  LCE-Equipment-Anzahl) fest hinterlegt, die bei JEDER Systembewertung
+  unverändert vor der eigentlichen Angabe standen. Jetzt nur noch der
+  kurze Subkategorisierungs-Hinweis fest im Template, die Beispiele
+  als eigene Textbaustein-Vorschläge (analog zu den bereits
+  bestehenden "Vereinfachte Qualifizierung – B1/B3/C1").
+- **"Anlage"/"AS/BDIS-Name"-Hinweise präzisiert**: "Anlage" nennt jetzt
+  explizit SAP-/COMOS-Nummer als Beispiel (vorher zu abstrakt
+  formuliert); "AS/BDIS-Name" weist bei Equipment zusätzlich auf die
+  Angabe des zugehörigen Systems/der Produkt-Nummer hin.
+- **Kapitel 9 (KI) vereinfacht**: `KI-Reifegrad` (I-VI/N/A) wird im
+  Editor nicht mehr direkt abgefragt (siehe "Nicht automatisch
+  befüllbare Kapitel" in FELDUEBERSICHT.md - die genaue Stufe lässt
+  sich ohne die Detailfragen 9.2-9.5 nicht zuverlässig ableiten,
+  genau wie bei "DI EE-Anforderungen"). Stattdessen die einfache Frage
+  "Kommt KI zum Einsatz?" (Ja/Nein) + ein Begründungsfeld, das nur bei
+  "Nein" relevant ist. "Nein" setzt automatisch Kapitel 9.1 + `KINA`
+  (Kapitel 2) und hängt die Begründung an "KI Bewertung" an; "Ja"
+  befüllt nur Kapitel 9.1 - die genaue Stufe bleibt wie Kapitel 5 der
+  manuellen Nacharbeit vorbehalten.
+- Getestet: Round-Trip über alle 733 Fill-a-Masterform-Zeilen (0
+  Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
+  Fertigstellen mit den neuen Feldern).
+
 ### Main-Datei + Erweiterungen (aktuelle Architektur)
 
 - Umbau der drei bisher eigenständigen Skripte

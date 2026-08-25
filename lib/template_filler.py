@@ -1,6 +1,6 @@
 # ============================================================
 # template_filler.py
-# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.4
+# Erzeugt eine neue Systembewertung (V11) aus einem Daten-Dict - 1.5
 #
 # Gegenstueck zu den extract_*-Funktionen in sysbew_common.py: dort
 # werden Werte AUS einem ausgefuellten Dokument GELESEN, hier werden
@@ -201,7 +201,16 @@ def set_cell_text(cell, text):
     Zeile im fertigen Dokument haette stehen lassen. Mehrzeilige WERTE
     ("\\n" im uebergebenen `text`) sind davon nicht betroffen - die
     werden ueber Run.text als Zeilenumbruch INNERHALB des ersten Laufs
-    dargestellt, nicht als zusaetzlicher Absatz."""
+    dargestellt, nicht als zusaetzlicher Absatz.
+
+    Entfernt ausserdem <w:br/>/<w:tab/>-Elemente in ANDEREN Laeufen
+    desselben Absatzes komplett - Bugfix: mehrzeilige Platzhalter-
+    Anleitungstexte (z.B. bei "Parameter:") haben ihren Zeilenumbruch
+    oft MITTEN in einem spaeteren Lauf des ERSTEN Absatzes stehen
+    (<w:br/> + <w:t> im selben <w:r>) statt in einem eigenen Absatz -
+    das blosse Leeren des zugehoerigen <w:t> liess den <w:br/> selbst
+    stehen und erzeugte dadurch eine leere Zeile bzw. einen
+    ueberfluessigen Zeilenumbruch am Ende des neuen Werts."""
     text = text or ""
     absaetze = cell.paragraphs
     erster = absaetze[0] if absaetze else None
@@ -210,11 +219,19 @@ def set_cell_text(cell, text):
         return
     erster_lauf = erster.runs[0]
     erster_lauf.text = text
+    # WICHTIG: `Run.text = "a\nb"` legt bei python-docx MEHRERE <w:t>-
+    # Knoten (getrennt durch <w:br/>) INNERHALB desselben Laufs an -
+    # deshalb hier den ganzen ersten Lauf schuetzen (nicht nur einen
+    # einzelnen <w:t>-Knoten), sonst wuerde ein mehrzeiliger Text im
+    # naechsten Schritt gleich wieder selbst geleert (Bugfix).
     ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-    erster_t = erster_lauf._r.find("w:t", ns)
     for t in cell._element.findall(".//w:t", ns):
-        if t is not erster_t:
+        if t.getparent() is not erster_lauf._r:
             t.text = ""
+    for tag in ("w:br", "w:tab"):
+        for el in cell._element.findall(f".//{tag}", ns):
+            if el.getparent() is not erster_lauf._r:
+                el.getparent().remove(el)
     for p in absaetze[1:]:
         p._p.getparent().remove(p._p)
 
@@ -587,18 +604,26 @@ def fill_kapitel7(doc, data):
 # Kapitel 9 (Tabelle 14): 9.1 "Kommt KI zum Einsatz?" - ergibt sich
 # direkt aus der KI-Reifegrad-Auswahl der Zusammenfassungstabelle
 # (Kapitel 2): KINA (N/A) bedeutet kein KI-Einsatz -> "Nein", jede
-# andere Reifegrad-Auswahl (I-VI) bedeutet KI-Einsatz -> "Ja". Die
-# weiteren Detailfragen 9.2-9.5 (verbotene Praktiken, Autonomie-Stufe,
-# Steuerungsdesign-Stufe) haengen von zusaetzlichen Antworten ab, die
-# NICHT aus dem KI-Reifegrad alleine rekonstruierbar sind - werden
-# daher bewusst nicht befuellt (wie Kapitel 5, siehe Modul-Kommentar
-# oben).
+# andere Reifegrad-Auswahl (I-VI) bedeutet KI-Einsatz -> "Ja". Seit dem
+# Wegfall von "KI-Reifegrad" im Web-Editor (siehe SKIP_FELDER in
+# webapp/app.py - die genaue Stufe laesst sich ohne die Detailfragen
+# 9.2-9.5 nicht zuverlaessig abfragen) kommt die Antwort dort direkt
+# ueber die einfachere Ja/Nein-Frage "Kommt KI zum Einsatz?"
+# (webapp-only KI_Einsatz_Ja/KI_Einsatz_Nein) - wird hier zusaetzlich
+# zu KINA/KI1-6 ausgewertet, damit 9.1 auch bei "Ja" ohne konkrete
+# Stufe korrekt "Ja" zeigt. Die weiteren Detailfragen 9.2-9.5
+# (verbotene Praktiken, Autonomie-Stufe, Steuerungsdesign-Stufe)
+# haengen von zusaetzlichen Antworten ab, die daraus NICHT
+# rekonstruierbar sind - werden daher bewusst nicht befuellt (wie
+# Kapitel 5, siehe Modul-Kommentar oben).
 # ============================================================
 def fill_kapitel9(doc, data):
     table = doc.tables[14]
-    if data.get("KINA") == "r":
+    if data.get("KINA") == "r" or data.get("KI_Einsatz_Nein") == "r":
         set_checkboxes_in_cell(table.rows[2].cells[1], {0: True})
-    elif any(data.get(f) == "r" for f in ("KI1", "KI2", "KI3", "KI4", "KI5", "KI6")):
+    elif data.get("KI_Einsatz_Ja") == "r" or any(
+        data.get(f) == "r" for f in ("KI1", "KI2", "KI3", "KI4", "KI5", "KI6")
+    ):
         set_checkboxes_in_cell(table.rows[1].cells[1], {0: True})
 
 # ============================================================

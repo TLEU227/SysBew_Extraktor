@@ -1303,6 +1303,7 @@ VORSCHAU_ABSCHNITTE = [
     ]),
     ("Kapitel 2 – Zusammenfassungstabelle", [
         "GxP-Kritikalität",
+        "GxP_Produktqualitaet", "GxP_Patientensicherheit", "GxP_Datenintegritaet",
         "CS-Typ", "Systemtyp_CE",
         "ERES-Typ",
         "GAMP5 Software-Kategorie",
