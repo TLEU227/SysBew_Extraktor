@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.18
+# Systembewertung-Editor - Web-Oberflaeche - 1.19
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank"), aus einem hochgeladenen Fill-a-Masterform-Export
@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.18"
+APP_VERSION = "1.19"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -389,7 +389,17 @@ OPTIONEN_HINWEISE = {
 
 KATEGORIE_HINWEISE = {
     "Klassifizierung": "Diese Auswahl wird zusätzlich in Kapitel 3 des Dokuments übernommen (Systemeinstufung Globales CS).",
-    "Periodic Review": "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und Spreadsheets).",
+    "Periodic Review": (
+        "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und "
+        "Spreadsheets). PR und ReQ (zyklische Requalifizierung) sind nicht immer leicht "
+        "zu unterscheiden: Nur PR - reines CS ohne qualifizierungspflichtige Hardware: "
+        "ausschließlich PR nach QU-SOP-0007359. Nur ReQ - Equipment ohne GxP-relevanten "
+        "CS-Anteil: ausschließlich zyklische Requalifizierung nach QU-SOP-0072260. "
+        "Beide - qualifizierungspflichtige Hardware KOMBINIERT mit GxP-relevanter "
+        "Software: sowohl ReQ als auch PR (ReQ bewertet die Hardware, PR den CS-Status; "
+        "PR wird im Quality Review der ReQ referenziert - QU-SOP-0072260 Kap. 5.3.1; "
+        "QU-MT-0009673 Kap. 2.6)."
+    ),
     "ERES-Typ": "Diese Auswahl wird zusätzlich in Kapitel 6 des Dokuments übernommen.",
     "GAMP5 Software-Kategorie": "Diese Auswahl wird zusätzlich in Kapitel 7 des Dokuments übernommen.",
     "GxP-Kritikalität": "Diese Auswahl fließt zusammen mit der Software-Kategorie automatisch in die Testtiefe (Kapitel 2 + Kapitel 8) ein.",
@@ -512,28 +522,35 @@ GXP_DATENINTEGRITAET_VORLAGEN = list(_GXP_BEGRUENDUNG_VORLAGEN_BASIS)
 
 # Vorschlags-Textbausteine fuer die Felder aus Kapitel 2
 # "Informationen und Bemerkungen" - je Feld mehrere typische
-# Formulierungen (v.a. fuer PLS-Systeme), die per Knopf im Editor an
-# das Feld angehaengt werden (siehe editor.html), danach frei
-# anpassbar. Beispielhafte Namen/IDs (z.B. "BDIS Lantus (MLCS-ID:
-# 1194)") sind wie vorgegeben uebernommen und muessen beim Verwenden
-# durch die tatsaechlichen Werte des jeweiligen Systems ersetzt werden.
+# Formulierungen. Ausgewaehlt UND priorisiert anhand einer Stichprobe
+# echter, bereits ausgefuellter Systembewertungen (per
+# word_parser_main.py extrahiert) - die haeufigsten wiederkehrenden
+# Formulierungen sind hier hinterlegt. Werden per Knopf im Editor an
+# das Feld angehaengt (siehe editor.html), danach frei anpassbar.
+# WICHTIG: alle system-/dokumentspezifischen Angaben (Systemname,
+# MLCS-ID, SOP-/Dok.-Nr., Fileserver usw.) sind als klar erkennbare
+# Platzhalter "<...>" hinterlegt, NICHT als konkretes Beispiel (z.B.
+# "PLS Lantus") - sonst wird beim Verwenden leicht uebersehen, dass der
+# Wert noch durch den tatsaechlichen des jeweiligen Systems ersetzt
+# werden muss (siehe README.md, Versionshistorie).
 PROZESSBESCHREIBUNG_VORLAGEN = [
     {"label": "PLS (Yokogawa/ABB, MIB)", "text": "Das Prozessleitsystem vom Typ Yokogawa Centum VP / ABB 800xA / ABB Freelance dient der Bedienung und Beobachtung der rezeptorientierten verfahrenstechnischen Herstellprozesse im Multi Insulin Betrieb (MIB) im Gebäude G650."},
-    {"label": "PLS (frei, Yokogawa)", "text": "Der / Die Prozessleitsystem (PLS Lantus) der Fa. Yokogawa dient xxxxxx."},
-    {"label": "Filtertestgerät", "text": "Das Filtertestgerät xxxx dient der Prüfung der Integrität diverser Flüssigkeits- und Gasfilter aus dem GxP-relevanten Umfeld der Wirkstoffproduktion. Hierbei handelt es sich um ein im Fermentationslabor fest installiertes Gerät / Hierbei handelt es sich um ein mobiles Gerät inkl. WIT-Trolley."},
+    {"label": "PLS (frei, Yokogawa)", "text": "Der / Die Prozessleitsystem <Systemname> der Fa. Yokogawa dient <Zweck>."},
+    {"label": "Filtertestgerät", "text": "Das Filtertestgerät <Bezeichnung> dient der Prüfung der Integrität diverser Flüssigkeits- und Gasfilter aus dem GxP-relevanten Umfeld der Wirkstoffproduktion. Hierbei handelt es sich um ein im Fermentationslabor fest installiertes Gerät / Hierbei handelt es sich um ein mobiles Gerät inkl. WIT-Trolley."},
     {"label": "SPS (Siemens S7)", "text": "Die Prozess-Automatisierung erfolgt über eine Speicherprogrammierbare Steuerung (SPS) vom Typ S7-300 / S7-400 / S7-1200 / S7-1500 der Firma Siemens, wobei die Bedienung über ein integriertes Touchpanel (HMI) durchgeführt wird."},
     {"label": "Durchreiche-Maschine", "text": "Die Bedienung der Durchreiche-Maschine erfolgt über zwei baugleiche Bedienpanels (Beladeseite / Entladeseite)."},
-    {"label": "BDIS Lantus", "text": "Die Prozess-Automatisierung erfolgt über das BDIS Lantus (MLCS-ID: 1194). In den Grundlagendokumenten wird die Anlage als Teilanlage N/A verwaltet."},
+    {"label": "Überlagertes BDIS/PLS", "text": "Die Prozess-Automatisierung erfolgt über das <überlagerte BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>). In den Grundlagendokumenten wird die Anlage als Teilanlage <Nr./Bezeichnung> verwaltet."},
     {"label": "Firmware-System (Sartorius/Pall)", "text": "Die automatisierte Durchführung der Filtertests erfolgt über ein Firmware-basiertes System des Herstellers Sartorius / Pall inkl. Bedienpanel."},
     {"label": "Autarkes System (keine Schnittstelle)", "text": "Bezogen auf die Automatisierungstechnik handelt es sich um ein autarkes System ohne Datenschnittstellen zu überlagerten Systemen (z.B. PLS)."},
-    {"label": "Rein mechanisch (kein CS)", "text": "Beim / Bei der Prozessleitsystem (PLS Lantus) handelt es sich um rein mechanisches Equipment ohne Computergestütztes System."},
-    {"label": "Bedien-SOP (Verweis)", "text": "Die organisatorischen Prozesse inkl. Bedienung des / der Prozessleitsystem (PLS Lantus) werden über die N/A „N/A“ (Bedien-SOP) spezifiziert."},
+    {"label": "Rein mechanisch (kein CS)", "text": "Beim / Bei der Prozessleitsystem <Systemname> handelt es sich um rein mechanisches Equipment ohne Computergestütztes System."},
+    {"label": "Bedien-SOP (Verweis)", "text": "Die organisatorischen Prozesse inkl. Bedienung des / der <Anlage/System> werden über die <SOP-Nr.> (Bedien-SOP) spezifiziert."},
 ]
 DATEN_VORLAGEN = [
-    {"label": "Verweis auf Dokument", "text": "Der Umgang mit den GxP-relevanten Daten des / der Prozessleitsystem (PLS Lantus) ist im Dokument xxxx spezifiziert."},
-    {"label": "Keine dauerhafte Speicherung (→ BDIS)", "text": "Es werden keinerlei GxP-relevante Bewegungsdaten (Transactional Data) dauerhaft auf dem System gespeichert. Die Bewegungsdaten (z.B. Trendkurven) werden direkt an das überlagerte BDIS Lantus (MLCS-ID: 1194) übertragen und dort weiter verarbeitet."},
-    {"label": "Ringspeicher (10 Tage)", "text": "Das System besitzt einen Ringspeicher, mit dem die Bewegungsdaten (Transactional Data) für 10 Tage lokal gespeichert werden. Dadurch können im Falle einer Störung am / an der Prozessleitsystem (PLS Lantus) über einen Ersatzprozess die Bewegungsdaten nachträglich übertragen werden."},
-    {"label": "Transfer über USB-Medium", "text": "Da keine Datenschnittstellen vorhanden sind / genutzt werden, erfolgt der Datentransfer über ein freigegebenes USB-Medium gemäß QU-SOP-4711 / betrieblicher Anweisung xxxx."},
+    {"label": "Verweis auf Dokument", "text": "Der Umgang mit den GxP-relevanten Daten des / der <Anlage/System> ist im Dokument <Dok.-Nr.> spezifiziert."},
+    {"label": "Keine dauerhafte Speicherung (→ BDIS)", "text": "Es werden keinerlei GxP-relevante Bewegungsdaten (Transactional Data) dauerhaft auf dem System gespeichert. Die Bewegungsdaten (z.B. Trendkurven) werden direkt an das überlagerte <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) übertragen und dort weiter verarbeitet."},
+    {"label": "Digitales Maschinenlogbuch", "text": "Digitales Maschinenlogbuch & Chargendaten Speicherort: lokal und <Server, z. B. DASP-Server>."},
+    {"label": "Ringspeicher (10 Tage)", "text": "Das System besitzt einen Ringspeicher, mit dem die Bewegungsdaten (Transactional Data) für 10 Tage lokal gespeichert werden. Dadurch können im Falle einer Störung am / an der <Anlage/System> über einen Ersatzprozess die Bewegungsdaten nachträglich übertragen werden."},
+    {"label": "Transfer über USB-Medium", "text": "Da keine Datenschnittstellen vorhanden sind / genutzt werden, erfolgt der Datentransfer über ein freigegebenes USB-Medium gemäß QU-SOP-4711 / betrieblicher Anweisung <Dok.-Nr.>."},
     {"label": "Keine GxP-relevanten Daten", "text": "Das System erzeugt keine GxP-relevanten Daten."},
     {"label": "Archivierung gemäß SOP", "text": "Die Archivierung / Dearchivierung von Bewegungsdaten (Transactional Data) erfolgt über den etablierten Prozess gemäß QU-SOP-0051759 „Planung und Durchführung der Archivierung / Rückübertragung bei Automatisierungs- und Betriebsdatenerfassungssystemen“."},
     {"label": "Backup/Restore gemäß SOP", "text": "Die Konfigurationsdaten (Master Data) des Steuerungssystems können übergangsweise über den etablierten Backup / Restore-Prozess gemäß alter QU-SOP-0017807 „Planung und Durchführung des Backup / Restore von Automatisierungs- und Betriebsdaten-informationssystemen“ wieder hergestellt werden. Im Rahmen der zyklischen Requalifizierung soll das Backup/Restore-Konzept an die neue SOP QU-SOP-0077934 „Campus Frankfurt Backup & Restore“ angepasst werden."},
@@ -541,44 +558,49 @@ DATEN_VORLAGEN = [
 PARAMETER_VORLAGEN = [
     {"label": "Nur erhöhte Benutzerrechte (TM-Prozess)", "text": "Die Parametrierung der Produktionsprozesse ist ausschließlich für Personen mit erhöhten Benutzerrechten möglich (siehe dazu unter „Benutzerverwaltung“). Änderungen werden über den etablierten TM-Prozess gemäß QU-SOP-0041022 „Maßnahmen an technischen Einrichtungen (TM)“ abgebildet."},
     {"label": "Vorqualifizierte Schrittketten", "text": "Die Prozessierung der Anlagenprozesse erfolgt über vorqualifizierte Schrittketten / Methoden. Diese Schrittketten / Methoden sind fest parametriert und können nur mit administrativen Rechten angepasst werden, was über den etablierten TM-Prozess / CC-Prozess abgebildet wird."},
+    {"label": "Rezeptdaten (lokal + Backup)", "text": "Rezeptdaten Speicherort: lokal (Zugriffsgeschützt) und Datensicherung (<Backup-System, z. B. ACRONIS>)."},
     {"label": "Gemäß Funktionsspezifikation PLS", "text": "Die Parametrierung der verschiedenen Softwareobjekte und -Funktionen erfolgt gemäß den Funktionsspezifikationen der PLS-Teilanlagen."},
     {"label": "Fest hinterlegt, nicht parametrierbar", "text": "Die Anlagenprozesse sind im System fest hinterlegt und können nicht parametriert werden."},
-    {"label": "Spezifikation über Bedien-SOP", "text": "Die Spezifikation der Prozessparameter erfolgt über die Bedien-SOP N/A „N/A“ / die Funktionsspezifikation mit der Dok.-Nr. QU-OPE-xxxx."},
+    {"label": "Spezifikation über Bedien-SOP", "text": "Die Spezifikation der Prozessparameter erfolgt über die Bedien-SOP <SOP-Nr.> / die Funktionsspezifikation mit der Dok.-Nr. <Dok.-Nr.>."},
     {"label": "Backup/Restore gemäß SOP", "text": "Im Falle einer schwerwiegenden Anlagenstörung, können die Parameter übergangsweise über den etablierten Backup / Restore-Prozess gemäß alter QU-SOP-0017807 „Planung und Durchführung des Backup / Restore von Automatisierungs- und Betriebsdaten-informationssystemen“ wieder hergestellt werden. Im Rahmen der zyklischen Requalifizierung soll das Backup/Restore-Konzept an die neue SOP QU-SOP-0077934 „Campus Frankfurt Backup & Restore“ angepasst werden."},
 ]
 ALARME_VORLAGEN = [
+    {"label": "Alarmliste im Rahmen der Qualifizierung", "text": "Alarme werden im Rahmen der Qualifizierung in einer Alarmliste definiert und eingestuft."},
     {"label": "Meldung über HMI/Statusampel", "text": "Die GxP-relevanten Alarme werden vom Automatisierungssystem (SPS / HMI) erzeugt und über das lokale Bedienpanel (HMI) gemeldet / Meldeleuchten signalisiert / die in Anlagennähe montierte Statusampel angezeigt."},
-    {"label": "Bildung aus BDIS-Messwerten", "text": "Die GxP-relevanten Alarme werden anhand der an das BDIS Lantus (MLCS-ID: 1194) übertragenen Messwerte / Signale gebildet. Die Verwaltung und Speicherung der Alarmarchive erfolgt exklusiv über das PLS."},
-    {"label": "Übertragung an BDIS (Profibus/Modbus)", "text": "Die GxP-relevanten Alarme werden vom System selbst erzeugt und über Profibus DP / Modbus an das BDIS Lantus (MLCS-ID: 1194) übertragen."},
+    {"label": "Bildung aus BDIS-Messwerten", "text": "Die GxP-relevanten Alarme werden anhand der an das <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) übertragenen Messwerte / Signale gebildet. Die Verwaltung und Speicherung der Alarmarchive erfolgt exklusiv über das PLS."},
+    {"label": "Übertragung an BDIS (Profibus/Modbus)", "text": "Die GxP-relevanten Alarme werden vom System selbst erzeugt und über Profibus DP / Modbus an das <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) übertragen."},
     {"label": "Dokumentation im Chargenprotokoll", "text": "Die GxP-relevanten Alarme werden bei jedem Lauf direkt auf dem papierbasierten Chargenprotokoll dokumentiert."},
-    {"label": "Spezifiziert in Bedien-SOP", "text": "Der Umgang mit den Alarmierungen wird in der Bedien-SOP N/A „N/A“ der Anlage spezifiziert."},
-    {"label": "Betriebsspezifisch gemäß SOP", "text": "Der Umgang mit den Alarmierungen wird betriebsspezifisch über die QU-SOP-0015470 „Handling von Alarmen und Meldungen“ festgelegt (Dok.-Nr. xxxxxx)."},
+    {"label": "Spezifiziert in Bedien-SOP", "text": "Der Umgang mit den Alarmierungen wird in der Bedien-SOP <SOP-Nr.> der Anlage spezifiziert."},
+    {"label": "Betriebsspezifisch gemäß SOP", "text": "Der Umgang mit den Alarmierungen wird betriebsspezifisch über die QU-SOP-0015470 „Handling von Alarmen und Meldungen“ festgelegt (Dok.-Nr. <Dok.-Nr.>)."},
 ]
 CHARGENPROTOKOLL_VORLAGEN = [
     {"label": "Papierbasiert (HAW)", "text": "Es werden keine elektronischen Chargenprotokolle mit dem System erzeugt. Es ist ein papierbasierter Prozess über Herstellanweisungen (HAW) etabliert."},
-    {"label": "PDR über überlagertes BDIS", "text": "Das PLS MIB / PLS Lantus / PLS TEC-Nord 1 / PLS Insultec / PLS FAI stellt Chargendaten dem überlagerten BDIS MIB (MLCS-ID: 815) / BDIS Lantus (MLCS-ID: 1194) / BDIS TEC (MLCS-ID: 1621) zur Verfügung, welches chargenbezogene Prozessdatenreports (PDR) erzeugt."},
+    {"label": "Audit Trail & Chargendaten (lokal + Server)", "text": "Audit Trail & Chargendaten Speicherort: lokal (Zugriffsgeschützt) und <Server, z. B. DASP-Server>."},
+    {"label": "PDR über überlagertes BDIS", "text": "Das <PLS, z. B. „PLS Musterlinie“> stellt Chargendaten dem überlagerten <BDIS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) zur Verfügung, welches chargenbezogene Prozessdatenreports (PDR) erzeugt."},
 ]
 AUDIT_TRAIL_VORLAGEN = [
-    {"label": "Verweis auf Einstufungsdokumente", "text": "Die Festlegungen zum Audit Trail / Audit Trail Review sind für das System in den Dokumenten xxxx „Einstufung von computergestützten Systemen zu E-Record, systemgenerierter Audit Trail und Audit Trail Review“ und xxxx „Festlegungen der Rahmenbedingungen zum Audit Trail Review“ und xxxx „Festlegungen zum Audit-Trail-Review von Bewegungsdaten im xxxx“ spezifiziert."},
-    {"label": "Systemgenerierter AT (Robocopy-Auslagerung)", "text": "Das System besitzt am Bedienpanel (HMI) einen systemgenerierten Audit Trail, der nicht deaktiviert werden kann. Die dabei anfallenden Audit Trail Dateien werden über eine automatisierte Routine (Robocopy-Befehl) zyklisch auf den Fileserver FRASDAT4711 ausgelagert."},
+    {"label": "Maschinenlog (Qualifizierung)", "text": "Die Anlage verfügt über einen Maschinenlog. Das ATR-Konzept wird bei Bedarf im Rahmen der Qualifizierung erarbeitet."},
+    {"label": "Verweis auf Einstufungsdokumente", "text": "Die Festlegungen zum Audit Trail / Audit Trail Review sind für das System in den Dokumenten <Dok.-Nr.> „Einstufung von computergestützten Systemen zu E-Record, systemgenerierter Audit Trail und Audit Trail Review“ und <Dok.-Nr.> „Festlegungen der Rahmenbedingungen zum Audit Trail Review“ und <Dok.-Nr.> „Festlegungen zum Audit-Trail-Review von Bewegungsdaten im <System>“ spezifiziert."},
+    {"label": "Systemgenerierter AT (Robocopy-Auslagerung)", "text": "Das System besitzt am Bedienpanel (HMI) einen systemgenerierten Audit Trail, der nicht deaktiviert werden kann. Die dabei anfallenden Audit Trail Dateien werden über eine automatisierte Routine (Robocopy-Befehl) zyklisch auf den Fileserver <Fileserver-Name> ausgelagert."},
     {"label": "Kein AT (Review über Filtrationsprotokoll)", "text": "Das System besitzt keinen Audit Trail. Der Audit Trail Review erfolgt anhand des Filtrationsprotokolls, welches zu jeder Herstellanweisung (HAW) in Papierform dazu geheftet wird."},
     {"label": "Gemäß SOP QU-SOP-0038830", "text": "Die Audit Trail / Audit Trail Review Prozesse werden gemäß QU-SOP-0038830 „Vorgehensweise zur Definition prozess- und systemspezifischer Audit Trail Review Konzepte“ durchgeführt."},
 ]
 BENUTZERVERWALTUNG_VORLAGEN = [
     {"label": "Personenbezogen gemäß SOP", "text": "Es wird eine personenbezogene Benutzerverwaltung gemäß QU-SOP-0020358 „GxP-Anforderungen an die Zugriffsverwaltung computergestützter Systeme“ implementiert."},
-    {"label": "Verweis auf Benutzeranforderungen", "text": "Die Anforderungen zu Benutzerverwaltung, Systemsicherheit, Virenschutz und Patch-Management können detailliert den Benutzeranforderungen des Systems entnommen werden (Dok.-Nr. xxxx)."},
+    {"label": "Domäne + lokale Notfallverwaltung", "text": "Die Benutzerverwaltung erfolgt über die Domäne. Eine lokale Benutzerverwaltung ist vorhanden und wird für Notfälle verwendet."},
+    {"label": "Verweis auf Benutzeranforderungen", "text": "Die Anforderungen zu Benutzerverwaltung, Systemsicherheit, Virenschutz und Patch-Management können detailliert den Benutzeranforderungen des Systems entnommen werden (Dok.-Nr. <Dok.-Nr.>)."},
     {"label": "Verknüpft mit Pharma-Domäne (I-/DE-Nummer)", "text": "Die lokale Benutzerverwaltung des Systems wird mit einem Anmeldeserver in der Pharma-Domäne von Sanofi verknüpft. Dadurch ist es möglich, sich mit dem Office-Account über die I-Nummer / DE-Nummer am System anzumelden."},
     {"label": "Lokale Notfallaccounts", "text": "Für den Fall, dass der Anmeldeserver nicht verfügbar ist, werden lokale Notfallaccounts installiert, so dass die Anlage jederzeit bedienbar bleibt."},
     {"label": "Gruppenpasswörter", "text": "Es wird eine auf Gruppenpasswörtern basierende Benutzerverwaltung implementiert."},
     {"label": "Technisch nicht möglich", "text": "Die Implementierung einer Benutzerverwaltung ist aus technischen Gründen nicht möglich."},
 ]
 SCHNITTSTELLEN_PLS_VORLAGEN = [
-    {"label": "N/A-Schnittstelle (Serienbrief unvollständig)", "text": "Das System ist über eine N/A Schnittstelle an der Prozessnahen Komponente N/A mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
-    {"label": "Profibus DP", "text": "Das System ist über eine Profibus DP Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
-    {"label": "Modbus TCP", "text": "Das System ist über eine Modbus TCP-Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
-    {"label": "OPC UA", "text": "Das System ist über eine OPC UA-Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
-    {"label": "Remote I/O", "text": "Das System ist über eine Remote I/O-Schnittstelle mit dem überlagerten BDIS Lantus (MLCS-ID: 1194) gekoppelt."},
-    {"label": "Verweis auf Funktionsspezifikation", "text": "Die vollständige und detaillierte Darstellung aller Datenschnittstellen kann der Funktionsspezifikation des Systems entnommen werden (Dok.-Nr. xxxx)."},
+    {"label": "USB organisatorisch verhindert", "text": "Die Nutzung der physikalischen Schnittstellen (USB) ist organisatorisch verhindert."},
+    {"label": "Profibus DP", "text": "Das System ist über eine Profibus DP Schnittstelle mit dem überlagerten <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) gekoppelt."},
+    {"label": "Modbus TCP", "text": "Das System ist über eine Modbus TCP-Schnittstelle mit dem überlagerten <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) gekoppelt."},
+    {"label": "OPC UA", "text": "Das System ist über eine OPC UA-Schnittstelle mit dem überlagerten <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) gekoppelt."},
+    {"label": "Remote I/O", "text": "Das System ist über eine Remote I/O-Schnittstelle mit dem überlagerten <BDIS/PLS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) gekoppelt."},
+    {"label": "Verweis auf Funktionsspezifikation", "text": "Die vollständige und detaillierte Darstellung aller Datenschnittstellen kann der Funktionsspezifikation des Systems entnommen werden (Dok.-Nr. <Dok.-Nr.>)."},
     {"label": "Keine dauerhafte Nutzung", "text": "Es werden keine Datenschnittstellen des Systems für dauerhaften Datenaustausch genutzt."},
     {"label": "Keine Datenschnittstellen", "text": "Das System besitzt keine Datenschnittstellen."},
 ]

@@ -618,6 +618,32 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Textbaustein-Vorschläge anhand echter Systembewertungen überarbeitet
+
+- Alle system-/dokumentspezifischen Beispielwerte in den Textbaustein-
+  Vorschlägen (bisher u. a. "PLS Lantus", "BDIS Lantus (MLCS-ID:
+  1194)", "N/A „N/A“", diverse "xxxx"-Platzhalter) durch klar
+  erkennbare Platzhalter wie `<BDIS/PLS, z. B. „BDIS Musterlinie“>`
+  ersetzt - betraf Prozessbeschreibung, Daten, Alarme,
+  Chargenprotokoll, Benutzerverwaltung, Schnittstellen (mit PLS).
+- Ausgewählt/priorisiert anhand einer Stichprobe von 9 echten, bereits
+  ausgefüllten Systembewertungen (per `word_parser_main.py`
+  extrahiert, keine Master-Excel-Anbindung in dieser Umgebung
+  vorhanden) - neue Textbaustein-Vorschläge für Formulierungen, die
+  dabei mehrfach identisch vorkamen, bisher aber fehlten:
+  "Digitales Maschinenlogbuch" (Daten), "Rezeptdaten (lokal +
+  Backup)" (Parameter), "Alarmliste im Rahmen der Qualifizierung"
+  (Alarme), "Audit Trail & Chargendaten (lokal + Server)"
+  (Chargenprotokoll), "Maschinenlog (Qualifizierung)" (Audit Trail),
+  "Domäne + lokale Notfallverwaltung" (Benutzerverwaltung), "USB
+  organisatorisch verhindert" (Schnittstellen mit PLS).
+- Eine veraltete, aus unvollständigen Alt-Daten stammende Vorlage
+  ("N/A-Schnittstelle (Serienbrief unvollständig)") entfernt.
+- "Periodic Review"-Hinweis um die Abgrenzung PR (QU-SOP-0007359) vs.
+  zyklische Requalifizierung "ReQ" (QU-SOP-0072260) ergänzt - beide
+  können je nach System nötig sein (Hardware + GxP-relevante Software
+  kombiniert), die Unterscheidung ist nicht auf Anhieb offensichtlich.
+
 ### Main-Datei + Erweiterungen (aktuelle Architektur)
 
 - Umbau der drei bisher eigenständigen Skripte
