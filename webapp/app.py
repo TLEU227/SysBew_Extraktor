@@ -1,6 +1,6 @@
 # ============================================================
 # app.py
-# Systembewertung-Editor - Web-Oberflaeche - 1.15
+# Systembewertung-Editor - Web-Oberflaeche - 1.16
 #
 # Erzeugt NEUE Systembewertungen (V11) aus Daten der Master-Excel
 # ("Datenbank"), aus einem hochgeladenen Fill-a-Masterform-Export
@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.15"
+APP_VERSION = "1.16"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -269,13 +269,13 @@ FELD_HINWEISE = {
         "Einfache Darstellung der Datenflüsse - als Grafik direkt im erzeugten Word-Dokument ergänzen "
         "(diese App kann keine Grafiken einfügen), oder per Verweis auf das Feld „Schnittstellen mit PLS“."
     ),
-    "Anlage": "Anlagen-IDs/Equipment-Nr./QC-ID.",
+    "Anlage": "Anlagenkennung - z. B. SAP- oder COMOS-Nummer (auch Equipment-Nr./QC-ID möglich).",
     "Schnittstellen mit PLS": (
         "Beschreibung der Datenschnittstelle(n) zu überlagerten Systemen (z. B. Schnittstellen-Typ + "
         "PNK-Nummer). Wurde diese Beschreibung bereits vollständig per Serienbrief befüllt, kann der "
         "Rest des Textes hier gelöscht werden."
     ),
-    "AS/BDIS-Name": "Bei Equipment z. B. Laborwaage; bei System: Software-/Systemname.",
+    "AS/BDIS-Name": "Bei Equipment z. B. Laborwaage - zusätzlich den Namen des zugehörigen Systems bzw. die Produkt-Nummer angeben; bei System: Software-/Systemname.",
     "Kurzbeschreibung": "Wozu wird das System/Equipment/die Anlage eingesetzt?",
     "Betrieb": "Einsatzort: Site/Organisationseinheit.",
     "Gebaeude": "Gebäude-Kürzel, falls vorhanden.",

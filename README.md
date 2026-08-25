@@ -506,6 +506,43 @@ pip install -r webapp/requirements.txt
   ohne erkennbaren Checkbox-Bezug) werden als Hinweis im Editor
   angezeigt statt automatisch (und ggf. falsch) übernommen zu werden.
 
+### Bugfix: leer gelassene Felder liessen Anleitungstext im Dokument stehen
+
+- **Fehlerbild**: Wurde ein Freitextfeld (z. B. "Audit Trail (AT)",
+  "Angeschlossenes Equipment", aber auch Rollen-Namen, MLCSID,
+  Hersteller, "Grund der Systembewertung" usw.) im Editor leer
+  gelassen, blieb im erzeugten Dokument nicht etwa eine leere Zelle
+  stehen, sondern der interne Anleitungs-/Beispieltext des Leer-
+  Templates (z. B. die komplette, unbeantwortete Frage "<Werden Audit
+  Trail Daten generiert...>" oder "<<Vorname Nachname>>") - `template_
+  filler.py` hat die jeweilige Zelle bisher nur beschrieben, WENN ein
+  Wert vorhanden war (`if data.get(...): set_cell_text(...)`), statt
+  sie bei fehlender Angabe bewusst zu leeren.
+- **Fix**: alle betroffenen Stellen (Deckblatt-Rollen, Kapitel-1-
+  Textfelder, Zusammenfassungstabelle, GxP-Begründung, komplette
+  Beschreibungstabelle "Informationen und Bemerkungen") rufen
+  `set_cell_text()` jetzt immer auf - leere Felder werden dadurch
+  tatsächlich leer, wie es die restliche Dokumentation ohnehin schon
+  beschrieb ("Alles, was auf dem Deckblatt und in der
+  Zusammenfassungstabelle steht, wird vollständig befüllt").
+- Zusätzlicher Bugfix in `set_cell_text()` selbst: Platzhaltertexte,
+  die zweizeilig sind (z. B. "Bezeichnung des Equipments/
+  Systemname:") oder einen Hyperlink enthalten (z. B. der Verweis auf
+  "QU-MT-0001344" in der Dokumentenhistorie-Zeile), liessen bisher
+  eine leere zweite Zeile bzw. ein Hyperlink-Textfragment übrig -
+  zusätzliche Absätze werden jetzt komplett entfernt statt nur
+  geleert, und alle `<w:t>`-Textknoten der Zelle werden direkt per XML
+  geleert (nicht nur über `Paragraph.runs`, das Hyperlink-Runs nicht
+  erfasst).
+- Kapitel 1, Tabelle "Grund der Systembewertung": der linke Rand der
+  zweiten Spalte war im Leer-Template mit einem negativen Einzug
+  versehen (Text ragte über die Spaltengrenze hinaus) - auf 0
+  korrigiert.
+- Getestet: Round-Trip über alle 733 Zeilen einer echten
+  Fill-a-Masterform-Beispieldatei (0 Fehler), gezielte Vorher/Nachher-
+  Prüfung der betroffenen Zellen mit teils leeren, teils befüllten
+  Daten.
+
 ### Main-Datei + Erweiterungen (aktuelle Architektur)
 
 - Umbau der drei bisher eigenständigen Skripte
