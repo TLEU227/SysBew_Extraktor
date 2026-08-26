@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.21"
+APP_VERSION = "1.22"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -133,10 +133,15 @@ def schliessen_signal():
 #     (wird seit 1.1 automatisch aus GxP-Kritikalitaet + Software-
 #     Kategorie berechnet, siehe template_filler.fill_testtiefe)
 #   - Phenix: Phenix-Nummern gibt es laut Fachbereich nicht mehr
-#   - DI EE-Anforderungen: das Ergebnis laesst sich nur ueber den
-#     Entscheidungsbaum in Kapitel 5 korrekt ermitteln, den diese App
-#     nicht abbildet - ein direktes Ankreuzen ohne den Baum waere
-#     Raten und in einem GxP-Dokument nicht vertretbar
+#   - CS-Typ/Gerätekategorie (nur die Buchstaben-Ebene A/B/C - die
+#     Subkategorie B1/B2/B3/C1/C2/C3 bleibt wie bisher "Besonderheiten"
+#     vorbehalten)/DI EE-Anforderungen/Vereinfachte Qualifizierung:
+#     ergeben sich laut Formular ZWINGEND aus dem Entscheidungsbaum in
+#     Kapitel 5 (5.1-5.12) - ein direktes Ankreuzen ohne den Baum wäre
+#     Raten und in einem GxP-Dokument nicht vertretbar. Seit 1.21 wird
+#     der Baum selbst abgefragt (siehe KAPITEL5_KNOTEN/
+#     _kapitel5_ableiten) statt diese 4 Felder komplett auszulassen -
+#     kürzere, geführte Ja/Nein-Fragen statt der vollen Auswahl.
 #   - "Steuerung erfolgt über?": hat keine eigene Frage im Template,
 #     gehoert inhaltlich zur Prozessbeschreibung und wird dort direkt
 #     mit erfasst statt als eigenes Feld abgefragt
@@ -183,7 +188,8 @@ def schliessen_signal():
 #     automatisch "KINA" gesetzt.
 SKIP_FELDER = {"Erkannte_Version", "Python ja/nein", "Systemtyp_CE",
                "Testtiefe", "Testtiefe-Matrix", "Phenix",
-               "DI EE-Anforderungen", "Steuerung erfolgt über?",
+               "CS-Typ", "Gerätekategorie", "DI EE-Anforderungen",
+               "Vereinfachte Qualifizierung", "Steuerung erfolgt über?",
                "KI-Reifegrad",
                "API", "BE", "Raum", "SAP",
                "Bearbeiter", "PLSTA", "Version",
@@ -485,6 +491,449 @@ _KATEGORIEN_ZUSATZ = {
         "mehrfachauswahl": False,
     },
 }
+
+# ============================================================
+# Kapitel 5 - Entscheidungsbaum "Kategorisierung von Equipment/
+# System" (Template Kapitel 5.1-5.12). Die Werte fuer "CS-Typ",
+# "Gerätekategorie" (nur die Buchstaben-Ebene A/B/C - die Subkategorie
+# B1/B2/B3/C1/C2/C3 bleibt wie bisher der "Besonderheiten"-Angabe
+# vorbehalten, siehe FELD_HINWEISE "GKATB"/"GKATC"), "DI EE-
+# Anforderungen" und "Vereinfachte Qualifizierung" ergeben sich laut
+# Formular ZWINGEND aus diesem Baum - ein direktes Ankreuzen ohne den
+# Baum waere Raten (deshalb vorher in SKIP_FELDER, siehe dort). Jetzt
+# stattdessen: Baum durchlaufen (kuerzere Ja/Nein-Fragen mit SOP-
+# Hinweisen), die 4 Felder werden beim Erzeugen automatisch befuellt
+# (siehe _kapitel5_ableiten).
+#
+# KAPITEL5_KNOTEN ist eine Liste von Knoten in Anzeige-Reihenfolge
+# (webapp-only, wie "Globale CS-Klasse" oben - sysbew_common.
+# VORSCHAU_ABSCHNITTE/MEHRFACHAUSWAHL_KATEGORIEN bleiben unangetastet,
+# die Konsolen-/Einlese-Seite kennt/braucht diesen Baum nicht). Jeder
+# Knoten wird unten automatisch in eine eigene Kategorie in
+# _KATEGORIEN_ZUSATZ uebersetzt - Rendering/Speichern laeuft dadurch
+# ueber die normale kat__-Infrastruktur (formular_auswerten), ohne
+# Sonderfaelle.
+#
+# "naechste": Knoten-ID, zu der die Editor-JS bei dieser Antwort
+# weiterspringt (None = dieser Ast ist an dieser Antwort zu Ende -
+# "ergebnis" ist dann der Klartext-Hinweis, was das fuer CS-Typ/
+# Gerätekategorie/Kapitel 6-9 bedeutet). Die Knoten-Daten + die
+# Editor-JS kennen NUR Anzeige-Reihenfolge und Klartext - die
+# eigentliche Uebersetzung in die echten Excel-Felder macht
+# ausschliesslich _kapitel5_ableiten() (reines Python, serverseitig),
+# damit die fachliche Logik nur an einer Stelle steht.
+# ============================================================
+KAPITEL5_KNOTEN = [
+    {
+        "id": "5.1", "feld": "K5_1",
+        "frage": "5.1 - Verfügt das Equipment über Firmware/Software oder handelt es sich um ein System?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.2"},
+            {"wert": "nein", "label": "Nein", "naechste": None,
+             "ergebnis": "Mechanisches Equipment · Gerätekategorie A · Vereinfachte Qualifizierung (QU-SOP-0021736) · Ende der Systembewertung (Kapitel 6-9 nicht relevant).",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]},
+        ],
+    },
+    {
+        "id": "5.2", "feld": "K5_2",
+        "frage": "5.2 - Handelt es sich um ein Spreadsheet (z. B. MS Excel) oder eine einfache Applikation (z. B. Skript)?",
+        "hinweis": "Klassifizierung siehe QU-SOP-0028559.",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.2a"},
+            {"wert": "nein", "label": "Nein", "naechste": "5.3"},
+        ],
+    },
+    {
+        "id": "5.2a", "feld": "K5_2_TYP",
+        "frage": "5.2 - Welcher Typ (CS des Typs S)?",
+        "optionen": [
+            {"wert": "s0", "label": "S0 - Verwendung einfacher Formeln", "naechste": None,
+             "ergebnis": "CS-Typ S0 · Verifizierung bei jedem Einsatz · Ende der Systembewertung (Kapitel 6-9 nicht relevant).",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]},
+            {"wert": "s1", "label": "S1 - Applikation ohne Datenspeicherung", "naechste": None,
+             "ergebnis": "CS-Typ S1 · Validierung nach QU-SOP-0028559 · weiter mit Kapitel 7 (GAMP relevant, ERES/Kapitel 6 nicht - keine Datenspeicherung).",
+             "versteckt": ["ERES-Typ"]},
+            {"wert": "s2", "label": "S2 - Applikation mit Datenspeicherung", "naechste": None,
+             "ergebnis": "CS-Typ S2 · Validierung nach QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+        ],
+    },
+    {
+        "id": "5.3", "feld": "K5_3",
+        "frage": "5.3 - Besteht das System lediglich aus Software ohne steuerbare Elemente (z. B. SAP, EDS, PRODIS, MES)?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": None,
+             "ergebnis": "CS-Typ CIS · Validierung nach QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+            {"wert": "nein", "label": "Nein", "naechste": "5.4"},
+        ],
+    },
+    {
+        "id": "5.4", "feld": "K5_4",
+        "frage": "5.4 - Ist das System/Gerät ein Testhilfsmittel?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": None,
+             "ergebnis": "Testhilfsmittel · Gerätekategorie A (QU-SOP-0021736) · Ende der Systembewertung (Kapitel 6-9 nicht relevant).",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]},
+            {"wert": "nein", "label": "Nein", "naechste": "5.5"},
+        ],
+    },
+    {
+        "id": "5.5", "feld": "K5_5",
+        "frage": "5.5 - Hat das System/Gerät eine Mess- oder Kontrollfunktion bzw. verfügt es über eine Firm- oder Software?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.6"},
+            {"wert": "nein", "label": "Nein", "naechste": None,
+             "ergebnis": "Equipment ohne Mess-/Kontrollfunktion · Gerätekategorie A (QU-SOP-0021736) · Ende der Systembewertung (Kapitel 6-9 nicht relevant).",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]},
+        ],
+    },
+    {
+        "id": "5.6", "feld": "K5_6",
+        "frage": "5.6 - Ist die Programmierung von Systemfunktionen möglich?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.6a"},
+            {"wert": "nein", "label": "Nein", "naechste": "5.7"},
+        ],
+    },
+    {
+        "id": "5.6a", "feld": "K5_6_TYP",
+        "frage": "5.6 - Prozesskontrolle/-lenkung/-analyse (PCS) oder Steuerung von Analysegeräten (LCE)?",
+        "optionen": [
+            {"wert": "pcs", "label": "PCS - Prozesskontrolle/-lenkung/-analyse", "naechste": None,
+             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C3 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+            {"wert": "lce", "label": "LCE - steuert Analysegerät(e)", "naechste": None,
+             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C3 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+        ],
+    },
+    {
+        "id": "5.7", "feld": "K5_7",
+        "frage": (
+            "5.7 - Sind Änderungen der Systemkonfiguration oder GxP-Parameter möglich, die einen "
+            "direkten Einfluss auf GxP-relevante Prozessdaten, -ablauf oder -entscheidung haben?"
+        ),
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.7a"},
+            {"wert": "nein", "label": "Nein", "naechste": "5.8"},
+        ],
+    },
+    {
+        "id": "5.7a", "feld": "K5_7_TYP",
+        "frage": "5.7 - PCS oder LCE?",
+        "optionen": [
+            {"wert": "pcs", "label": "PCS - Prozesskontrolle/-lenkung/-analyse", "naechste": None,
+             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C2 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+            {"wert": "lce", "label": "LCE - steuert Analysegerät(e)", "naechste": None,
+             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C2 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+        ],
+    },
+    {
+        "id": "5.8", "feld": "K5_8",
+        "frage": "5.8 - Sind Änderungen der Parameter möglich?",
+        "hinweis": "DI-EE-Anforderungen (P1/P2) gemäß QU-OPE-0372772.",
+        "optionen": [
+            {"wert": "nein", "label": "Nein", "naechste": "5.9",
+             "ergebnis": "Gerätekategorie B."},
+            {"wert": "ja_ohne_einfluss", "label": "Ja - ohne Einfluss auf GxP-Prozessdaten/-Dokumentation/-Entscheidung/-Prozess/-Methode", "naechste": "5.9",
+             "ergebnis": "DI-EE-Anforderung P1 · Gerätekategorie B3 (ggf. C1 gemäß QU-SOP-0021736, je nach Umfang der Änderung)."},
+            {"wert": "ja_gering", "label": "Ja - mit geringfügigem Einfluss auf GxP-Prozessdaten/-Dokumentation oder -Entscheidung (kein Einfluss auf Prozess/Methodik)", "naechste": "5.9",
+             "ergebnis": "DI-EE-Anforderung P2 · Gerätekategorie B3 (ggf. C1 gemäß QU-SOP-0021736, je nach Umfang der Änderung)."},
+        ],
+    },
+    {
+        "id": "5.9", "feld": "K5_9",
+        "frage": "5.9 - Wird das System von einem anderen System gesteuert?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": None,
+             "ergebnis": "„Kontrolliertes Electronic Equipment (EE)“ · CS-Typ CE-EE · Gerätekategorie B (Qualifizierung als Teil der CS-Validierung des übergeordneten Systems) · weiter mit Kapitel 9 (KI) - Kapitel 6/7 (ERES/GAMP) nicht relevant.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
+            {"wert": "nein", "label": "Nein", "naechste": "5.10"},
+        ],
+    },
+    {
+        "id": "5.10", "feld": "K5_10",
+        "frage": "5.10 - Generiert das System GxP-relevante Daten? (auch Ablesedaten gehören dazu)",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.11",
+             "ergebnis": "DI-EE-Anforderung P3 (QU-OPE-0372772)."},
+            {"wert": "nein", "label": "Nein", "naechste": None,
+             "ergebnis": "„Einfaches unabhängiges Electronic Equipment (EE)“ · CS-Typ CE-EE · Gerätekategorie B (ggf. C1 gemäß QU-SOP-0021736) · weiter mit Kapitel 9 (KI) - Kapitel 6/7 (ERES/GAMP) nicht relevant.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
+        ],
+    },
+    {
+        "id": "5.11", "feld": "K5_11",
+        "frage": "5.11 - Können GxP-Prozessdaten durch einen Anwender verändert werden?",
+        "optionen": [
+            {"wert": "ja", "label": "Ja", "naechste": "5.12",
+             "ergebnis": "DI-EE-Anforderung P2 (QU-OPE-0372772)."},
+            {"wert": "nein", "label": "Nein", "naechste": "5.12"},
+        ],
+    },
+    {
+        "id": "5.12", "feld": "K5_12", "mehrfach": True,
+        "frage": "5.12 - Wo werden elektronische GxP-Prozessdaten gespeichert? (Mehrfachauswahl möglich)",
+        "hinweis": (
+            "Siehe QU-OPE-0372772. Sind durch die Mehrfachauswahl mehrere CS-Typen möglich, wird "
+            "automatisch der mit dem höheren Qualifizierungs-/Validierungsumfang gewählt "
+            "(lokal-dauerhaft > alle anderen)."
+        ),
+        "optionen": [
+            {"wert": "lokal_dauerhaft", "label": "lokal-dauerhaft", "naechste": "5.12a",
+             "ergebnis": "„Computerised Equipment“ (wie PCS/LCE)."},
+            {"wert": "lokal_temporaer", "label": "lokal-temporär (Ringspeicher/flüchtiger Speicher)", "naechste": None,
+             "ergebnis": "DI-EE-Anforderungen P4 + P2 · „einfaches unabhängiges EE“ · CS-Typ CE-EE · Gerätekategorie B · weiter mit Kapitel 9 (KI) - Kapitel 6/7 nicht relevant.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
+            {"wert": "anderes_system", "label": "anderes System (dauerhafte Speicherung auf validiertem System)", "naechste": None,
+             "ergebnis": "DI-EE-Anforderung P2 · „einfaches unabhängiges EE“ · CS-Typ CE-EE · Gerätekategorie C (QU-SOP-0021736) · weiter mit Kapitel 9 (KI) - Kapitel 6/7 nicht relevant.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
+            {"wert": "papier_pdf", "label": "Papier/PDF (Ausdruck)", "naechste": None,
+             "ergebnis": "DI-EE-Anforderung P2 · „einfaches unabhängiges EE“ · CS-Typ CE-EE · Gerätekategorie B (ggf. C gemäß QU-SOP-0021736) · weiter mit Kapitel 9 (KI) - Kapitel 6/7 nicht relevant.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
+        ],
+    },
+    {
+        "id": "5.12a", "feld": "K5_12_TYP",
+        "frage": "5.12 - PCS oder LCE?",
+        "optionen": [
+            {"wert": "pcs", "label": "PCS - Prozesskontrolle/-lenkung/-analyse", "naechste": None,
+             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C (QU-SOP-0021736) · Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant, keine DI-EE-Anforderungen mehr - volle CS-Validierung ersetzt diese)."},
+            {"wert": "lce", "label": "LCE - steuert Analysegerät(e)", "naechste": None,
+             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C (QU-SOP-0021736) · Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant, keine DI-EE-Anforderungen mehr - volle CS-Validierung ersetzt diese)."},
+        ],
+    },
+]
+
+# Normalisiert KAPITEL5_KNOTEN einmalig: "kategorie" = eindeutiger
+# Kategorie-/kat__-Name je Knoten, "vollfeld" je Option = tatsaechlich
+# uebermitteltes Options-Feld (z.B. "K5_1_ja") - von
+# _kapitel5_kategorien() UND der Editor-JS (siehe kapitel5_baum_json
+# in editor.html) gemeinsam genutzt, damit die Zuordnung Knoten<->
+# Options-Feld nur hier an einer Stelle berechnet wird.
+for _knoten in KAPITEL5_KNOTEN:
+    _knoten["kategorie"] = f"Kapitel {_knoten['id']}"
+    for _opt in _knoten["optionen"]:
+        _opt["vollfeld"] = f"{_knoten['feld']}_{_opt['wert']}"
+
+def _kapitel5_kategorien():
+    """Baut aus KAPITEL5_KNOTEN die Kategorie-Eintraege fuer
+    _KATEGORIEN_ZUSATZ - ein Knoten pro Kategorie."""
+    return {
+        knoten["kategorie"]: {
+            "optionen": [(opt["vollfeld"], opt["label"]) for opt in knoten["optionen"]],
+            "mehrfachauswahl": bool(knoten.get("mehrfach")),
+        }
+        for knoten in KAPITEL5_KNOTEN
+    }
+
+_KATEGORIEN_ZUSATZ.update(_kapitel5_kategorien())
+
+def _kapitel5_formular_items(data):
+    """Baut die Formular-Items fuer den Kapitel-5-Baum (eigener
+    Abschnitt, siehe baue_formular) - ein Item pro Knoten, mit
+    "baum_knoten" fuer die Editor-JS (progressive Ein-/Ausblendung +
+    Live-Ergebnisanzeige, siehe editor.html)."""
+    items = []
+    for knoten in KAPITEL5_KNOTEN:
+        info = _KATEGORIEN_ZUSATZ[knoten["kategorie"]]
+        ausgewaehlt = [f for f, _ in info["optionen"] if data.get(f) == "r"]
+        items.append({
+            "art": "kategorie", "name": knoten["kategorie"], "titel": knoten["frage"],
+            "mehrfachauswahl": info["mehrfachauswahl"], "optionen": info["optionen"],
+            "ausgewaehlt": ausgewaehlt, "hinweis": knoten.get("hinweis"),
+            "baum_knoten": knoten["id"],
+        })
+    return items
+
+_CS_TYP_FELDER = ["Systemtyp_CIS", "Subtyp_LCE", "Subtyp_PCS", "Subtyp_EE",
+                  "VNAP_S0", "VNAP_S1", "VNAP_S2", "Subtyp_NA"]
+_GKAT_FELDER = {"A": "GKATA", "B": "GKATB", "C": "GKATC", "N/A": "GKATNA"}
+_DI_EE_ALLE = ["EE_P1", "EE_P2", "EE_P3", "EE_P4", "EE_NA"]
+
+# Kategorien, die je nach erreichtem Kapitel-5-Ast nicht relevant sind
+# (siehe KAPITEL5_KNOTEN "ergebnis"-Texte "Kapitel 6/7 nicht relevant"
+# bzw. "Ende der Systembewertung") - werden dann automatisch auf ihre
+# N/A-Option gesetzt statt unbeantwortet zu bleiben.
+_KAPITEL5_NA_FELD = {
+    "ERES-Typ": "ERESTYPNA",
+    "GAMP5 Software-Kategorie": "KATNA",
+    "Kommt KI zum Einsatz?": "KI_Einsatz_Nein",
+}
+
+def _kapitel5_ableiten(data):
+    """Leitet CS-Typ/Gerätekategorie (nur Buchstabe A/B/C)/DI-EE-
+    Anforderungen/Vereinfachte Qualifizierung aus den Antworten des
+    Kapitel-5-Baums ab (siehe KAPITEL5_KNOTEN) - ersetzt das direkte
+    Ankreuzen dieser 4 Felder (siehe SKIP_FELDER). Gibt ein Dict
+    {Feldname: "r"/"c", ...} zurück, das in `data` gemerged wird -
+    LEER, wenn Frage 5.1 noch unbeantwortet ist (Baum noch nicht
+    angefasst), damit ein bestehender Datenbank-Eintrag beim
+    Bearbeiten NICHT zurückgesetzt wird, solange niemand den Baum
+    durchläuft. Ebenso LEER (keine Änderung), solange ein begonnener
+    Ast noch nicht vollständig bis zu einem Endpunkt durchlaufen ist -
+    die Ausgabe aktualisiert sich dadurch immer erst dann, wenn ein
+    Ast wirklich zu Ende ist (siehe editor.html: dieselbe Regel gilt
+    für die Live-Ergebnisanzeige).
+
+    Enthält zusätzlich unter "_versteckt" die Namen der Kategorien
+    (ERES-Typ/GAMP5 Software-Kategorie/Kommt KI zum Einsatz?), die der
+    erreichte Ast als nicht relevant markiert - diese werden vom
+    Aufrufer automatisch auf ihre N/A-Option gesetzt."""
+    if data.get("K5_1_ja") != "r" and data.get("K5_1_nein") != "r":
+        return {}
+
+    ziel = {}
+
+    def cs_typ(feld):
+        for f in _CS_TYP_FELDER:
+            ziel[f] = "r" if f == feld else "c"
+
+    def geraetekategorie(buchstabe):
+        for b, f in _GKAT_FELDER.items():
+            ziel[f] = "r" if b == buchstabe else "c"
+
+    def vereinfachte_qualifizierung(ja):
+        ziel["VQ"] = "r" if ja else "c"
+        ziel["NVQ"] = "c" if ja else "r"
+
+    def di_ee(aktive=()):
+        aktive = set(aktive) or {"EE_NA"}
+        for f in _DI_EE_ALLE:
+            ziel[f] = "r" if f in aktive else "c"
+
+    # 5.1
+    if data.get("K5_1_nein") == "r":
+        cs_typ("Subtyp_NA"); geraetekategorie("A")
+        vereinfachte_qualifizierung(True); di_ee()
+        ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]
+        return ziel
+
+    # 5.1 == ja -> 5.2
+    if data.get("K5_2_ja") == "r":
+        if data.get("K5_2_TYP_s0") == "r":
+            cs_typ("VNAP_S0"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]
+            return ziel
+        if data.get("K5_2_TYP_s1") == "r":
+            cs_typ("VNAP_S1"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ"]
+            return ziel
+        if data.get("K5_2_TYP_s2") == "r":
+            cs_typ("VNAP_S2"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        return {}  # 5.2a noch nicht beantwortet
+    if data.get("K5_2_nein") != "r":
+        return {}  # 5.2 noch nicht beantwortet
+
+    # 5.3
+    if data.get("K5_3_ja") == "r":
+        cs_typ("Systemtyp_CIS"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
+        return ziel
+    if data.get("K5_3_nein") != "r":
+        return {}
+
+    # 5.4
+    if data.get("K5_4_ja") == "r":
+        cs_typ("Subtyp_NA"); geraetekategorie("A"); vereinfachte_qualifizierung(False); di_ee()
+        ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]
+        return ziel
+    if data.get("K5_4_nein") != "r":
+        return {}
+
+    # 5.5
+    if data.get("K5_5_nein") == "r":
+        cs_typ("Subtyp_NA"); geraetekategorie("A"); vereinfachte_qualifizierung(False); di_ee()
+        ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]
+        return ziel
+    if data.get("K5_5_ja") != "r":
+        return {}
+
+    # 5.6
+    if data.get("K5_6_ja") == "r":
+        if data.get("K5_6_TYP_pcs") == "r":
+            cs_typ("Subtyp_PCS"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        if data.get("K5_6_TYP_lce") == "r":
+            cs_typ("Subtyp_LCE"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        return {}
+    if data.get("K5_6_nein") != "r":
+        return {}
+
+    # 5.7
+    if data.get("K5_7_ja") == "r":
+        if data.get("K5_7_TYP_pcs") == "r":
+            cs_typ("Subtyp_PCS"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        if data.get("K5_7_TYP_lce") == "r":
+            cs_typ("Subtyp_LCE"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        return {}
+    if data.get("K5_7_nein") != "r":
+        return {}
+
+    # 5.8 - traegt DI-EE weiter, schliesst selbst keinen Ast ab
+    ee_flaggen = set()
+    if data.get("K5_8_ja_ohne_einfluss") == "r":
+        ee_flaggen.add("EE_P1")
+    elif data.get("K5_8_ja_gering") == "r":
+        ee_flaggen.add("EE_P2")
+    elif data.get("K5_8_nein") != "r":
+        return {}  # 5.8 noch nicht beantwortet
+
+    # 5.9
+    if data.get("K5_9_ja") == "r":
+        cs_typ("Subtyp_EE"); geraetekategorie("B"); vereinfachte_qualifizierung(False)
+        di_ee(ee_flaggen)
+        ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
+        return ziel
+    if data.get("K5_9_nein") != "r":
+        return {}
+
+    # 5.10
+    if data.get("K5_10_nein") == "r":
+        cs_typ("Subtyp_EE"); geraetekategorie("B"); vereinfachte_qualifizierung(False); di_ee(ee_flaggen)
+        ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
+        return ziel
+    if data.get("K5_10_ja") == "r":
+        ee_flaggen.add("EE_P3")
+    else:
+        return {}  # 5.10 noch nicht beantwortet
+
+    # 5.11
+    if data.get("K5_11_ja") == "r":
+        ee_flaggen.add("EE_P2")
+    elif data.get("K5_11_nein") != "r":
+        return {}  # 5.11 noch nicht beantwortet
+
+    # 5.12 (Mehrfachauswahl)
+    dauerhaft = data.get("K5_12_lokal_dauerhaft") == "r"
+    temporaer = data.get("K5_12_lokal_temporaer") == "r"
+    anderes = data.get("K5_12_anderes_system") == "r"
+    papier = data.get("K5_12_papier_pdf") == "r"
+    if not (dauerhaft or temporaer or anderes or papier):
+        return {}  # 5.12 noch nicht beantwortet
+
+    if dauerhaft:
+        # "lokal-dauerhaft" gewinnt laut Hinweistext gegen die anderen
+        # 3 Optionen (hoeherer Qualifizierungs-/Validierungsumfang) -
+        # volle CS-Validierung ersetzt die DI-EE-Anforderungen.
+        if data.get("K5_12_TYP_pcs") == "r":
+            cs_typ("Subtyp_PCS"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        if data.get("K5_12_TYP_lce") == "r":
+            cs_typ("Subtyp_LCE"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            return ziel
+        return {}  # 5.12a noch nicht beantwortet
+
+    if temporaer:
+        ee_flaggen.update({"EE_P4", "EE_P2"})
+    if anderes:
+        ee_flaggen.add("EE_P2")
+    if papier:
+        ee_flaggen.add("EE_P2")
+    cs_typ("Subtyp_EE"); geraetekategorie("C" if anderes else "B")
+    vereinfachte_qualifizierung(False); di_ee(ee_flaggen)
+    ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
+    return ziel
 
 # Vorschlags-Textbausteine fuer Historie ("Grund der Erstellung") und
 # Besonderheiten - werden per Knopf im Editor in das jeweilige Feld
@@ -850,6 +1299,17 @@ def baue_formular(data):
     kategorien = _kategorien_lookup()
     abschnitte = []
     for titel, felder in common.VORSCHAU_ABSCHNITTE:
+        if titel == "Kapitel 2 – Zusammenfassungstabelle":
+            # Kapitel 5 (Entscheidungsbaum) bestimmt CS-Typ/
+            # Gerätekategorie/DI-EE-Anforderungen/Vereinfachte
+            # Qualifizierung fuer Kapitel 2 - deshalb direkt davor
+            # eingefuegt (webapp-only Abschnitt, siehe
+            # _kapitel5_formular_items/KAPITEL5_KNOTEN;
+            # common.VORSCHAU_ABSCHNITTE bleibt unangetastet).
+            abschnitte.append((
+                "Kapitel 5 – Kategorisierung von Equipment/System",
+                _kapitel5_formular_items(data),
+            ))
         items = []
         for feld in felder:
             if feld in SKIP_FELDER:
@@ -1066,6 +1526,24 @@ def _dokument_erzeugen_und_senden(data, vorschau=False):
     fuer "fertig"-Drafts)."""
     data = dict(data)
     data.setdefault("Erkannte_Version", "V11")
+    # Kapitel 5 (Entscheidungsbaum, siehe KAPITEL5_KNOTEN) -> CS-Typ/
+    # Gerätekategorie/DI-EE-Anforderungen/Vereinfachte Qualifizierung
+    # + welche Folgekategorien (ERES-Typ/GAMP5/KI) laut erreichtem Ast
+    # nicht relevant sind. Muss VOR dem "Kommt KI zum Einsatz?"-Block
+    # unten laufen, da ein "Kapitel 6-9 nicht relevant"-Ast dort
+    # automatisch KI_Einsatz_Nein setzt.
+    _k5_ergebnis = _kapitel5_ableiten(data)
+    _k5_versteckt = _k5_ergebnis.pop("_versteckt", None)
+    data.update(_k5_ergebnis)
+    if _k5_versteckt:
+        kategorien = _kategorien_lookup()
+        for _kat_name in _k5_versteckt:
+            na_feld = _KAPITEL5_NA_FELD.get(_kat_name)
+            info = kategorien.get(_kat_name)
+            if not na_feld or not info:
+                continue
+            for _feld, _ in info["optionen"]:
+                data[_feld] = "r" if _feld == na_feld else "c"
     # "Kommt KI zum Einsatz?" (siehe _KATEGORIEN_ZUSATZ) -> Kapitel-2-
     # Checkbox + Begruendung: bei "Nein" wird KINA gesetzt (die genaue
     # Stufe I-VI wird im Editor nicht mehr abgefragt, siehe SKIP_FELDER)
@@ -1239,6 +1717,16 @@ def editor_neu():
     draft_id = draft_store.create_draft(data, session["user"], titel="Neue Systembewertung")
     return redirect(url_for("editor", draft_id=draft_id))
 
+@app.route("/kapitel5-baum")
+def kapitel5_baum_ansehen():
+    """Rein informative Referenzseite: zeigt den kompletten Kapitel-5-
+    Entscheidungsbaum als einfache, verschachtelte Liste (Klartext,
+    kein Formular) - zur Absicherung/Nachvollziehbarkeit, WIE die
+    Fragen im Editor zu CS-Typ/Gerätekategorie/DI-EE-Anforderungen/
+    Vereinfachte Qualifizierung führen. Nicht nötig zum Ausfüllen
+    selbst (siehe Link im Editor)."""
+    return render_template("kapitel5_baum.html", baum=KAPITEL5_KNOTEN)
+
 # ============================================================
 # Editor (Weg 2)
 # ============================================================
@@ -1254,6 +1742,7 @@ def editor(draft_id):
     return render_template(
         "editor.html", draft=draft, formular=formular,
         textbaustein_vorlagen=TEXTBAUSTEIN_VORLAGEN,
+        kapitel5_baum_json=json.dumps(KAPITEL5_KNOTEN, ensure_ascii=False).replace("</", "<\\/"),
     )
 
 @app.route("/editor/<draft_id>/speichern", methods=["POST"])

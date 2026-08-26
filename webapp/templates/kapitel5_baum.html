@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titel %}Kapitel 5 - Entscheidungsbaum{% endblock %}
+{% block inhalt %}
+<div class="karte">
+  <h1>Kapitel 5 - Entscheidungsbaum "Kategorisierung von Equipment/System"</h1>
+  <p class="hinweis">
+    Reine Referenzseite (Klartext, kein Formular) - zeigt den kompletten Baum, wie er im
+    Editor unter "Kapitel 5" Schritt für Schritt abgefragt wird. Nicht nötig zum Ausfüllen
+    selbst - die Fragen im Editor blenden sich automatisch passend ein/aus.
+  </p>
+  {% for knoten in baum %}
+    <div class="karte" style="margin-left: 1em;">
+      <h3>{{ knoten.frage }}</h3>
+      {% if knoten.hinweis %}<p class="hinweis">{{ knoten.hinweis }}</p>{% endif %}
+      <ul>
+        {% for opt in knoten.optionen %}
+          <li>
+            <strong>{{ opt.label }}</strong>
+            {% if opt.ergebnis %} → {{ opt.ergebnis }}{% endif %}
+            {% if opt.naechste %} → weiter mit Frage {{ opt.naechste }}{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
