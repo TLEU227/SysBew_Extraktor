@@ -295,17 +295,17 @@ Struktur + `TEMPLATE_VERSION` in `lib/template_filler.py` hochsetzen +
 Round-Trip-Test) erfolgt über eine Code-Änderung (Claude Code
 hinzuziehen) - niemals durch bloßes Austauschen der Datei.
 
-**Bekannte Einschränkung:** Kapitel 3 (Detailfestlegung Klasse
-1a/1b), Kapitel 5-9 (Entscheidungsbaum Gerätekategorie/CS-Typ/ERES-Typ/
-KI) und die Testtiefe-Matrix (Kapitel 8) werden **nicht** automatisch
-befüllt - aus dem in der Master-Excel gespeicherten Endergebnis lässt
-sich der zugrunde liegende Entscheidungsweg nicht eindeutig
-rekonstruieren (mehrere Antwortpfade können zum selben Endergebnis
-führen). Ein Raten wäre in einem GxP-Dokument nicht vertretbar - diese
-Kapitel müssen nach dem automatischen Erzeugen manuell in Word
-ergänzt werden. Alles, was auf dem Deckblatt und in der
-Zusammenfassungstabelle (Kapitel 2) steht, wird dagegen vollständig
-befüllt.
+**Bekannte Einschränkung:** Seit der Kapitel-5-Baum-Umsetzung (siehe
+"Web-Editor: neue Systembewertungen erstellen" unten) werden Kapitel
+1-8 (inkl. Kapitel 3 Klasse 1a/1b, Kapitel 5 CS-Typ/Gerätekategorie/
+DI-EE-Anforderungen/Vereinfachte Qualifizierung, Testtiefe-Matrix
+Kapitel 8) vollständig automatisch befüllt. Einzige verbleibende
+Ausnahme: Kapitel 9.2-9.5 (verbotene Praktiken/Stufe der Autonomie/
+Steuerungsdesign-Stufe/Reifegrad I-VI bei KI-Einsatz) - dafür gibt es
+im Template keinen vergleichbar eindeutigen Entscheidungsbaum, ein
+Raten wäre in einem GxP-Dokument nicht vertretbar. Der Editor fragt
+hier nur "Kommt KI zum Einsatz?" (Ja/Nein) ab; bei "Ja" bleibt die
+genaue Einstufung der manuellen Nacharbeit in Word vorbehalten.
 
 ## Dekodierter Export (Prototyp für externe Tools)
 
@@ -617,6 +617,56 @@ pip install -r webapp/requirements.txt
 - Getestet: Round-Trip über alle 733 Fill-a-Masterform-Zeilen (0
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
+
+### Kapitel 5 (Entscheidungsbaum) in die Eingabe aufgenommen
+
+- Bisher komplett ausgelassen (siehe SKIP_FELDER-Kommentar, alte
+  Version): "CS-Typ", "Gerätekategorie", "DI EE-Anforderungen" und
+  "Vereinfachte Qualifizierung" ließen sich ohne den
+  Entscheidungsbaum aus Kapitel 5 (5.1-5.12) nicht zuverlässig direkt
+  ankreuzen - ein Raten wäre in einem GxP-Dokument nicht vertretbar
+  gewesen. Jetzt: der Baum selbst wird als eigener Abschnitt "Kapitel
+  5 - Kategorisierung von Equipment/System" (zwischen Kapitel 1 und
+  Kapitel 2) abgefragt, kurze geführte Ja/Nein-Fragen mit SOP-
+  Hinweisen statt der vollen Auswahl - die 4 Felder ergeben sich
+  automatisch daraus (`webapp/app.py` `_kapitel5_ableiten()`,
+  KAPITEL5_KNOTEN).
+- Fragen blenden sich im Editor progressiv ein/aus (nur die laut
+  bisherigen Antworten erreichbaren werden angezeigt) - eine Live-
+  Ergebnisanzeige erscheint erst, sobald ein Ast **vollständig**
+  durchlaufen ist (Klartext, z. B. "CS-Typ CE-PCS · Gerätekategorie C3
+  · weiter mit Kapitel 6"). "ERES-Typ"/"GAMP5 Software-Kategorie"/
+  "Kommt KI zum Einsatz?" blenden sich zusätzlich automatisch aus,
+  wenn der erreichte Ast sie als nicht relevant markiert (z. B.
+  Electronic-Equipment-Pfade landen direkt bei Kapitel 9, ohne
+  ERES/GAMP) - werden dann beim Erzeugen automatisch auf ihre N/A-
+  Option gesetzt.
+- Nur die genaue Subkategorie (B1/B2/B3, C1/C2/C3) bleibt wie bisher
+  der Angabe in "Besonderheiten" vorbehalten - der Baum liefert nur
+  die Buchstaben-Ebene A/B/C. An 4 Stellen ist im Template selbst der
+  Buchstabe nicht eindeutig (z. B. "Gerätekategorie B3 oder C1" je
+  nach Umfang der Änderung) - dort wird eine sinnvolle Vorbelegung
+  gesetzt und im Ergebnistext ausdrücklich als "ggf. anpassen gemäß
+  QU-SOP-0021736" gekennzeichnet, statt eine zusätzliche Frage
+  einzublenden.
+- **Rückwärtskompatibel beim Bearbeiten bestehender Einträge:**
+  solange die erste Frage (5.1) nicht beantwortet ist, bleiben
+  vorhandene CS-Typ/Gerätekategorie/DI-EE/Vereinfachte-Qualifizierung-
+  Werte eines Datenbank-Eintrags unverändert erhalten (`
+  _kapitel5_ableiten()` gibt dann ein leeres Dict zurück) - der Baum
+  überschreibt sie erst, sobald ein Ast tatsächlich zu Ende
+  durchlaufen wird. Ebenso bleiben unvollständig begonnene Äste ohne
+  Wirkung (keine Zwischenstände).
+- Neue Referenzseite `/kapitel5-baum` (Link im Editor): zeigt den
+  kompletten Baum als einfache Klartext-Liste - nicht nötig zum
+  Ausfüllen, dient nur der Nachvollziehbarkeit.
+- Getestet: 9 repräsentative Antwortpfade gegen `_kapitel5_ableiten()`
+  (inkl. unberührter Baum -> keine Änderung, unvollständiger Ast ->
+  keine Änderung, DI-EE-Anforderungen werden bei vollem CS-Pfad über
+  "lokal-dauerhaft" korrekt auf N/A zurückgesetzt statt vorherige
+  P-Flags mitzuschleppen), Round-Trip über alle 737 Zeilen der echten
+  Master-Excel (0 Fehler), Flask-Testclient (Editor-Rendering +
+  Referenzseite).
 
 ### Kapitel 3 (Globales CS) stufig in der Eingabe abgebildet
 

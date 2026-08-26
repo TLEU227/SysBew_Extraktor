@@ -273,25 +273,30 @@ zugeordnet werden.
 
 ## Nicht automatisch befüllbare Kapitel (bewusste Lücke)
 
-**Kapitel 5** (Entscheidungsbaum Gerätekategorie/CS-Typ selbst, inkl.
-der zugehörigen Ja/Nein-Antworten) wird **nicht** automatisch
-befüllt - aus dem in der Zusammenfassungstabelle gespeicherten
-Endergebnis lässt sich der zugrunde liegende Entscheidungsweg nicht
-eindeutig rekonstruieren (mehrere Antwortpfade können zum selben
-Endergebnis führen - ein Raten wäre in einem GxP-Dokument nicht
-vertretbar). Muss nach dem automatischen Erzeugen manuell in Word
-ergänzt werden.
+**Kapitel 5** (Entscheidungsbaum "Kategorisierung von Equipment/
+System", 5.1-5.12) wird seit der Baum-Umsetzung im Editor als eigener
+Abschnitt "Kapitel 5 - Kategorisierung von Equipment/System" (zwischen
+Kapitel 1 und Kapitel 2) selbst abgefragt - kurze geführte Ja/Nein-
+Fragen statt der direkten Auswahl von "CS-Typ"/"Gerätekategorie"/
+"DI EE-Anforderungen"/"Vereinfachte Qualifizierung", die sich
+automatisch aus den Antworten ergeben (siehe `webapp/app.py`
+`KAPITEL5_KNOTEN`/`_kapitel5_ableiten()`). Nur die genaue
+Subkategorie (B1/B2/B3, C1/C2/C3) bleibt weiterhin der Angabe in
+"Besonderheiten" vorbehalten - der Baum liefert nur die Buchstaben-
+Ebene A/B/C. Beim Bearbeiten eines bestehenden Datenbank-Eintrags
+bleiben vorhandene Werte unangetastet, solange die erste Frage (5.1)
+nicht beantwortet wird.
 
-**Kapitel 9** (KI): aus demselben Grund wird im Editor nur die
-einfache Frage "Kommt KI zum Einsatz?" (Ja/Nein, webapp-only
-`KI_Einsatz_Ja`/`KI_Einsatz_Nein`) gestellt statt der konkreten
-`KI-Reifegrad`-Stufe (I-VI) - die lässt sich ohne die Detailfragen
-9.2-9.5 (verbotene Praktiken, Autonomie-/Steuerungsdesignstufe) nicht
-zuverlässig ableiten. "Nein" befüllt automatisch 9.1 + `KINA`
-(Kapitel 2) und hängt eine angegebene Begründung an `KI Bewertung`
-an; "Ja" befüllt nur 9.1 - die genaue Stufe (Kapitel 2 `KI1-6` sowie
-Kapitel 9.2-9.5) bleibt wie Kapitel 5 der manuellen Nacharbeit
-vorbehalten.
+**Kapitel 9** (KI): weiterhin die einfache Frage "Kommt KI zum
+Einsatz?" (Ja/Nein, webapp-only `KI_Einsatz_Ja`/`KI_Einsatz_Nein`)
+statt der konkreten `KI-Reifegrad`-Stufe (I-VI) - anders als Kapitel 5
+gibt es für Kapitel 9.2-9.5 (verbotene Praktiken, Autonomie-/
+Steuerungsdesignstufe, Reifegrad) im Template keinen vergleichbar
+eindeutigen Entscheidungsbaum, ein Raten wäre in einem GxP-Dokument
+nicht vertretbar. "Nein" befüllt automatisch 9.1 + `KINA` (Kapitel 2)
+und hängt eine angegebene Begründung an `KI Bewertung` an; "Ja"
+befüllt nur 9.1 - die genaue Stufe (Kapitel 2 `KI1-6` sowie Kapitel
+9.2-9.5) bleibt der manuellen Nacharbeit vorbehalten.
 
 ## Wie diese Übersicht erstellt wurde
 

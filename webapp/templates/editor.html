@@ -7,10 +7,13 @@
     Status: {{ draft.status }} · zuletzt gespeichert von {{ draft.geaendert_von }} ({{ draft.geaendert_am }})
   </p>
   <p class="hinweis warnung">
-    ⚠️ Kapitel 5 (Entscheidungsbaum Gerätekategorie/CS-Typ) wird NICHT automatisch
-    befüllt und muss nach dem Erzeugen manuell in Word ergänzt werden - siehe README.md.
-    Alle anderen Kapitel (inkl. 3, 6, 7, 8 sowie die Testtiefe) werden aus den unten
-    gemachten Angaben automatisch mitbefüllt.
+    ⚠️ Kapitel 5 ("Kategorisierung von Equipment/System") wird unten als eigener,
+    geführter Fragenblock abgefragt - CS-Typ/Gerätekategorie/DI-EE-Anforderungen/
+    Vereinfachte Qualifizierung ergeben sich automatisch daraus und müssen NICHT mehr
+    manuell nachgetragen werden. Nur die genaue Subkategorie (z. B. B1/B2/B3, C1/C2/C3)
+    bleibt der Angabe in "Besonderheiten" vorbehalten. Alle anderen Kapitel (inkl. 3, 6,
+    7, 8 sowie die Testtiefe) werden ebenfalls aus den unten gemachten Angaben
+    automatisch mitbefüllt.
   </p>
   <p class="hinweis warnung">
     ⚠️ Dieser Editor schreibt NICHT in die Master-Excel - er erzeugt nur das
@@ -26,8 +29,9 @@
       <div class="feldraster">
       {% for item in items %}
         {% if item.art == 'kategorie' %}
-          <div class="feldgruppe voll">
-            <label class="feldgruppe-titel">{{ item.name }}</label>
+          <div class="feldgruppe voll" id="kategorie-{{ item.name }}"
+               {% if item.baum_knoten %}data-baum-knoten="{{ item.baum_knoten }}"{% endif %}>
+            <label class="feldgruppe-titel">{{ item.titel or item.name }}</label>
             {% if item.hinweis %}<small class="kategorie-hinweis">{{ item.hinweis }}</small>{% endif %}
             <div class="optionen">
               {% for feld, label in item.optionen %}
@@ -61,6 +65,12 @@
         {% endif %}
       {% endfor %}
       </div>
+      {% if titel == "Kapitel 5 – Kategorisierung von Equipment/System" %}
+        <div id="kapitel5-ergebnis" class="hinweis info" style="display:none"></div>
+        <p class="hinweis">
+          <a href="{{ url_for('kapitel5_baum_ansehen') }}" target="_blank">🌳 Gesamten Entscheidungsbaum ansehen (Referenz, nicht nötig zum Ausfüllen)</a>
+        </p>
+      {% endif %}
       <div class="aktionsleiste">
         <button type="submit" formaction="{{ url_for('editor_speichern', draft_id=draft.id) }}" class="knopf klein">💾 Zwischenspeichern</button>
       </div>
@@ -110,5 +120,100 @@
   setInterval(function () {
     fetch("{{ url_for('editor_heartbeat', draft_id=draft.id) }}", {method: "POST"});
   }, 60000);
+
+  // Kapitel 5 (Entscheidungsbaum "Kategorisierung von Equipment/
+  // System"): progressive Ein-/Ausblendung + Live-Ergebnisanzeige.
+  // Die eigentliche Uebersetzung in CS-Typ/Gerätekategorie/DI-EE-
+  // Anforderungen/Vereinfachte Qualifizierung passiert ausschliesslich
+  // serverseitig (webapp/app.py _kapitel5_ableiten) beim Speichern/
+  // Erzeugen - hier NUR Anzeige, rein informativ. Baumdaten kommen 1:1
+  // aus KAPITEL5_KNOTEN (siehe webapp/app.py).
+  (function () {
+    var baum = {{ kapitel5_baum_json | safe }};
+    if (!baum || !baum.length) return;
+    var knotenById = {};
+    baum.forEach(function (k) { knotenById[k.id] = k; });
+
+    // Kategorien, die je nach erreichtem Ast nicht relevant sind
+    // (siehe Options-Schluessel "versteckt" in KAPITEL5_KNOTEN) -
+    // werden hier nur AUSGEBLENDET, nicht verändert; die serverseitige
+    // Ableitung setzt die zugehörige N/A-Option beim Erzeugen ohnehin
+    // verbindlich, unabhängig vom sichtbaren Zwischenstand hier.
+    function alleVersteckbarenKategorien() {
+      var namen = {};
+      baum.forEach(function (k) {
+        k.optionen.forEach(function (o) {
+          (o.versteckt || []).forEach(function (n) { namen[n] = true; });
+        });
+      });
+      return Object.keys(namen);
+    }
+    var versteckbareKategorien = alleVersteckbarenKategorien();
+
+    function kapitel5Aktualisieren() {
+      document.querySelectorAll("[data-baum-knoten]").forEach(function (div) {
+        div.style.display = "none";
+      });
+      var ergebnisTexte = [];
+      var versteckt = {};
+      var aktuelleId = "5.1";
+      var abgeschlossen = false;
+      var schutz = 0;
+      while (aktuelleId && schutz < 100) {
+        schutz++;
+        var knoten = knotenById[aktuelleId];
+        if (!knoten) break;
+        var div = document.querySelector('[data-baum-knoten="' + aktuelleId + '"]');
+        if (div) div.style.display = "";
+        var inputs = div ? div.querySelectorAll("input") : [];
+        var gewaehlt = [];
+        inputs.forEach(function (inp) { if (inp.checked) gewaehlt.push(inp.value); });
+        if (!gewaehlt.length) break;  // Knoten (noch) unbeantwortet - Ast endet hier
+        if (knoten.mehrfach) {
+          // 5.12-Sonderfall: Mehrfachauswahl, aber nur EINE Option
+          // (die mit "naechste") bestimmt den weiteren Astverlauf -
+          // laut Formular-Hinweis die mit hoeherem Qualifizierungs-/
+          // Validierungsumfang (steht als erste Option im Knoten).
+          var pfadOption = null;
+          knoten.optionen.forEach(function (o) {
+            if (gewaehlt.indexOf(o.vollfeld) === -1) return;
+            if (o.ergebnis) ergebnisTexte.push(o.ergebnis);
+            (o.versteckt || []).forEach(function (n) { versteckt[n] = true; });
+            if (!pfadOption && o.naechste) pfadOption = o;
+          });
+          if (!pfadOption) { abgeschlossen = true; aktuelleId = null; break; }
+          aktuelleId = pfadOption.naechste;
+        } else {
+          var opt = null;
+          for (var i = 0; i < knoten.optionen.length; i++) {
+            if (knoten.optionen[i].vollfeld === gewaehlt[0]) { opt = knoten.optionen[i]; break; }
+          }
+          if (!opt) break;
+          if (opt.ergebnis) ergebnisTexte.push(opt.ergebnis);
+          (opt.versteckt || []).forEach(function (n) { versteckt[n] = true; });
+          aktuelleId = opt.naechste;
+          if (!aktuelleId) abgeschlossen = true;
+        }
+      }
+      var panel = document.getElementById("kapitel5-ergebnis");
+      if (panel) {
+        if (abgeschlossen && ergebnisTexte.length) {
+          panel.style.display = "";
+          panel.innerHTML = "<strong>Ergebnis:</strong> " + ergebnisTexte.join(" ");
+        } else {
+          panel.style.display = "none";
+        }
+      }
+      versteckbareKategorien.forEach(function (name) {
+        var kdiv = document.getElementById("kategorie-" + name);
+        if (kdiv) kdiv.style.display = versteckt[name] ? "none" : "";
+      });
+    }
+
+    document.querySelectorAll("[data-baum-knoten] input").forEach(function (inp) {
+      inp.addEventListener("change", kapitel5Aktualisieren);
+    });
+    kapitel5Aktualisieren();
+  })();
 </script>
 {% endblock %}
