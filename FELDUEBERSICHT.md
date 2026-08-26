@@ -8,7 +8,7 @@ automatisch erzeugten Word-Dokument (und wo genau)?
 Datenbank - die Master-Excel (`Systembewertungen_GESAMT.xlsx`,
 Sheet `SysBew`). Ihre komplette Spaltenliste steht in
 `lib/sysbew_common.py` als `EXCEL_COLUMNS` (143 Spalten). Zusätzlich
-kennt **nur der Web-Editor** (`webapp/app.py`) 12 weitere Felder, die
+kennt **nur der Web-Editor** (`webapp/app.py`) 17 weitere Felder, die
 es in der Master-Excel nicht gibt (siehe Abschnitt "Web-Editor-only"
 unten) - kein zweites Datenbank-Schema, nur ein paar zusätzliche
 Formularfelder für Angaben, die im Template gebraucht werden, aber in
@@ -121,12 +121,27 @@ Die Web-Editor-only-Felder (siehe Abschnitt unten) haben dagegen
 | `KLASS_Multisite` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
 | `KLASS_Multisite_NurLokal` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
 | `KLASS_Multisite_LokalGlobal` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
-| `KLASS_Global` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** steuert die "N/A - Weiter mit Kap. 4"-Checkbox in Kapitel 3 (angekreuzt, wenn NICHT "r" - Kapitel 3 fragt nur die Detailfrage innerhalb von "Globales CS" ab) |
-| `KLASS_Global_1a` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 (Detailfrage) |
+| `KLASS_Global` | ⚠️ *(nicht direkt, siehe unten)* | ✅ | Kapitel 1 – Klassifizierung **+** steuert die "N/A - Weiter mit Kap. 4"-Checkbox in Kapitel 3 (angekreuzt, wenn NICHT "r" - Kapitel 3 fragt nur die Detailfrage innerhalb von "Globales CS" ab) |
+| `KLASS_Global_1a` | ✅ (Kategorie "Globale CS-Klasse (Kapitel 3)") | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 (Detailfrage) |
 | `KLASS_Global_1b` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 |
 | `KLASS_Global_2` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 |
 | `KLASS_Global_3` | ✅ | ✅ | Kapitel 1 – Klassifizierung **+** Kapitel 3 |
 | `KLASS_OhneCS` | ✅ | ✅ | Kapitel 1 – Klassifizierung |
+| `KLASS_Global_NA` *(Web-Editor-only)* | ✅ (Option "N/A - kein Globales CS") | ❌ | rein UI - markiert im Editor nur, dass keine der 4 Klassen zutrifft; nicht Teil von EXCEL_COLUMNS, wird beim Erzeugen nicht weiterverarbeitet |
+
+`KLASS_Global` selbst hat im Web-Editor **keine eigene Checkbox** mehr:
+seit der Kapitel-3-Restrukturierung wird es automatisch gesetzt, sobald
+eine der 4 Klassen (`KLASS_Global_1a/1b/2/3`) gewählt wird (siehe
+`_dokument_erzeugen_und_senden()`) - eine Klasse ohne "Globales CS" ist
+laut Formular ohnehin nicht möglich. `KLASS_Lokal`/`KLASS_Multisite`
+(+ Unteroptionen)/`KLASS_OhneCS` bleiben wie bisher eigene Checkboxen
+in der Kategorie "Klassifizierung", nur ohne die 4 Klassen und ohne
+"Globales CS" selbst (die stehen jetzt in der eigenen Kategorie
+"Globale CS-Klasse (Kapitel 3)" direkt darunter). Diese Aufteilung
+gilt nur für den Web-Editor (`webapp/app.py` `_KATEGORIEN_ZUSATZ`) -
+`sysbew_common.MEHRFACHAUSWAHL_KATEGORIEN["Klassifizierung"]` selbst
+(für die Konsistenzprüfung beim Einlesen fertiger Dokumente) enthält
+weiterhin alle 10 echten Checkboxen unverändert.
 
 ## Kapitel 2 – Zusammenfassungstabelle (Checkboxen)
 
@@ -208,16 +223,19 @@ Identifikation".
 
 ## Web-Editor-only (nicht Teil der Master-Excel)
 
-Diese 16 Felder gibt es **nur** im Web-Editor - kein eigenes
+Diese 17 Felder gibt es **nur** im Web-Editor - kein eigenes
 "zweites DB-Schema", sondern zusätzliche Formularfelder, deren Werte
 zwar ins erzeugte Word-Dokument geschrieben werden, aber (wie
-gewollt) nie eine eigene Master-Excel-Spalte hatten:
+gewollt) nie eine eigene Master-Excel-Spalte hatten (Ausnahme:
+`KLASS_Global_NA`, siehe unten - das wird NICHT ins Dokument
+geschrieben, rein UI):
 
 `Ersteller_Abteilung`, `SI_PL_Abteilung`, `TSO_Abteilung`,
 `BSO_Abteilung`, `BQR_Abteilung`, `CSQ_Abteilung`, `PR_Andere_Text`,
 `ERES4_SIG_ID_PW`, `ERES4_SIG_BIOMETRISCH`, `ERES4_SIG_TOKEN_PW`,
 `DatenflussAbbildung`, `SystemtypZugang_Begruendung`, `KI_Einsatz_Ja`,
-`KI_Einsatz_Nein`, `KI_Einsatz_Begruendung`, `CCNr_Rahmen`.
+`KI_Einsatz_Nein`, `KI_Einsatz_Begruendung`, `CCNr_Rahmen`,
+`KLASS_Global_NA`.
 
 **`KI_Einsatz_Ja`/`KI_Einsatz_Nein`/`KI_Einsatz_Begruendung`** (neu):
 ersetzen `KI-Reifegrad` (`KI1-6`/`KINA`) als Editor-Frage - siehe
@@ -231,6 +249,15 @@ der Systembewertung") - CC-Nr. + Rahmen der Erstellung (z. B.
 "CC-2024-01234 - Periodic Review"), NICHT der lange Freitext aus
 `Historie` (der landet ausschließlich in der Dokumentenhistorie-
 Tabelle). Direkt im Editor neben "Historie" platziert.
+
+**`KLASS_Global_NA`** (neu): Radiobutton-Option "N/A - kein Globales
+CS" in der neuen Kategorie "Globale CS-Klasse (Kapitel 3)" - markiert
+lediglich, dass keine der 4 Klassen zutrifft (Lokales CS/Multi-Site-
+CS/Equipment ohne CS stattdessen). Anders als die übrigen Web-Editor-
+only-Felder wird dieser Wert NICHT ins Dokument geschrieben - er ist
+rein informativ für die Editor-Oberfläche, da Kapitel 3 sein "N/A"
+bereits automatisch aus `KLASS_Global != "r"` ableitet (siehe
+`template_filler.fill_kapitel3`).
 
 ## Externe Datenquelle: Fill-a-Masterform-Import
 
@@ -271,7 +298,7 @@ vorbehalten.
 Nicht aus Erinnerung/Kommentaren zusammengeschrieben, sondern gegen
 den tatsächlichen Code geprüft: ein Testlauf hat `lib/template_filler.py`
 mit allen bekannten Feldern (143 Master-Excel-Spalten +
-12 Web-Editor-only) gefüttert und pro `fill_*`-Funktion protokolliert,
+17 Web-Editor-only) gefüttert und pro `fill_*`-Funktion protokolliert,
 welche Felder tatsächlich gelesen werden. Bei einer künftigen
 Template-Änderung (z. B. V12) lohnt es sich, diese Übersicht auf
 demselben Weg neu zu erzeugen, statt sie händisch nachzupflegen -
