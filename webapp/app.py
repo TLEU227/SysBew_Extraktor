@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.20"
+APP_VERSION = "1.21"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -385,10 +385,25 @@ OPTIONEN_HINWEISE = {
         "QU-SOP-0072260 - regelmäßige Wiederholung der Qualifizierung/Validierung "
         "in festen Intervallen (kein Kreuz bei CIS und Spreadsheets)."
     ),
+    # Globale CS-Klasse (Kapitel 3) - Wortlaut der Entscheidungsgrafik
+    # aus dem Template selbst uebernommen.
+    "KLASS_Global_1a": "„CS erfordert eine lokale Installation“: Nein.",
+    "KLASS_Global_1b": "„CS erfordert eine lokale Installation“: Ja.",
+    "KLASS_Global_2": "„CS erfordert nur die Anpassung von Stammdaten“.",
+    "KLASS_Global_3": "„CS erfordert die Anpassung von Stammdaten und Funktionen“ (zusätzlich Kap. 8 relevant).",
+    "KLASS_Global_NA": "System ist kein Globales CS (siehe Auswahl bei „Klassifizierung“ oben) - Kapitel 3 nicht relevant, weiter mit Kap. 4.",
 }
 
 KATEGORIE_HINWEISE = {
-    "Klassifizierung": "Diese Auswahl wird zusätzlich in Kapitel 3 des Dokuments übernommen (Systemeinstufung Globales CS).",
+    "Klassifizierung": "Bei „Globales CS“ zusätzlich die Klasse (1a/1b/2/3) direkt darunter angeben - „Globales CS“ selbst muss dafür nicht extra angekreuzt werden.",
+    "Globale CS-Klasse (Kapitel 3)": (
+        "Nur relevant, wenn das System oben NICHT als „Lokales CS“, „Multi-Site-CS“ "
+        "oder „Equipment ohne CS“ eingestuft wurde. Bei Auswahl einer Klasse wird "
+        "„Globales CS“ automatisch mit übernommen (Kapitel 1 + Kapitel 3) - eine "
+        "eigene Abfrage dafür entfällt, da sie sich aus der Klasse selbst ergibt. "
+        "Trifft keine der 4 Klassen zu, bitte „N/A“ wählen (Kapitel 3 wird dann als "
+        "nicht relevant markiert, weiter mit Kap. 4)."
+    ),
     "Periodic Review": (
         "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und "
         "Spreadsheets). PR und ReQ (zyklische Requalifizierung) sind nicht immer leicht "
@@ -427,6 +442,45 @@ _KATEGORIEN_ZUSATZ = {
         "optionen": [
             ("KI_Einsatz_Ja", "Ja"),
             ("KI_Einsatz_Nein", "Nein"),
+        ],
+        "mehrfachauswahl": False,
+    },
+    # Ueberschreibt common.MEHRFACHAUSWAHL_KATEGORIEN["Klassifizierung"]
+    # NUR fuer den Web-Editor (siehe _kategorien_lookup() - Zusatz wird
+    # zuletzt angewendet): "Globales CS" und die Klasse 1a/1b/2/3 werden
+    # hier NICHT mehr mitabgefragt, sondern per eigener, stufiger
+    # Kategorie "Globale CS-Klasse (Kapitel 3)" direkt darunter erfasst
+    # (siehe baue_formular). sysbew_common.MEHRFACHAUSWAHL_KATEGORIEN
+    # selbst bleibt unveraendert, da dort weiterhin ALLE echten
+    # Checkboxen (inkl. Globales CS/Klassen) fuer die Konsistenzpruefung
+    # beim Einlesen fertiger Dokumente (word_parser_main.py) benoetigt
+    # werden.
+    "Klassifizierung": {
+        "optionen": [
+            ("KLASS_Lokal", "Lokales CS"),
+            ("KLASS_Multisite", "Multi-Site-CS"),
+            ("KLASS_Multisite_NurLokal", "nur lokal"),
+            ("KLASS_Multisite_LokalGlobal", "lokal und global"),
+            ("KLASS_OhneCS", "Equipment ohne CS"),
+        ],
+        "mehrfachauswahl": True,
+    },
+    # Kapitel 3 (Systemeinstufung Globales CS) ist Kapitel 1 stufig
+    # nachgelagert: nur relevant, wenn das System ueberhaupt ein
+    # Globales CS ist. "Globales CS" selbst wird dabei NICHT separat
+    # abgefragt - es ergibt sich automatisch daraus, dass hier eine der
+    # 4 Klassen gewaehlt wird (siehe _dokument_erzeugen_und_senden), da
+    # eine Klasse ohne "Globales CS" laut Formular gar nicht moeglich
+    # ist. Die Klassen selbst sind entweder/oder (Radiobuttons), "N/A"
+    # deckt alle anderen Faelle ab (Lokales CS, Multi-Site-CS,
+    # Equipment ohne CS) - Kapitel 3 ist dann schlicht nicht relevant.
+    "Globale CS-Klasse (Kapitel 3)": {
+        "optionen": [
+            ("KLASS_Global_1a", "Klasse 1a"),
+            ("KLASS_Global_1b", "Klasse 1b"),
+            ("KLASS_Global_2", "Klasse 2"),
+            ("KLASS_Global_3", "Klasse 3"),
+            ("KLASS_Global_NA", "N/A - kein Globales CS"),
         ],
         "mehrfachauswahl": False,
     },
@@ -820,8 +874,17 @@ def baue_formular(data):
                     items.append({
                         "art": "feld", "name": "SystemtypZugang_Begruendung", "typ": "text", "breite": "voll",
                         "wert": data.get("SystemtypZugang_Begruendung") or "",
-                        "label": "Begründung (optional)",
+                        "label": "Begründung Systemtyp/Zugangsbeschränkung (optional)",
                         "hinweis": FELD_HINWEISE.get("SystemtypZugang_Begruendung"),
+                    })
+                if feld == "Klassifizierung":
+                    zusatz = _KATEGORIEN_ZUSATZ["Globale CS-Klasse (Kapitel 3)"]
+                    items.append({
+                        "art": "kategorie", "name": "Globale CS-Klasse (Kapitel 3)",
+                        "mehrfachauswahl": zusatz["mehrfachauswahl"],
+                        "optionen": zusatz["optionen"],
+                        "ausgewaehlt": [f for f, _ in zusatz["optionen"] if data.get(f) == "r"],
+                        "hinweis": KATEGORIE_HINWEISE.get("Globale CS-Klasse (Kapitel 3)"),
                     })
                 if feld == "ERES-Typ":
                     zusatz = _KATEGORIEN_ZUSATZ["ERES-Typ 4 – Art der Signatur"]
@@ -1018,6 +1081,17 @@ def _dokument_erzeugen_und_senden(data, vorschau=False):
         if begruendung:
             bestehend = data.get("KI Bewertung") or ""
             data["KI Bewertung"] = f"{bestehend}\n{begruendung}" if bestehend else begruendung
+    # "Globale CS-Klasse (Kapitel 3)" (siehe _KATEGORIEN_ZUSATZ): eine
+    # Klasse (1a/1b/2/3) impliziert laut Formular immer "Globales CS"
+    # (Kapitel 1) - wird deshalb hier automatisch mitgesetzt, ohne dass
+    # dafuer im Editor extra eine eigene Checkbox angekreuzt werden
+    # muss. "KLASS_Global_NA" ist rein webapp-intern (keine Excel-
+    # Spalte, nicht in EXCEL_COLUMNS) und wird hier bewusst nicht
+    # weiterverarbeitet - "N/A" bedeutet lediglich, dass keine der 4
+    # Klassen zutrifft (siehe fill_kapitel3: N/A ergibt sich dort
+    # ohnehin automatisch daraus, dass KLASS_Global nicht "r" ist).
+    if any(data.get(f) == "r" for f in ("KLASS_Global_1a", "KLASS_Global_1b", "KLASS_Global_2", "KLASS_Global_3")):
+        data["KLASS_Global"] = "r"
     tmp_dir = tempfile.mkdtemp(prefix="sysbew_")
     dateiname = _dateiname_vorschlag(data, vorschau=vorschau)
     ausgabe_pfad = os.path.join(tmp_dir, dateiname)

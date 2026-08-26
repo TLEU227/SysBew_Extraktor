@@ -618,6 +618,43 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Kapitel 3 (Globales CS) stufig in der Eingabe abgebildet
+
+- Die Kategorie "Klassifizierung" (Kapitel 1) zeigte bisher alle 10
+  Checkboxen flach in einer Liste (Lokales CS/Multi-Site-CS inkl.
+  "nur lokal"/"lokal und global"/Globales CS/Klasse 1a-3/Equipment
+  ohne CS) - dabei ist die Auswahl laut Template tatsächlich stufig
+  aufgebaut: Klasse 1a/1b/2/3 sind nur relevant, wenn das System
+  überhaupt ein "Globales CS" ist, und Klasse 1a/1b/2/3 selbst sind
+  entweder/oder (nicht mehrfach wählbar).
+- "Globales CS" wird jetzt nicht mehr separat abgefragt - es ergibt
+  sich automatisch daraus, dass eine der 4 Klassen gewählt wird (wird
+  beim Erzeugen automatisch mitgesetzt, siehe
+  `_dokument_erzeugen_und_senden`). Die Klassen 1a/1b/2/3 + ein neues
+  "N/A - kein Globales CS" bilden eine eigene, direkt unter
+  "Klassifizierung" angezeigte Kategorie "Globale CS-Klasse (Kapitel
+  3)" (Radiobuttons statt Checkboxen).
+- Für jede Klasse ein Hinweistext mit dem Original-Wortlaut aus der
+  Entscheidungsgrafik des Templates ("CS erfordert eine lokale
+  Installation": Nein → Klasse 1a, Ja → Klasse 1b; "CS erfordert nur
+  die Anpassung von Stammdaten" → Klasse 2; "CS erfordert die
+  Anpassung von Stammdaten und Funktionen" → Klasse 3).
+- `sysbew_common.MEHRFACHAUSWAHL_KATEGORIEN["Klassifizierung"]` selbst
+  bleibt unverändert (weiterhin alle 10 echten Checkboxen, wird auch
+  von der Konsistenzprüfung beim Einlesen fertiger Dokumente in
+  `word_parser_main.py` benötigt) - die Vereinfachung gilt
+  ausschließlich für den Web-Editor (`webapp/app.py`
+  `_KATEGORIEN_ZUSATZ`, überschreibt die Kategorie nur dort).
+- Feld-Label "Begründung (optional)" (unter "Systemtyp
+  (Zugangsbeschränkung)") umbenannt in "Begründung Systemtyp/
+  Zugangsbeschränkung (optional)", da unklar war, worauf sich die
+  Begründung bezieht.
+- Getestet: Round-Trip über alle 737 Zeilen der echten Master-Excel (0
+  Fehler), Flask-Testclient (Editor-Rendering enthält die neue
+  Kategorie + alle Klassen-Optionen), manuelle Prüfung der
+  Vorbelegung beim Bearbeiten bestehender Daten (`KLASS_Global_1b`
+  gesetzt → Klasse 1b im Editor vorausgewählt).
+
 ### Textbaustein-Vorschläge anhand der vollständigen Master-Excel überarbeitet
 
 - Die vorherige Überarbeitung (siehe unten) beruhte auf einer
