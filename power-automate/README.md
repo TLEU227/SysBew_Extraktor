@@ -59,9 +59,17 @@ Ersteller-Name).
   "Übertragen nach QualiPSO" als `_x00dc_`), und ist zusätzlich ein
   **Lookup-Feld** (Objekt mit `Id`/`Value`, kein einfacher Text). Formel
   korrigiert auf `@item()?['OData__x00dc_betragennachQualiPSO']?['Value']`.
-- **v10 (aktuell):** Zweiter Empfänger ergänzt –
+- **v10:** Zweiter Empfänger ergänzt –
   `emailMessage/To` ist jetzt `thomas.leuckel@sanofi.com;karlheinz.preuss@engineo.com`
   (mehrere Empfänger per Semikolon getrennt).
+- **v11 (aktuell):** Zeitstempel "Erstellt am"/"Geändert am" werden jetzt
+  von UTC nach **`W. Europe Standard Time`** (MEZ/MESZ) umgerechnet
+  (`convertTimeZone(...)` vor `formatDateTime(...)`), statt UTC roh
+  anzuzeigen. Hinweis: nicht `variables('timezone')`/`'Central European
+  Time'` verwenden (siehe Fehleranalyse weiter unten in diesem
+  Änderungsverlauf) – `'Central European Time'` ist keine gültige
+  Windows-Zeitzonen-ID, das führt zu `WorkflowTemplateVerificationFailed`-
+  artigen Laufzeitfehlern.
 
 ## Fertige Import-Datei
 
