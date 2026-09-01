@@ -156,6 +156,7 @@
       });
       var ergebnisTexte = [];
       var versteckt = {};
+      var besucht = {};
       var aktuelleId = "5.1";
       var abgeschlossen = false;
       var schutz = 0;
@@ -163,6 +164,7 @@
         schutz++;
         var knoten = knotenById[aktuelleId];
         if (!knoten) break;
+        besucht[aktuelleId] = true;
         var div = document.querySelector('[data-baum-knoten="' + aktuelleId + '"]');
         if (div) div.style.display = "";
         var inputs = div ? div.querySelectorAll("input") : [];
@@ -195,6 +197,19 @@
           if (!aktuelleId) abgeschlossen = true;
         }
       }
+      // Wird ein weiter oben liegender Knoten geändert, ist ein zuvor
+      // begonnener, jetzt aber nicht mehr erreichbarer Ast weiter unten
+      // ungültig geworden - dessen Antworten werden hier zurückgesetzt
+      // (nicht nur ausgeblendet), damit beim Speichern/Erzeugen keine
+      // widersprüchlichen Alt-Antworten aus einem verlassenen Ast mehr
+      // vorliegen.
+      document.querySelectorAll("[data-baum-knoten]").forEach(function (div) {
+        var id = div.getAttribute("data-baum-knoten");
+        if (besucht[id]) return;
+        div.querySelectorAll("input").forEach(function (inp) {
+          if (inp.checked) inp.checked = false;
+        });
+      });
       var panel = document.getElementById("kapitel5-ergebnis");
       if (panel) {
         if (abgeschlossen && ergebnisTexte.length) {

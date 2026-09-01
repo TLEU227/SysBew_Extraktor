@@ -618,6 +618,35 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Editor-Reihenfolge an das echte Template angeglichen + Kapitel-5-Feinschliff
+
+- **Kapitel-Zuordnung korrigiert:** "GxP_Produktqualitaet"/
+  "GxP_Patientensicherheit"/"GxP_Datenintegritaet" standen bisher unter
+  "Kapitel 2 – Zusammenfassungstabelle" (Tabelle 6) - gehören laut
+  Template aber zu einer eigenen, späteren Tabelle ("GxP
+  Risikoklassifizierung im Detail", Tabelle 8) - jetzt eigener
+  Abschnitt "Kapitel 4 – GxP-Risikoklassifizierung im Detail"
+  (`sysbew_common.VORSCHAU_ABSCHNITTE`, betrifft auch die Konsolen-
+  Vorschau von `word_parser_main.py`).
+- **Editor-Reihenfolge folgt jetzt der echten Tabellenreihenfolge im
+  Template** statt einer Abhängigkeits-Logik: Kapitel 1 (Business
+  Kritisch jetzt vor GxP-Relevanz, wie in Tabelle 4/5) → Kapitel 2
+  (Zusammenfassungstabelle) → Kapitel 3 (Globale CS-Klasse, jetzt
+  eigener Abschnitt statt Unterpunkt von "Klassifizierung") → Kapitel
+  4 (GxP-Risikoklassifizierung im Detail) → Kapitel 5
+  (Entscheidungsbaum, jetzt NACH statt vor Kapitel 2/3/4).
+- **Kapitel-5-Baum:** Weiter-oben-Antwort geändert → alle davon
+  abhängigen, weiter unten bereits gegebenen Antworten werden jetzt
+  automatisch zurückgesetzt (nicht nur ausgeblendet) - verhindert
+  widersprüchliche Alt-Antworten aus einem verlassenen Ast beim
+  Speichern/Erzeugen.
+- **Referenzseite `/kapitel5-baum`:** zusätzlich eine kleine
+  grafische Übersicht (verbundene Boxen in Ablaufreihenfolge) über der
+  bestehenden Klartext-Liste.
+- Getestet: Round-Trip über alle 737 Zeilen der echten Master-Excel (0
+  Fehler), Flask-Testclient (neue Abschnittsreihenfolge + Referenzseite
+  mit 16 eindeutigen Boxen, keine Dopplungen).
+
 ### Kapitel 5 (Entscheidungsbaum) in die Eingabe aufgenommen
 
 - Bisher komplett ausgelassen (siehe SKIP_FELDER-Kommentar, alte
