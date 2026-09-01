@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.22"
+APP_VERSION = "1.23"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -401,7 +401,7 @@ OPTIONEN_HINWEISE = {
 }
 
 KATEGORIE_HINWEISE = {
-    "Klassifizierung": "Bei „Globales CS“ zusätzlich die Klasse (1a/1b/2/3) direkt darunter angeben - „Globales CS“ selbst muss dafür nicht extra angekreuzt werden.",
+    "Klassifizierung": "Bei „Globales CS“ zusätzlich die Klasse (1a/1b/2/3) im Abschnitt „Kapitel 3 – Systemeinstufung Globales CS“ weiter unten angeben - „Globales CS“ selbst muss dafür nicht extra angekreuzt werden.",
     "Globale CS-Klasse (Kapitel 3)": (
         "Nur relevant, wenn das System oben NICHT als „Lokales CS“, „Multi-Site-CS“ "
         "oder „Equipment ohne CS“ eingestuft wurde. Bei Auswahl einer Klasse wird "
@@ -1299,17 +1299,6 @@ def baue_formular(data):
     kategorien = _kategorien_lookup()
     abschnitte = []
     for titel, felder in common.VORSCHAU_ABSCHNITTE:
-        if titel == "Kapitel 2 – Zusammenfassungstabelle":
-            # Kapitel 5 (Entscheidungsbaum) bestimmt CS-Typ/
-            # Gerätekategorie/DI-EE-Anforderungen/Vereinfachte
-            # Qualifizierung fuer Kapitel 2 - deshalb direkt davor
-            # eingefuegt (webapp-only Abschnitt, siehe
-            # _kapitel5_formular_items/KAPITEL5_KNOTEN;
-            # common.VORSCHAU_ABSCHNITTE bleibt unangetastet).
-            abschnitte.append((
-                "Kapitel 5 – Kategorisierung von Equipment/System",
-                _kapitel5_formular_items(data),
-            ))
         items = []
         for feld in felder:
             if feld in SKIP_FELDER:
@@ -1336,15 +1325,6 @@ def baue_formular(data):
                         "wert": data.get("SystemtypZugang_Begruendung") or "",
                         "label": "Begründung Systemtyp/Zugangsbeschränkung (optional)",
                         "hinweis": FELD_HINWEISE.get("SystemtypZugang_Begruendung"),
-                    })
-                if feld == "Klassifizierung":
-                    zusatz = _KATEGORIEN_ZUSATZ["Globale CS-Klasse (Kapitel 3)"]
-                    items.append({
-                        "art": "kategorie", "name": "Globale CS-Klasse (Kapitel 3)",
-                        "mehrfachauswahl": zusatz["mehrfachauswahl"],
-                        "optionen": zusatz["optionen"],
-                        "ausgewaehlt": [f for f, _ in zusatz["optionen"] if data.get(f) == "r"],
-                        "hinweis": KATEGORIE_HINWEISE.get("Globale CS-Klasse (Kapitel 3)"),
                     })
                 if feld == "ERES-Typ":
                     zusatz = _KATEGORIEN_ZUSATZ["ERES-Typ 4 – Art der Signatur"]
@@ -1451,6 +1431,27 @@ def baue_formular(data):
                     })
         if items:
             abschnitte.append((titel, items))
+        # Reihenfolge entspricht der echten Vorlage (Tabelle 6 = Kapitel
+        # 2, Tabelle 7 = Kapitel 3, Tabelle 8 = Kapitel 4, Tabelle 9/10 =
+        # Kapitel 5) - beide folgenden Abschnitte sind webapp-only
+        # (common.VORSCHAU_ABSCHNITTE bleibt unangetastet, siehe
+        # jeweilige Kommentare) und werden deshalb hier direkt nach dem
+        # inhaltlich vorausgehenden echten Kapitel eingefuegt, statt
+        # einer eigenen Logik-getriebenen Position.
+        if titel == "Kapitel 2 – Zusammenfassungstabelle":
+            zusatz = _KATEGORIEN_ZUSATZ["Globale CS-Klasse (Kapitel 3)"]
+            abschnitte.append(("Kapitel 3 – Systemeinstufung Globales CS", [{
+                "art": "kategorie", "name": "Globale CS-Klasse (Kapitel 3)",
+                "mehrfachauswahl": zusatz["mehrfachauswahl"],
+                "optionen": zusatz["optionen"],
+                "ausgewaehlt": [f for f, _ in zusatz["optionen"] if data.get(f) == "r"],
+                "hinweis": KATEGORIE_HINWEISE.get("Globale CS-Klasse (Kapitel 3)"),
+            }]))
+        elif titel == "Kapitel 4 – GxP-Risikoklassifizierung im Detail":
+            abschnitte.append((
+                "Kapitel 5 – Kategorisierung von Equipment/System",
+                _kapitel5_formular_items(data),
+            ))
     return abschnitte
 
 def formular_auswerten(form, bestehende_daten):
@@ -1720,11 +1721,14 @@ def editor_neu():
 @app.route("/kapitel5-baum")
 def kapitel5_baum_ansehen():
     """Rein informative Referenzseite: zeigt den kompletten Kapitel-5-
-    Entscheidungsbaum als einfache, verschachtelte Liste (Klartext,
-    kein Formular) - zur Absicherung/Nachvollziehbarkeit, WIE die
-    Fragen im Editor zu CS-Typ/Gerätekategorie/DI-EE-Anforderungen/
-    Vereinfachte Qualifizierung führen. Nicht nötig zum Ausfüllen
-    selbst (siehe Link im Editor)."""
+    Entscheidungsbaum als kleine, verbundene Grafik (Boxen mit
+    Verbindungslinien in der KAPITEL5_KNOTEN-Reihenfolge, die bereits
+    dem logischen Ablauf entspricht - Unterfragen wie 5.2a/5.6a/5.7a/
+    5.12a stehen direkt hinter ihrer jeweiligen Hauptfrage) plus einer
+    Klartext-Liste darunter (kein Formular) - zur Absicherung/
+    Nachvollziehbarkeit, WIE die Fragen im Editor zu CS-Typ/
+    Gerätekategorie/DI-EE-Anforderungen/Vereinfachte Qualifizierung
+    führen. Nicht nötig zum Ausfüllen selbst (siehe Link im Editor)."""
     return render_template("kapitel5_baum.html", baum=KAPITEL5_KNOTEN)
 
 # ============================================================

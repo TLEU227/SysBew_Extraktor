@@ -185,3 +185,39 @@ fieldset > .aktionsleiste { margin-top: 8px; justify-content: flex-end; }
 .start-kachel:hover { box-shadow: 0 2px 8px rgba(15,108,189,.18); border-color: #0f6cbd; }
 .start-kachel-titel { font-size: 1.15em; font-weight: 600; color: #0f6cbd; margin-bottom: 6px; }
 .start-kachel p { margin: 0; color: #444; font-size: .92em; }
+
+/* Kapitel-5-Baum: kleine grafische Referenzdarstellung (siehe
+   /kapitel5-baum) - eine Box pro Frage, senkrecht verbunden durch
+   eine durchlaufende Linie (die Reihenfolge selbst entspricht bereits
+   dem Ablauf, siehe KAPITEL5_KNOTEN) - keine JS-Bibliothek nötig. */
+.baumdiagramm {
+  margin: 12px 0 24px;
+  font-size: .92em;
+  max-width: 640px;
+}
+.baum-box {
+  position: relative;
+  margin-left: 18px;
+  padding: 8px 12px 8px 16px;
+  border: 1px solid #b9d6ef;
+  border-radius: 6px;
+  background: #f7fbfe;
+}
+.baum-box + .baum-box { margin-top: 10px; }
+.baum-box::before {
+  /* durchlaufende senkrechte Verbindungslinie zwischen den Boxen */
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 1px;
+  height: calc(100% + 20px);
+  background: #b5b5b5;
+}
+.baum-box:first-child::before { top: 0; height: calc(100% + 10px); }
+.baum-box:last-child::before { height: 50%; }
+.baum-box-id { display: inline-block; font-weight: 700; color: #0f6cbd; margin-bottom: 2px; }
+.baum-box-frage { font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+.baum-box-antwort { margin: 2px 0 2px 8px; color: #333; }
+.baum-pfeil { color: #616161; margin-left: 6px; }
+.baum-pfeil.baum-ende { color: #6a1b9a; }

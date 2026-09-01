@@ -154,15 +154,15 @@ werden deshalb zusätzlich mitbefüllt).
 
 | Feld | Im Editor? | Zusätzlich noch wo? |
 |---|---|---|
-| `GxP-C` / `GxP-M` / `GxP-m2` / `GxP-NA` | ✅ (Kategorie "GxP-Kritikalität") | **+** Kapitel 2 Detail (GxP-Risikoklassifizierung); `GxP-C`/`-M`/`-m2` zusätzlich für Testtiefe-Berechnung genutzt |
-| `Systemtyp_CIS`, `Subtyp_LCE`, `Subtyp_PCS`, `Subtyp_EE`, `VNAP_S0/S1/S2`, `Subtyp_NA` | ✅ (Kategorie "CS-Typ") | nur Kapitel 2 |
+| `GxP-C` / `GxP-M` / `GxP-m2` / `GxP-NA` | ✅ (Kategorie "GxP-Kritikalität") | **+** Kapitel 4 (GxP-Risikoklassifizierung im Detail, eigenes Kapitel - NICHT Teil der Zusammenfassungstabelle); `GxP-C`/`-M`/`-m2` zusätzlich für Testtiefe-Berechnung genutzt |
+| `Systemtyp_CIS`, `Subtyp_LCE`, `Subtyp_PCS`, `Subtyp_EE`, `VNAP_S0/S1/S2`, `Subtyp_NA` | ✅ (seit Kapitel-5-Baum: **abgeleitet**, siehe unten - keine eigene Kategorie mehr) | nur Kapitel 2 |
 | `ERESTYP1-4`, `ERESTYPNA` | ✅ (Kategorie "ERES-Typ") | **+** Kapitel 6 (Detail); bei Typ 4 zusätzlich `ERES4_SIG_*` (Art der Signatur, Web-Editor-only) |
 | `KAT1`, `KAT3`, `KAT4`, `KAT5` | ✅ (Kategorie "GAMP5 Software-Kategorie") | **+** Kapitel 7 (Detail); zusätzlich für Testtiefe-Berechnung genutzt |
 | `KATNA` | ✅ (Kategorie "GAMP5 Software-Kategorie") | nur Kapitel 2 - **kein** Kapitel-7-Gegenstück für N/A |
-| `EE_P1-4`, `EE_NA` | ✅ (Kategorie "DI EE-Anforderungen") | nur Kapitel 2 |
-| `GKATA`, `GKATB`, `GKATC`, `GKATNA` | ✅ (Kategorie "Gerätekategorie") | nur Kapitel 2 - **`GKATB1/B2/B3`, `GKATC1/C2/C3` haben KEINE eigene Checkbox** im Template, nur die Oberkategorie; Subkategorisierung gehört ins Freitextfeld "Besonderheiten" (dafür gibt es dort eigene Textbaustein-Vorschläge) |
+| `EE_P1-4`, `EE_NA` | ✅ (seit Kapitel-5-Baum: **abgeleitet**, siehe unten - keine eigene Kategorie mehr) | nur Kapitel 2 |
+| `GKATA`, `GKATB`, `GKATC`, `GKATNA` | ✅ (seit Kapitel-5-Baum: **abgeleitet**, siehe unten - keine eigene Kategorie mehr) | nur Kapitel 2 - **`GKATB1/B2/B3`, `GKATC1/C2/C3` haben KEINE eigene Checkbox** im Template, nur die Oberkategorie; Subkategorisierung gehört ins Freitextfeld "Besonderheiten" (dafür gibt es dort eigene Textbaustein-Vorschläge) |
 | `PR_SOP`, `PR_SOP2`, `PR_Andere`, `PR-Zyklisch` | ✅ (Kategorie "Periodic Review") | nur Kapitel 2; `PR_Andere_Text` (Web-Editor-only) ersetzt den Blanko-Platzhalter hinter `PR_Andere` |
-| `VQ`, `NVQ` | ✅ (Kategorie "Vereinfachte Qualifizierung") | nur Kapitel 2 |
+| `VQ`, `NVQ` | ✅ (seit Kapitel-5-Baum: **abgeleitet**, siehe unten - keine eigene Kategorie mehr) | nur Kapitel 2 |
 | `QUAL`, `VAL` | ✅ (Kategorie "Validierung/Qualifizierung nach SOP", Mehrfachauswahl) | nur Kapitel 2 |
 | `KI1-6`, `KINA` | — (nicht mehr direkt im Editor, siehe unten) | **+** Kapitel 9.1 |
 | `TTIEFEHOCH/MITTEL/NIEDRIG`, `Z1S1...Z3S3` | — (nicht im Formular) | **werden automatisch BERECHNET** aus GxP-Kritikalität + GAMP5-Kategorie (`fill_testtiefe`) und in Kapitel 2 + der Z-Felder-Matrix in Kapitel 8 eingetragen - nicht direkt eingelesen |

@@ -1298,12 +1298,13 @@ VORSCHAU_ABSCHNITTE = [
         "Neuerstellung/Änderung",
         "Systemtyp (Zugangsbeschränkung)",
         "Klassifizierung",
-        "GxP-Relevanz",
+        # Reihenfolge entspricht der echten Vorlage: Tabelle "Business
+        # Kritikalität" steht dort VOR "GxP Relevanz" (nicht umgekehrt).
         "Business Kritisch",
+        "GxP-Relevanz",
     ]),
     ("Kapitel 2 – Zusammenfassungstabelle", [
         "GxP-Kritikalität",
-        "GxP_Produktqualitaet", "GxP_Patientensicherheit", "GxP_Datenintegritaet",
         "CS-Typ", "Systemtyp_CE",
         "ERES-Typ",
         "GAMP5 Software-Kategorie",
@@ -1315,6 +1316,13 @@ VORSCHAU_ABSCHNITTE = [
         "Validierung/Qualifizierung nach SOP",
         "Testtiefe", "Testtiefe-Matrix",
         "Besonderheiten",
+    ]),
+    # Tabelle 8 im Template ("GxP Risikoklassifizierung im Detail") -
+    # eigenes, spaeteres Kapitel, KEIN Teil der Zusammenfassungstabelle
+    # (Kapitel 2) - Begruendung zu Produktqualitaet/Patientensicherheit/
+    # Datenintegritaet, siehe template_filler.fill_gxp_risikoklassifizierung.
+    ("Kapitel 4 – GxP-Risikoklassifizierung im Detail", [
+        "GxP_Produktqualitaet", "GxP_Patientensicherheit", "GxP_Datenintegritaet",
     ]),
     # Entspricht dem Kapitel "Informationen und Bemerkungen" im
     # Template (Tabelle 16) - inkl. der 4 generischen "BemerkungX"-
