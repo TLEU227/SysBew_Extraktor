@@ -566,6 +566,127 @@ def fill_gxp_risikoklassifizierung(doc, data):
     )
 
 # ============================================================
+# Kapitel 5 (Tabellen 9+10): Entscheidungsbaum "Kategorisierung von
+# Equipment/System" (5.1-5.12) - checkt die echten Ja/Nein/Typ-
+# Checkboxen im Template passend zu den Antworten aus dem Web-Editor-
+# Baum (siehe webapp/app.py KAPITEL5_KNOTEN/_kapitel5_ableiten). Reine
+# 1:1-Abbildung der Antworten auf die jeweiligen Kapitel-5-Checkboxen -
+# die fachliche Ableitung von CS-Typ/Gerätekategorie/DI-EE-
+# Anforderungen/Vereinfachte Qualifizierung fuer Kapitel 2/6/7/8 macht
+# ausschliesslich _kapitel5_ableiten() in webapp/app.py, bevor
+# fill_template() aufgerufen wird - diese Funktion hier befuellt NUR
+# Kapitel 5 selbst, unveraendert ob der Baum ueberhaupt angefasst
+# wurde (keine Antwort vorhanden -> alle Checkboxen bleiben leer, wie
+# im unausgefuellten Leer-Template).
+# ============================================================
+def fill_kapitel5(doc, data):
+    if data.get("K5_1_ja") != "r" and data.get("K5_1_nein") != "r":
+        return  # Baum nicht angefasst
+    t9 = doc.tables[9]
+    t10 = doc.tables[10]
+
+    set_checkboxes_in_cell(t9.rows[2].cells[1], {0: data.get("K5_1_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[3].cells[1], {0: data.get("K5_1_nein") == "r"})
+    if data.get("K5_1_nein") == "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[5].cells[1], {0: data.get("K5_2_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[6].cells[1], {0: data.get("K5_2_nein") == "r"})
+    if data.get("K5_2_ja") == "r":
+        set_checkboxes_in_cell(t9.rows[5].cells[2], {
+            0: data.get("K5_2_TYP_s0") == "r",
+            1: data.get("K5_2_TYP_s1") == "r",
+            2: data.get("K5_2_TYP_s2") == "r",
+        })
+        return
+    if data.get("K5_2_nein") != "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[8].cells[1], {0: data.get("K5_3_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[9].cells[1], {0: data.get("K5_3_nein") == "r"})
+    if data.get("K5_3_ja") == "r":
+        return
+    if data.get("K5_3_nein") != "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[11].cells[1], {0: data.get("K5_4_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[12].cells[1], {0: data.get("K5_4_nein") == "r"})
+    if data.get("K5_4_ja") == "r":
+        return
+    if data.get("K5_4_nein") != "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[14].cells[1], {0: data.get("K5_5_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[15].cells[1], {0: data.get("K5_5_nein") == "r"})
+    if data.get("K5_5_nein") == "r":
+        return
+    if data.get("K5_5_ja") != "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[17].cells[1], {0: data.get("K5_6_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[18].cells[1], {0: data.get("K5_6_nein") == "r"})
+    if data.get("K5_6_ja") == "r":
+        set_checkboxes_in_cell(t9.rows[17].cells[2], {
+            0: data.get("K5_6_TYP_pcs") == "r",
+            1: data.get("K5_6_TYP_lce") == "r",
+        })
+        return
+    if data.get("K5_6_nein") != "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[20].cells[1], {0: data.get("K5_7_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[21].cells[1], {0: data.get("K5_7_nein") == "r"})
+    if data.get("K5_7_ja") == "r":
+        set_checkboxes_in_cell(t9.rows[20].cells[2], {
+            0: data.get("K5_7_TYP_pcs") == "r",
+            1: data.get("K5_7_TYP_lce") == "r",
+        })
+        return
+    if data.get("K5_7_nein") != "r":
+        return
+
+    # 5.8 fuehrt (unabhaengig von der Antwort) immer weiter zu 5.9
+    k5_8_ja = data.get("K5_8_ja_ohne_einfluss") == "r" or data.get("K5_8_ja_gering") == "r"
+    set_checkboxes_in_cell(t9.rows[23].cells[1], {0: k5_8_ja})
+    set_checkboxes_in_cell(t9.rows[24].cells[1], {0: data.get("K5_8_nein") == "r"})
+    if k5_8_ja:
+        set_checkboxes_in_cell(t9.rows[23].cells[2], {
+            0: data.get("K5_8_ja_ohne_einfluss") == "r",
+            1: data.get("K5_8_ja_gering") == "r",
+        })
+    elif data.get("K5_8_nein") != "r":
+        return
+
+    set_checkboxes_in_cell(t9.rows[26].cells[1], {0: data.get("K5_9_ja") == "r"})
+    set_checkboxes_in_cell(t9.rows[27].cells[1], {0: data.get("K5_9_nein") == "r"})
+    if data.get("K5_9_ja") == "r":
+        return
+    if data.get("K5_9_nein") != "r":
+        return
+
+    set_checkboxes_in_cell(t10.rows[1].cells[1], {0: data.get("K5_10_ja") == "r"})
+    set_checkboxes_in_cell(t10.rows[2].cells[1], {0: data.get("K5_10_nein") == "r"})
+    if data.get("K5_10_nein") == "r":
+        return
+    if data.get("K5_10_ja") != "r":
+        return
+
+    set_checkboxes_in_cell(t10.rows[4].cells[1], {0: data.get("K5_11_ja") == "r"})
+    set_checkboxes_in_cell(t10.rows[5].cells[1], {0: data.get("K5_11_nein") == "r"})
+    if data.get("K5_11_ja") != "r" and data.get("K5_11_nein") != "r":
+        return
+
+    # 5.12 ist Mehrfachauswahl - alle tatsaechlich angekreuzten
+    # Optionen werden unabhaengig voneinander gesetzt (die "lokal-
+    # dauerhaft gewinnt"-Prioritaetsregel betrifft nur die Ableitung
+    # von CS-Typ/Gerätekategorie fuer Kapitel 2, nicht die Anzeige
+    # hier in Kapitel 5 selbst).
+    set_checkboxes_in_cell(t10.rows[7].cells[1], {0: data.get("K5_12_lokal_dauerhaft") == "r"})
+    set_checkboxes_in_cell(t10.rows[8].cells[1], {0: data.get("K5_12_lokal_temporaer") == "r"})
+    set_checkboxes_in_cell(t10.rows[9].cells[1], {0: data.get("K5_12_anderes_system") == "r"})
+    set_checkboxes_in_cell(t10.rows[10].cells[1], {0: data.get("K5_12_papier_pdf") == "r"})
+
+# ============================================================
 # Kapitel 6 (Tabelle 11): ERES-Typ im Detail - dieselbe Auswahl wie
 # ERESTYP1-4/NA in der Zusammenfassungstabelle (Kapitel 2), hier
 # zusaetzlich an der Kapitel-6-Frage selbst eingetragen. Bei ERES Typ 4
@@ -841,6 +962,7 @@ def fill_template(data, template_path=None, output_path=None):
     fill_zusammenfassung_text(doc, data)
     fill_checkboxes_formularfelder(doc, CHECKBOX_MAPPING_V11, data)
     fill_gxp_risikoklassifizierung(doc, data)
+    fill_kapitel5(doc, data)
     fill_kapitel6(doc, data)
     fill_kapitel7(doc, data)
     fill_kapitel9(doc, data)
