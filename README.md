@@ -618,6 +618,20 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### 3 neue Textbaustein-Vorschläge (Chargenprotokoll/Parameter/Benutzerverwaltung)
+
+- **Chargenprotokoll**: "Ausdruck als Bestandteil des Chargenprotokolls" -
+  für Fälle, in denen das Chargenprotokoll mittels Ausdruck erstellt
+  wird bzw. der Ausdruck Bestandteil des Chargenprotokolls ist
+  (Abgrenzung zum bereits vorhandenen "Papierbasiert (HAW)").
+- **Parameter**: "Keine Einstellparameter" - für Systeme ohne jegliche
+  Einstellparameter.
+- **Benutzerverwaltung**: "Softwareapplikation (FRASDAT105/QualiPSO)" -
+  für Softwareapplikationen ohne eigene Benutzerverwaltung, bei denen
+  die Zugriffsverwaltung stattdessen über die durch CSV kontrollierte
+  Laufwerksumgebung auf FRASDAT105 bzw. das validierte CMS QualiPSO
+  erfolgt.
+
 ### ERES/GAMP5/Testtiefe-Kaskade + Scroll-Position bei "Zwischenspeichern"
 
 - **ERES-Typ N/A kaskadiert jetzt korrekt**: Tabelle 11 (Kapitel 6,
