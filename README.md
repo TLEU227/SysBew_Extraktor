@@ -618,6 +618,25 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Bugfix: Kapitel 5 selbst blieb im erzeugten Dokument leer
+
+- Der Kapitel-5-Baum lieferte zwar korrekt die daraus abgeleiteten
+  Werte für CS-Typ/Gerätekategorie/DI-EE-Anforderungen/Vereinfachte
+  Qualifizierung (Kapitel 2/6/7/8) - es fehlte aber die Funktion, die
+  die Antworten auch 1:1 in Kapitel 5 selbst (Tabellen 9+10, die
+  echten "5.1 Ja/Nein" usw. Checkboxen) einträgt. Kapitel 5 blieb im
+  erzeugten Dokument dadurch komplett leer, obwohl die Fragen im
+  Editor beantwortet wurden.
+- Neue Funktion `template_filler.fill_kapitel5()`: checkt die echten
+  Checkboxen in Kapitel 5 passend zu den Baum-Antworten - reine 1:1-
+  Abbildung, unabhängig von der bereits bestehenden Ableitung für die
+  anderen Kapitel.
+- Getestet: alle 155 möglichen vollständigen Antwortpfade (0 Fehler),
+  gezielte Prüfung der tatsächlichen Checkbox-Zustände in Kapitel 5
+  für mehrere Pfade (inkl. Mehrfachauswahl bei 5.12), End-to-End über
+  die echte `/vorschau`-Route des Flask-Testclients (derselbe Weg wie
+  im echten Editor).
+
 ### Dokumentenhistorie direkt nach Rollen/Unterschriften einsortiert
 
 - Abschnitt "Dokumentenhistorie" (Datum/Historie/CC-Nr. Rahmen) stand
