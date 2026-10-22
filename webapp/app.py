@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.27"
+APP_VERSION = "1.28"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -94,10 +94,12 @@ PORT = 5151
 # etwa wenn der PC in den Ruhezustand geht, die Verbindung abreisst,
 # oder der Browser abstuerzt, ohne dass ein Schliessen-Signal ankam.
 # Ein Tab, der nur in den Hintergrund/minimiert ist, schickt weiterhin
-# regelmaessig Lebenszeichen (Browser drosseln Hintergrund-Timer zwar,
-# aber nicht so stark, dass 20s ueberschritten wuerden) und beendet
-# den Server dadurch NICHT versehentlich.
-LEBENSZEICHEN_TIMEOUT_SEK = 20
+# regelmaessig Lebenszeichen - ABER Browser (v.a. Chrome) drosseln
+# Timer in Hintergrund-Tabs nach einer Weile deutlich staerker als
+# fruehere kleinere Zeitlimits vertragen haetten, wodurch der Server
+# sich faelschlicherweise beendet hat, obwohl der Tab noch offen war.
+# Grosszuegiger bemessen, um das zu vermeiden.
+LEBENSZEICHEN_TIMEOUT_SEK = 90
 SCHLIESSEN_SIGNAL_TIMEOUT_SEK = 3
 
 _letztes_lebenszeichen = time.time()
