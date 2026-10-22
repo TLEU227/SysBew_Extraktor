@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.24"
+APP_VERSION = "1.25"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -1101,6 +1101,7 @@ PARAMETER_VORLAGEN = [
     {"label": "Rezeptdaten (lokal + Backup)", "text": "Rezeptdaten Speicherort: lokal (Zugriffsgeschützt) und Datensicherung (<Backup-System, z. B. ACRONIS>)."},
     {"label": "Gemäß Funktionsspezifikation PLS", "text": "Die Parametrierung der verschiedenen Softwareobjekte und -Funktionen erfolgt gemäß den Funktionsspezifikationen der PLS-Teilanlagen."},
     {"label": "Fest hinterlegt, nicht parametrierbar", "text": "Die Anlagenprozesse sind im System fest hinterlegt und können nicht parametriert werden."},
+    {"label": "Keine Einstellparameter", "text": "Das System verfügt über keine Einstellparameter."},
     {"label": "Spezifikation über Bedien-SOP", "text": "Die Spezifikation der Prozessparameter erfolgt über die Bedien-SOP <SOP-Nr.> / die Funktionsspezifikation mit der Dok.-Nr. <Dok.-Nr.>."},
     {"label": "Backup/Restore gemäß SOP", "text": "Im Falle einer schwerwiegenden Anlagenstörung, können die Parameter übergangsweise über den etablierten Backup / Restore-Prozess gemäß alter QU-SOP-0017807 „Planung und Durchführung des Backup / Restore von Automatisierungs- und Betriebsdaten-informationssystemen“ wieder hergestellt werden. Im Rahmen der zyklischen Requalifizierung soll das Backup/Restore-Konzept an die neue SOP QU-SOP-0077934 „Campus Frankfurt Backup & Restore“ angepasst werden."},
     {"label": "Q-Bericht (Referenz)", "text": "Q-Bericht: <Nr.> vom <Datum>."},
@@ -1118,6 +1119,7 @@ ALARME_VORLAGEN = [
 ]
 CHARGENPROTOKOLL_VORLAGEN = [
     {"label": "Papierbasiert (HAW)", "text": "Es werden keine elektronischen Chargenprotokolle mit dem System erzeugt. Es ist ein papierbasierter Prozess über Herstellanweisungen (HAW) etabliert."},
+    {"label": "Ausdruck als Bestandteil des Chargenprotokolls", "text": "Das Chargenprotokoll wird mittels Ausdruck erstellt bzw. der Ausdruck ist Bestandteil des Chargenprotokolls der Charge."},
     {"label": "Keine Chargenprotokolle", "text": "Das System erzeugt keine Chargenprotokolle."},
     {"label": "Audit Trail & Chargendaten (lokal + Server)", "text": "Audit Trail & Chargendaten Speicherort: lokal (Zugriffsgeschützt) und <Server, z. B. DASP-Server>."},
     {"label": "PDR über überlagertes BDIS", "text": "Das <PLS, z. B. „PLS Musterlinie“> stellt Chargendaten dem überlagerten <BDIS, z. B. „BDIS Musterlinie“> (MLCS-ID: <ID>) zur Verfügung, welches chargenbezogene Prozessdatenreports (PDR) erzeugt."},
@@ -1147,6 +1149,7 @@ BENUTZERVERWALTUNG_VORLAGEN = [
     {"label": "Personenbezogen gemäß SOP", "text": "Es wird eine personenbezogene Benutzerverwaltung gemäß QU-SOP-0020358 „GxP-Anforderungen an die Zugriffsverwaltung computergestützter Systeme“ implementiert."},
     {"label": "Domäne + lokale Notfallverwaltung", "text": "Die Benutzerverwaltung erfolgt über die Domäne. Eine lokale Benutzerverwaltung ist vorhanden und wird für Notfälle verwendet."},
     {"label": "Zentrale Benutzerverwaltung (Domäne)", "text": "Das System verfügt über eine zentrale Benutzerverwaltung, die durch die Administrativen Einheiten betreut wird. Das System verwendet die Domänen Accounts in der Applikation. Im Rahmen der Systemvalidierung wurde ein Berechtigungskonzept zur Konfiguration der Benutzerverwaltung etabliert (siehe <Dok.-Nr.>)."},
+    {"label": "Softwareapplikation (FRASDAT105/QualiPSO)", "text": "Es handelt sich um eine Softwareapplikation. Eine separate, anwendungseigene Benutzerverwaltung ist nicht vorhanden - die Zugriffsverwaltung erfolgt über die durch CSV kontrollierte Laufwerksumgebung auf FRASDAT105 bzw. über das validierte Content-Management-System (CMS) QualiPSO, in dem die Applikation abgelegt ist."},
     {"label": "Zugriffsberechtigungen separat spezifiziert", "text": "Der Punkt „Zugangs-/Zugriffsberechtigungen (<SOP-Nr., z. B. FRA-SOP-03022>)“ aus Kapitel 6.0 „Maßnahmenfestlegung für AS/BDIS“ wird nicht über die SOP-Anlagen dokumentiert, sondern über eine separate Spezifikation, da es sich um Einzel-/Gruppen-Zugangsberechtigungen handelt."},
     {"label": "Verweis auf Benutzeranforderungen", "text": "Die Anforderungen zu Benutzerverwaltung, Systemsicherheit, Virenschutz und Patch-Management können detailliert den Benutzeranforderungen des Systems entnommen werden (Dok.-Nr. <Dok.-Nr.>)."},
     {"label": "Verknüpft mit Pharma-Domäne (I-/DE-Nummer)", "text": "Die lokale Benutzerverwaltung des Systems wird mit einem Anmeldeserver in der Pharma-Domäne von Sanofi verknüpft. Dadurch ist es möglich, sich mit dem Office-Account über die I-Nummer / DE-Nummer am System anzumelden."},
