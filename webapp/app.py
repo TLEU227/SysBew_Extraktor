@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.28"
+APP_VERSION = "1.29"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -1267,6 +1267,16 @@ def _dok_nr_version_auftrennen(text):
     m = re.match(r"^(.*?)\s*/\s*Version\s*(.+?)\s*$", text, re.IGNORECASE)
     if m:
         return {"Dok. -Nr.": m.group(1).strip(), "Version_Historie": m.group(2).strip()}
+    # Nur "Version X" ohne "/" davor - das ist KEINE echte Dok.-Nr.,
+    # sondern genau der Anzeigewert, den _dok_nr_version_kombinieren()
+    # selbst erzeugt, wenn (noch) keine Dok.-Nr. vergeben ist (siehe
+    # dortigen Fallback). Ohne diesen Fall wuerde ein unveraendert
+    # abgeschicktes Feld bei einem neuen Dokument faelschlich "Version
+    # 1.0" als Dok.-Nr. abspeichern (Bugfix: betraf auch den
+    # vorgeschlagenen Dateinamen beim Download).
+    m_nur_version = re.match(r"^Version\s*(.+?)\s*$", text, re.IGNORECASE)
+    if m_nur_version:
+        return {"Dok. -Nr.": "", "Version_Historie": m_nur_version.group(1).strip()}
     return {"Dok. -Nr.": text}
 
 def _neues_dokument_aus_db_zeile(row):
@@ -1517,10 +1527,30 @@ def _draft_titel(daten):
     return name or mlcs or "(ohne Titel)"
 
 def _dateiname_vorschlag(data, vorschau=False):
-    basis = data.get("Dok. -Nr.") or data.get("MLCSID") or data.get("AS/BDIS-Name") or "Systembewertung"
-    basis = re.sub(r"[^A-Za-z0-9_\-]+", "_", basis).strip("_") or "Systembewertung"
-    suffix = "_VORSCHAU" if vorschau else ""
-    return f"{basis}_Systembewertung{suffix}.docx"
+    """Baut einen sprechenden Dateinamen aus Systemname/Bereich
+    (Betrieb)/Version/MLCS-ID statt nur der Dok.-Nr. (die bei einem
+    neuen Dokument ohnehin noch leer ist, siehe
+    _neues_dokument_aus_db_zeile) - Teile, die (noch) nicht befuellt
+    sind, werden einfach ausgelassen (z.B. nur "Systembewertung.docx"
+    bei einem komplett leeren neuen Dokument)."""
+    systemname = (data.get("AS/BDIS-Name") or "").strip()
+    bereich = (data.get("Betrieb") or "").strip()
+    version = (data.get("Version_Historie") or "").strip()
+    mlcs = (data.get("MLCSID") or "").strip()
+
+    teile = ["Systembewertung"] + [t for t in (systemname, bereich) if t]
+    if version:
+        teile.append(f"Version {version}")
+    name = " ".join(teile)
+    if mlcs:
+        name += f" (MLCS-ID {mlcs})"
+    if vorschau:
+        name += " VORSCHAU"
+    # Nur echte, unter Windows in Dateinamen verbotene Zeichen
+    # ersetzen - Leerzeichen/Klammern/Punkte bleiben erhalten, damit
+    # der Name lesbar bleibt.
+    name = re.sub(r'[<>:"/\\|?*]', "_", name).strip(" .")
+    return f"{name}.docx"
 
 def _vorschau_hinweis_einfuegen(doc):
     """Fuegt ganz oben im Dokument einen deutlich sichtbaren Hinweis

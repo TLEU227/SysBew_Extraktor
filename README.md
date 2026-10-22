@@ -618,6 +618,25 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Bugfix Dateiname + sprechender Dateiname statt Dok.-Nr.
+
+- **Bugfix**: Das kombinierte "Dok.-Nr. / Version"-Feld zeigt bei
+  einem neuen Dokument (ohne eigene Dok.-Nr.) standardmäßig "Version
+  1.0" an (siehe `_dok_nr_version_kombinieren`). Wurde dieses Feld
+  unverändert abgeschickt, interpretierte `_dok_nr_version_auftrennen`
+  den Anzeigetext faelschlich als echte Dok.-Nr. - das erzeugte
+  Dokument hieß dadurch z. B. "Version_1_0_Systembewertung.docx"
+  statt eines sprechenden Namens. Jetzt wird "Version X" ohne
+  vorangestellte Dok.-Nr. korrekt wieder als "keine Dok.-Nr., nur
+  Version X" erkannt.
+- **Neues Dateinamensformat**: "Systembewertung &lt;Systemname&gt;
+  &lt;Bereich&gt; Version &lt;X&gt; (MLCS-ID &lt;Y&gt;).docx" statt
+  nur der (bei neuen Dokumenten ohnehin leeren) Dok.-Nr. - Teile, die
+  (noch) nicht befüllt sind, werden einfach ausgelassen.
+- Getestet: alle 155 Kapitel-5-Antwortpfade (weiterhin 0 Fehler),
+  Flask-Testclient mit mehreren Dateinamen-Szenarien (leer, mit
+  Systemname, mit allen Angaben, mit echter Dok.-Nr./Version).
+
 ### Auto-Beenden-Timeout von 20s auf 90s erhöht
 
 - Der Server hat sich teils fälschlicherweise beendet, obwohl noch ein
