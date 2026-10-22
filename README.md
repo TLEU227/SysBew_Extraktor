@@ -618,6 +618,45 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### ERES/GAMP5/Testtiefe-Kaskade + Scroll-Position bei "Zwischenspeichern"
+
+- **ERES-Typ N/A kaskadiert jetzt korrekt**: Tabelle 11 (Kapitel 6,
+  ERES-Typ) hat selbst eine "N/A"-Zeile mit "Weiter mit Kapitel 9" -
+  GAMP5 Software-Kategorie (Kapitel 7) und Testtiefe (Kapitel 8)
+  werden bei ERES N/A dadurch IMMER übersprungen, unabhängig vom
+  CS-Typ. Gilt jetzt unabhängig davon, ob ERES-Typ N/A automatisch
+  (z. B. über Kapitel 5) oder direkt in Kapitel 2 gewählt wird - GAMP5
+  wird dann ebenfalls automatisch auf N/A gesetzt (Testtiefe bricht
+  bei GAMP N/A ohnehin schon von selbst ab, siehe `fill_testtiefe`).
+- **Kapitel-5-Endpunkte CIS, CE-PCS, CE-LCE und S2** setzen ERES-Typ/
+  GAMP5/Testtiefe jetzt ebenfalls automatisch auf N/A (Fachbereichs-
+  Vorgabe: diese werden bereits an anderer Stelle/auf globaler Ebene
+  bewertet) - **S1 bleibt davon unberührt** (ERES-Typ/GAMP5 bleiben
+  dort normal abfragbar, da S1 laut Template weiterhin "Weiter mit
+  Kapitel 7" vorsieht und "keine E-Records" dort Typ 1/2 ist, nicht
+  N/A).
+- **Globale CS-Klasse (Kapitel 3)**: Sobald eine der 4 Klassen gewählt
+  wird, werden ERES-Typ/GAMP5/Testtiefe ebenfalls automatisch auf N/A
+  gesetzt - ein global klassifiziertes CS wird dort bereits auf
+  globaler Ebene bewertet, nicht erneut lokal pro Standort.
+- **Bugfix "Zwischenspeichern" springt an den Seitenanfang**: Da
+  "Zwischenspeichern" (anders als "Vorschau"/"Fertigstellen", die nur
+  einen Datei-Download auslösen) tatsächlich die Seite neu lädt
+  (Redirect), ging die Scroll-Position dabei bisher verloren. Wird
+  jetzt per `sessionStorage` vor dem Absenden gemerkt und nach dem
+  Neuladen wieder hergestellt (inkl. `history.scrollRestoration =
+  "manual"`, da Chrome bei dieser Navigationsart sonst selbst
+  versucht, die Scroll-Position wiederherzustellen, und das sonst
+  nach der eigenen Wiederherstellung nochmal zuschlagen kann).
+- Getestet: alle 155 möglichen vollständigen Antwortpfade durch den
+  Kapitel-5-Baum (inkl. aller Kombinationen der Mehrfachauswahl bei
+  5.12) gegen `_kapitel5_ableiten()` + `fill_template()` - 0 Fehler
+  (die reale 737-Zeilen-Master-Excel-Regression deckt die Kapitel-5-
+  Logik selbst nicht ab, da dort nie K5_*-Felder vorkommen - die
+  Pfad-Aufzählung ist für diese Änderung die aussagekräftigere
+  Testabdeckung). Scroll-Verhalten mit echtem Headless-Browser
+  (Playwright) gegen den laufenden Server verifiziert.
+
 ### Editor-Reihenfolge an das echte Template angeglichen + Kapitel-5-Feinschliff
 
 - **Kapitel-Zuordnung korrigiert:** "GxP_Produktqualitaet"/

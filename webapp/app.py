@@ -58,7 +58,7 @@ app.secret_key = "sysbew-editor-lokal"
 # damit sich nach einem "git pull" auf einen Blick pruefen laesst, ob
 # der gerade laufende Prozess auch tatsaechlich neu gestartet wurde
 # (Flask laedt Code-Aenderungen NICHT automatisch nach, debug=False).
-APP_VERSION = "1.23"
+APP_VERSION = "1.24"
 
 @app.context_processor
 def _globale_template_variablen():
@@ -408,7 +408,10 @@ KATEGORIE_HINWEISE = {
         "„Globales CS“ automatisch mit übernommen (Kapitel 1 + Kapitel 3) - eine "
         "eigene Abfrage dafür entfällt, da sie sich aus der Klasse selbst ergibt. "
         "Trifft keine der 4 Klassen zu, bitte „N/A“ wählen (Kapitel 3 wird dann als "
-        "nicht relevant markiert, weiter mit Kap. 4)."
+        "nicht relevant markiert, weiter mit Kap. 4). Bei Auswahl einer Klasse werden "
+        "zusätzlich ERES-Typ/GAMP5 Software-Kategorie/Testtiefe automatisch auf N/A "
+        "gesetzt - ein global klassifiziertes CS wird dort bereits auf globaler Ebene "
+        "bewertet, nicht erneut lokal."
     ),
     "Periodic Review": (
         "Zyklische Requalifizierung gemäß QU-SOP-0072260 (kein Kreuz bei CIS und "
@@ -421,8 +424,8 @@ KATEGORIE_HINWEISE = {
         "PR wird im Quality Review der ReQ referenziert - QU-SOP-0072260 Kap. 5.3.1; "
         "QU-MT-0009673 Kap. 2.6)."
     ),
-    "ERES-Typ": "Diese Auswahl wird zusätzlich in Kapitel 6 des Dokuments übernommen.",
-    "GAMP5 Software-Kategorie": "Diese Auswahl wird zusätzlich in Kapitel 7 des Dokuments übernommen.",
+    "ERES-Typ": "Diese Auswahl wird zusätzlich in Kapitel 6 des Dokuments übernommen. Bei „N/A“ werden GAMP5 Software-Kategorie (Kapitel 7) und Testtiefe (Kapitel 8) automatisch mit auf N/A gesetzt - laut Template bei ERES N/A direkt „Weiter mit Kapitel 9“.",
+    "GAMP5 Software-Kategorie": "Diese Auswahl wird zusätzlich in Kapitel 7 des Dokuments übernommen. Nur relevant, wenn oben bei „ERES-Typ“ NICHT N/A gewählt wurde.",
     "GxP-Kritikalität": "Diese Auswahl fließt zusammen mit der Software-Kategorie automatisch in die Testtiefe (Kapitel 2 + Kapitel 8) ein.",
 }
 
@@ -551,10 +554,10 @@ KAPITEL5_KNOTEN = [
              "ergebnis": "CS-Typ S0 · Verifizierung bei jedem Einsatz · Ende der Systembewertung (Kapitel 6-9 nicht relevant).",
              "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie", "Kommt KI zum Einsatz?"]},
             {"wert": "s1", "label": "S1 - Applikation ohne Datenspeicherung", "naechste": None,
-             "ergebnis": "CS-Typ S1 · Validierung nach QU-SOP-0028559 · weiter mit Kapitel 7 (GAMP relevant, ERES/Kapitel 6 nicht - keine Datenspeicherung).",
-             "versteckt": ["ERES-Typ"]},
+             "ergebnis": "CS-Typ S1 · Validierung nach QU-SOP-0028559 · bei „ERES-Typ“ unten i. d. R. Typ 1 oder 2 (keine E-Records) wählen, NICHT N/A - GAMP5 bleibt relevant (weiter mit Kapitel 7)."},
             {"wert": "s2", "label": "S2 - Applikation mit Datenspeicherung", "naechste": None,
-             "ergebnis": "CS-Typ S2 · Validierung nach QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+             "ergebnis": "CS-Typ S2 · Validierung nach QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
         ],
     },
     {
@@ -562,7 +565,8 @@ KAPITEL5_KNOTEN = [
         "frage": "5.3 - Besteht das System lediglich aus Software ohne steuerbare Elemente (z. B. SAP, EDS, PRODIS, MES)?",
         "optionen": [
             {"wert": "ja", "label": "Ja", "naechste": None,
-             "ergebnis": "CS-Typ CIS · Validierung nach QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+             "ergebnis": "CS-Typ CIS · Validierung nach QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
             {"wert": "nein", "label": "Nein", "naechste": "5.4"},
         ],
     },
@@ -599,9 +603,11 @@ KAPITEL5_KNOTEN = [
         "frage": "5.6 - Prozesskontrolle/-lenkung/-analyse (PCS) oder Steuerung von Analysegeräten (LCE)?",
         "optionen": [
             {"wert": "pcs", "label": "PCS - Prozesskontrolle/-lenkung/-analyse", "naechste": None,
-             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C3 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C3 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
             {"wert": "lce", "label": "LCE - steuert Analysegerät(e)", "naechste": None,
-             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C3 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C3 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
         ],
     },
     {
@@ -620,9 +626,11 @@ KAPITEL5_KNOTEN = [
         "frage": "5.7 - PCS oder LCE?",
         "optionen": [
             {"wert": "pcs", "label": "PCS - Prozesskontrolle/-lenkung/-analyse", "naechste": None,
-             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C2 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C2 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
             {"wert": "lce", "label": "LCE - steuert Analysegerät(e)", "naechste": None,
-             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C2 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant)."},
+             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C2 (Subkategorie in „Besonderheiten“ ergänzen) · Qualifizierung QU-SOP-0021736 + Validierung QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A.",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
         ],
     },
     {
@@ -695,9 +703,11 @@ KAPITEL5_KNOTEN = [
         "frage": "5.12 - PCS oder LCE?",
         "optionen": [
             {"wert": "pcs", "label": "PCS - Prozesskontrolle/-lenkung/-analyse", "naechste": None,
-             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C (QU-SOP-0021736) · Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant, keine DI-EE-Anforderungen mehr - volle CS-Validierung ersetzt diese)."},
+             "ergebnis": "CS-Typ CE-PCS · Gerätekategorie C (QU-SOP-0021736) · Validierung QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A - keine DI-EE-Anforderungen mehr (volle CS-Validierung ersetzt diese).",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
             {"wert": "lce", "label": "LCE - steuert Analysegerät(e)", "naechste": None,
-             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C (QU-SOP-0021736) · Validierung QU-SOP-0049866 · weiter mit Kapitel 6 (ERES + GAMP relevant, keine DI-EE-Anforderungen mehr - volle CS-Validierung ersetzt diese)."},
+             "ergebnis": "CS-Typ CE-LCE · Gerätekategorie C (QU-SOP-0021736) · Validierung QU-SOP-0049866 · ERES-Typ/GAMP5/Testtiefe automatisch N/A - keine DI-EE-Anforderungen mehr (volle CS-Validierung ersetzt diese).",
+             "versteckt": ["ERES-Typ", "GAMP5 Software-Kategorie"]},
         ],
     },
 ]
@@ -814,10 +824,10 @@ def _kapitel5_ableiten(data):
             return ziel
         if data.get("K5_2_TYP_s1") == "r":
             cs_typ("VNAP_S1"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
-            ziel["_versteckt"] = ["ERES-Typ"]
             return ziel
         if data.get("K5_2_TYP_s2") == "r":
             cs_typ("VNAP_S2"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         return {}  # 5.2a noch nicht beantwortet
     if data.get("K5_2_nein") != "r":
@@ -826,6 +836,7 @@ def _kapitel5_ableiten(data):
     # 5.3
     if data.get("K5_3_ja") == "r":
         cs_typ("Systemtyp_CIS"); geraetekategorie("N/A"); vereinfachte_qualifizierung(False); di_ee()
+        ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
         return ziel
     if data.get("K5_3_nein") != "r":
         return {}
@@ -850,9 +861,11 @@ def _kapitel5_ableiten(data):
     if data.get("K5_6_ja") == "r":
         if data.get("K5_6_TYP_pcs") == "r":
             cs_typ("Subtyp_PCS"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         if data.get("K5_6_TYP_lce") == "r":
             cs_typ("Subtyp_LCE"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         return {}
     if data.get("K5_6_nein") != "r":
@@ -862,9 +875,11 @@ def _kapitel5_ableiten(data):
     if data.get("K5_7_ja") == "r":
         if data.get("K5_7_TYP_pcs") == "r":
             cs_typ("Subtyp_PCS"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         if data.get("K5_7_TYP_lce") == "r":
             cs_typ("Subtyp_LCE"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         return {}
     if data.get("K5_7_nein") != "r":
@@ -918,9 +933,11 @@ def _kapitel5_ableiten(data):
         # volle CS-Validierung ersetzt die DI-EE-Anforderungen.
         if data.get("K5_12_TYP_pcs") == "r":
             cs_typ("Subtyp_PCS"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         if data.get("K5_12_TYP_lce") == "r":
             cs_typ("Subtyp_LCE"); geraetekategorie("C"); vereinfachte_qualifizierung(False); di_ee()
+            ziel["_versteckt"] = ["ERES-Typ", "GAMP5 Software-Kategorie"]
             return ziel
         return {}  # 5.12a noch nicht beantwortet
 
@@ -1545,6 +1562,19 @@ def _dokument_erzeugen_und_senden(data, vorschau=False):
                 continue
             for _feld, _ in info["optionen"]:
                 data[_feld] = "r" if _feld == na_feld else "c"
+    # Kapitel 6 (ERES-Typ) hat selbst eine N/A-Zeile im Template, die
+    # direkt "Weiter mit Kapitel 9" vorsieht - Kapitel 7 (GAMP5
+    # Software-Kategorie) und Kapitel 8 (Testtiefe) werden bei ERES
+    # N/A also IMMER uebersprungen, unabhaengig vom CS-Typ (Tabelle 11,
+    # Zeile "N/A"). Gilt unabhaengig davon, ob ERES-Typ N/A oben per
+    # Kapitel-5-Ast automatisch gesetzt wurde ODER direkt in Kapitel 2
+    # ausgewaehlt wird - GAMP5 wird dann ebenfalls automatisch auf N/A
+    # gesetzt (Testtiefe bricht bei GAMP N/A ohnehin schon von selbst
+    # ab, siehe fill_testtiefe).
+    if data.get("ERESTYPNA") == "r":
+        for _feld in ("KAT1", "KAT3", "KAT4", "KAT5"):
+            data[_feld] = "c"
+        data["KATNA"] = "r"
     # "Kommt KI zum Einsatz?" (siehe _KATEGORIEN_ZUSATZ) -> Kapitel-2-
     # Checkbox + Begruendung: bei "Nein" wird KINA gesetzt (die genaue
     # Stufe I-VI wird im Editor nicht mehr abgefragt, siehe SKIP_FELDER)
@@ -1571,6 +1601,20 @@ def _dokument_erzeugen_und_senden(data, vorschau=False):
     # ohnehin automatisch daraus, dass KLASS_Global nicht "r" ist).
     if any(data.get(f) == "r" for f in ("KLASS_Global_1a", "KLASS_Global_1b", "KLASS_Global_2", "KLASS_Global_3")):
         data["KLASS_Global"] = "r"
+        # Ein global klassifiziertes CS wird auf globaler Ebene bereits
+        # bewertet (ERES-Typ/GAMP5 Software-Kategorie) - lokal pro
+        # Standort nicht erneut einzeln (Fachbereichs-Vorgabe, nicht
+        # 1:1 textlich im Template - siehe auch die ERES-N/A-Kaskade
+        # weiter oben). Testtiefe bricht bei GAMP N/A ohnehin
+        # automatisch ab (fill_testtiefe). Direkt hier statt ueber die
+        # oben stehende ERES->GAMP-Kaskade gesetzt, da "Globale CS-
+        # Klasse" erst HIER feststeht (Ausfuehrungsreihenfolge).
+        for _feld in ("ERESTYP1", "ERESTYP2", "ERESTYP3", "ERESTYP4"):
+            data[_feld] = "c"
+        data["ERESTYPNA"] = "r"
+        for _feld in ("KAT1", "KAT3", "KAT4", "KAT5"):
+            data[_feld] = "c"
+        data["KATNA"] = "r"
     tmp_dir = tempfile.mkdtemp(prefix="sysbew_")
     dateiname = _dateiname_vorschlag(data, vorschau=vorschau)
     ausgabe_pfad = os.path.join(tmp_dir, dateiname)
