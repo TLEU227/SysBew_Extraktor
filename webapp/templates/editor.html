@@ -230,5 +230,47 @@
     });
     kapitel5Aktualisieren();
   })();
+
+  // "Zwischenspeichern" fuehrt zu einem Redirect (siehe editor_speichern)
+  // - im Gegensatz zu "Vorschau"/"Fertigstellen" (Datei-Download, der
+  // Browser bleibt dabei auf der aktuellen Seite) verlaesst der Browser
+  // die Seite hier tatsaechlich neu und setzt den Scroll sonst auf
+  // Null zurueck. Scroll-Position deshalb vor dem Absenden merken und
+  // nach dem Neuladen wieder herstellen (steht bewusst nach der
+  // Kapitel-5-Initialisierung oben, da deren Ein-/Ausblenden die
+  // Seitenhoehe veraendert, bevor hier gescrollt wird).
+  (function () {
+    var formular = document.getElementById("editor-formular");
+    var schluessel = "sysbew_scroll_{{ draft.id }}";
+    if ("scrollRestoration" in history) {
+      // Chrome versucht bei dieser Art Navigation (Redirect nach POST)
+      // selbst, die Scroll-Position wiederherzustellen - das kann NACH
+      // unserem eigenen window.scrollTo() unten nochmal zuschlagen und
+      // es wieder zunichte machen. Deaktiviert, da wir die Wieder-
+      // herstellung bewusst selbst steuern.
+      history.scrollRestoration = "manual";
+    }
+    if (formular) {
+      formular.addEventListener("submit", function (ev) {
+        var absender = ev.submitter;
+        if (absender && (absender.getAttribute("formaction") || "").indexOf("/speichern") !== -1) {
+          sessionStorage.setItem(schluessel, window.scrollY);
+        }
+      });
+    }
+    var gespeichert = sessionStorage.getItem(schluessel);
+    if (gespeichert !== null) {
+      sessionStorage.removeItem(schluessel);
+      var zielY = parseInt(gespeichert, 10);
+      // Erst sofort versuchen, dann nach vollstaendigem Laden (Bilder
+      // etc.) nochmal erzwingen - window.scrollTo() kann sonst durch
+      // eine zu diesem Zeitpunkt noch kleinere Seitenhoehe auf einen
+      // niedrigeren Wert "geclampt" werden.
+      window.scrollTo(0, zielY);
+      window.addEventListener("load", function () {
+        window.scrollTo(0, zielY);
+      });
+    }
+  })();
 </script>
 {% endblock %}
