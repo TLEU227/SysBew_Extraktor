@@ -618,6 +618,14 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Auto-Beenden-Timeout von 20s auf 90s erhöht
+
+- Der Server hat sich teils fälschlicherweise beendet, obwohl noch ein
+  Browser-Tab offen war - moderne Browser (v. a. Chrome) drosseln
+  Timer in Hintergrund-Tabs nach einer Weile stärker als der bisherige
+  20-Sekunden-Puffer vertragen hat (z. B. beim kurzen Wechsel in ein
+  anderes Fenster). `LEBENSZEICHEN_TIMEOUT_SEK` jetzt auf 90s erhöht.
+
 ### Bugfix: Kapitel 5 selbst blieb im erzeugten Dokument leer
 
 - Der Kapitel-5-Baum lieferte zwar korrekt die daraus abgeleiteten
