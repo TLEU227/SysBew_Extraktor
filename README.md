@@ -618,6 +618,16 @@ pip install -r webapp/requirements.txt
   Fehler), End-to-End über den Flask-Testclient (Editor-Rendering +
   Fertigstellen mit den neuen Feldern).
 
+### Dokumentenhistorie direkt nach Rollen/Unterschriften einsortiert
+
+- Abschnitt "Dokumentenhistorie" (Datum/Historie/CC-Nr. Rahmen) stand
+  bisher ganz am Ende des Editors - steht im Template aber in Tabelle
+  1 ("Version / Freigabedatum") direkt NACH der Rollen-/Unterschriften-
+  tabelle (Tabelle 0) und VOR "Grund der Systembewertung" (Tabelle 2,
+  Kapitel 1). Jetzt entsprechend direkt nach "Deckblatt – Rollen/
+  Unterschriften" einsortiert (`sysbew_common.VORSCHAU_ABSCHNITTE`,
+  betrifft auch die Konsolen-Vorschau von `word_parser_main.py`).
+
 ### 3 neue Textbaustein-Vorschläge (Chargenprotokoll/Parameter/Benutzerverwaltung)
 
 - **Chargenprotokoll**: "Ausdruck als Bestandteil des Chargenprotokolls" -

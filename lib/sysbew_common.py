@@ -1282,6 +1282,14 @@ VORSCHAU_ABSCHNITTE = [
     ("Deckblatt – Rollen/Unterschriften", [
         "Ersteller", "SME", "SI/PL", "TSO", "BSO", "BQR", "CSQ",
     ]),
+    # Tabelle 1 im Template ("Version / Freigabedatum") - steht dort
+    # direkt NACH der Rollen-/Unterschriftentabelle (Tabelle 0) und VOR
+    # "Grund der Systembewertung"/Systembeschreibung (Tabelle 2, siehe
+    # "Kapitel 1 – Systembewertung" unten) - deshalb hier statt am Ende
+    # einsortiert.
+    ("Dokumentenhistorie", [
+        "Bearbeiter", "Datum", "Version_Historie", "Historie",
+    ]),
     ("Deckblatt – Identifikation", [
         # MLCS-ID bewusst DIREKT vor dem Systemnamen (AS/BDIS-Name) -
         # beide gehoeren fachlich zusammen ("welches System ist das").
@@ -1338,9 +1346,6 @@ VORSCHAU_ABSCHNITTE = [
         "Schnittstellen mit PLS", "Angeschlossenes Equipment",
         "Sonstiges", "KI Bewertung",
         "Bemerkung1", "Bemerkung2", "Bemerkung3", "Bemerkung4",
-    ]),
-    ("Dokumentenhistorie", [
-        "Bearbeiter", "Datum", "Version_Historie", "Historie",
     ]),
     ("Intern", [
         "Python ja/nein",
